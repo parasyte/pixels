@@ -8,8 +8,8 @@ fn main() -> Result<(), PixelsError> {
 
     let (_window, surface) = {
         let window = winit::window::Window::new(&event_loop).unwrap();
-
         let surface = wgpu::Surface::create(&window);
+
         (window, surface)
     };
 
