@@ -1,0 +1,21 @@
+[package]
+name = "pixels"
+description = "A tiny library providing a GPU-powered pixel frame buffer."
+version = "0.0.1"
+authors = ["Jay Oster <jay@kodewerx.org>"]
+edition = "2018"
+repository = "https://github.com/parasyte/pixels"
+readme = "README.md"
+keywords = ["pixels", "2D", "GPU", "framebuffer"]
+categories = ["graphics", "rendering"]
+license = "MIT"
+
+[dependencies]
+proc-spirv = "0.0.1"
+wgpu = { git = "https://github.com/gfx-rs/wgpu-rs", rev = "697393df4793e1a58578209885036114adfb9213" }
+
+[dev-dependencies]
+env_logger = "0.7"
+log = { version = "0.4", features = ["release_max_level_warn"] }
+raw-window-handle = "0.1"
+winit = "0.20.0-alpha3"
