@@ -1,8 +1,8 @@
-use pixels::{Pixels, PixelsError};
+use pixels::{Error, Pixels};
 use winit::event;
 use winit::event_loop::{ControlFlow, EventLoop};
 
-fn main() -> Result<(), PixelsError> {
+fn main() -> Result<(), Error> {
     env_logger::init();
     let event_loop = EventLoop::new();
 

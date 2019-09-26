@@ -14,7 +14,7 @@
 // Needed for proc-spirv
 #![feature(proc_macro_hygiene)]
 
-use std::error::Error;
+use std::error::Error as StdError;
 use std::fmt;
 use std::io::Cursor;
 
@@ -42,9 +42,12 @@ pub struct PixelsOptions {
 
 /// All the ways in which creating a frame buffer can fail.
 #[derive(Debug)]
-pub enum PixelsError {
+pub enum Error {
+    /// No suitable Adapter found
     AdapterNotFound,
+    /// Vertex shader is invalid SPIR-V
     VertexShaderInvalid,
+    /// Fragment shader is invalid SPIR-V
     FragmentShaderInvalid,
 }
 
@@ -80,15 +83,15 @@ pub enum PixelsError {
 /// # }
 /// # let surface = wgpu::Surface::create(&RWH());
 /// let fb = Pixels::new(320, 240, &surface)?;
-/// # Ok::<(), pixels::PixelsError>(())
+/// # Ok::<(), pixels::Error>(())
 /// ```
 impl Pixels {
     /// Create a frame buffer instance with default options.
     ///
     /// # Errors
     ///
-    /// Returns `PixelsError` when a `wgpu::Adapter` cannot be found.
-    pub fn new(width: u32, height: u32, surface: &wgpu::Surface) -> Result<Pixels, PixelsError> {
+    /// Returns an error when a `wgpu::Adapter` cannot be found.
+    pub fn new(width: u32, height: u32, surface: &wgpu::Surface) -> Result<Pixels, Error> {
         Pixels::new_with_options(width, height, surface, PixelsOptions::new())
     }
 
@@ -96,24 +99,24 @@ impl Pixels {
     ///
     /// # Errors
     ///
-    /// Returns `PixelsError` when a `wgpu::Adapter` cannot be found or shaders
+    /// Returns an error when a `wgpu::Adapter` cannot be found or shaders
     /// are invalid SPIR-V.
     pub fn new_with_options(
         width: u32,
         height: u32,
         surface: &wgpu::Surface,
         options: PixelsOptions,
-    ) -> Result<Pixels, PixelsError> {
+    ) -> Result<Pixels, Error> {
         let adapter = wgpu::Adapter::request(&options.request_adapter_options)
-            .ok_or(PixelsError::AdapterNotFound)?;
+            .ok_or(Error::AdapterNotFound)?;
         let (device, queue) = adapter.request_device(&options.device_descriptor);
         let vs_module = device.create_shader_module(
             &wgpu::read_spirv(Cursor::new(&options.vertex_spirv))
-                .map_err(|_| PixelsError::VertexShaderInvalid)?,
+                .map_err(|_| Error::VertexShaderInvalid)?,
         );
         let fs_module = device.create_shader_module(
             &wgpu::read_spirv(Cursor::new(&options.fragment_spirv))
-                .map_err(|_| PixelsError::FragmentShaderInvalid)?,
+                .map_err(|_| Error::FragmentShaderInvalid)?,
         );
 
         // The rest of this is technically a fixed-function pipeline... For now!
@@ -241,7 +244,7 @@ impl Pixels {
 /// #     );
 /// #   }
 /// # }
-/// # fn main() -> Result<(), pixels::PixelsError> {
+/// # fn main() -> Result<(), pixels::Error> {
 /// # let surface = wgpu::Surface::create(&RWH());
 /// let fb = PixelsOptions::new()
 ///     .fragment_spirv(spirv_from_file!(Fragment, "shaders/shader.frag", "main").to_vec())
@@ -283,14 +286,9 @@ impl PixelsOptions {
     ///
     /// # Errors
     ///
-    /// Returns `PixelsError` when a `wgpu::Adapter` cannot be found or shaders
+    /// Returns an error when a `wgpu::Adapter` cannot be found or shaders
     /// are invalid SPIR-V.
-    pub fn build(
-        self,
-        width: u32,
-        height: u32,
-        surface: &wgpu::Surface,
-    ) -> Result<Pixels, PixelsError> {
+    pub fn build(self, width: u32, height: u32, surface: &wgpu::Surface) -> Result<Pixels, Error> {
         Pixels::new_with_options(width, height, surface, self)
     }
 }
@@ -309,18 +307,18 @@ impl Default for PixelsOptions {
     }
 }
 
-impl fmt::Display for PixelsError {
+impl fmt::Display for Error {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{}", self.description())
     }
 }
 
-impl Error for PixelsError {
+impl StdError for Error {
     fn description(&self) -> &str {
         match self {
-            PixelsError::AdapterNotFound => "Adapter not found",
-            PixelsError::FragmentShaderInvalid => "Fragment shader is invalid SPIR-V",
-            PixelsError::VertexShaderInvalid => "Vertex shader is invalid SPIR-V",
+            Error::AdapterNotFound => "No suitable Adapter found",
+            Error::VertexShaderInvalid => "Vertex shader is invalid SPIR-V",
+            Error::FragmentShaderInvalid => "Fragment shader is invalid SPIR-V",
         }
     }
 }
