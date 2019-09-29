@@ -1,5 +1,3 @@
-# `pixels`
-
 ![Pixels Logo](img/pixels.png)
 
 A tiny library providing a GPU-powered pixel frame buffer.
