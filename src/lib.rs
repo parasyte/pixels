@@ -41,10 +41,6 @@ pub struct PixelsOptions {
 pub enum Error {
     /// No suitable Adapter found
     AdapterNotFound,
-    /// Vertex shader is invalid SPIR-V
-    VertexShaderInvalid,
-    /// Fragment shader is invalid SPIR-V
-    FragmentShaderInvalid,
 }
 
 /// # Examples
@@ -303,8 +299,6 @@ impl StdError for Error {
     fn description(&self) -> &str {
         match self {
             Error::AdapterNotFound => "No suitable Adapter found",
-            Error::VertexShaderInvalid => "Vertex shader is invalid SPIR-V",
-            Error::FragmentShaderInvalid => "Fragment shader is invalid SPIR-V",
         }
     }
 }
