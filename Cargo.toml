@@ -11,7 +11,7 @@ categories = ["graphics", "rendering"]
 license = "MIT"
 
 [dependencies]
-proc-spirv = "0.0.1"
+vk-shader-macros = "0.2"
 wgpu = { git = "https://github.com/gfx-rs/wgpu-rs", rev = "697393df4793e1a58578209885036114adfb9213" }
 
 [dev-dependencies]

@@ -11,14 +11,10 @@
 //! manager of your choice; [`winit`](https://crates.io/crates/winit) is a good
 //! place to start.
 
-// Needed for proc-spirv
-#![feature(proc_macro_hygiene)]
-
 use std::error::Error as StdError;
 use std::fmt;
-use std::io::Cursor;
 
-use proc_spirv::spirv_from_file;
+use vk_shader_macros::include_glsl;
 pub use wgpu;
 
 /// Represents a 2D frame buffer with an explicit image resolution.
@@ -36,8 +32,8 @@ pub struct Pixels {
 pub struct PixelsOptions {
     request_adapter_options: wgpu::RequestAdapterOptions,
     device_descriptor: wgpu::DeviceDescriptor,
-    vertex_spirv: Vec<u8>,
-    fragment_spirv: Vec<u8>,
+    vertex_spirv: Vec<u32>,
+    fragment_spirv: Vec<u32>,
 }
 
 /// All the ways in which creating a frame buffer can fail.
@@ -110,14 +106,8 @@ impl Pixels {
         let adapter = wgpu::Adapter::request(&options.request_adapter_options)
             .ok_or(Error::AdapterNotFound)?;
         let (device, queue) = adapter.request_device(&options.device_descriptor);
-        let vs_module = device.create_shader_module(
-            &wgpu::read_spirv(Cursor::new(&options.vertex_spirv))
-                .map_err(|_| Error::VertexShaderInvalid)?,
-        );
-        let fs_module = device.create_shader_module(
-            &wgpu::read_spirv(Cursor::new(&options.fragment_spirv))
-                .map_err(|_| Error::FragmentShaderInvalid)?,
-        );
+        let vs_module = device.create_shader_module(&options.vertex_spirv);
+        let fs_module = device.create_shader_module(&options.fragment_spirv);
 
         // The rest of this is technically a fixed-function pipeline... For now!
         let bind_group_layout =
@@ -214,8 +204,7 @@ impl Pixels {
 /// # Examples
 ///
 /// ```no_run
-/// #![feature(proc_macro_hygiene)]
-/// use proc_spirv::spirv_from_file;
+/// use vk_shader_macros::include_glsl;
 ///
 /// # use pixels::PixelsOptions;
 /// # struct RWH();
@@ -247,7 +236,7 @@ impl Pixels {
 /// # fn main() -> Result<(), pixels::Error> {
 /// # let surface = wgpu::Surface::create(&RWH());
 /// let fb = PixelsOptions::new()
-///     .fragment_spirv(spirv_from_file!(Fragment, "shaders/shader.frag", "main").to_vec())
+///     .fragment_spirv(include_glsl!("shaders/shader.frag"))
 ///     .build(320, 240, &surface)?;
 /// # Ok(())
 /// # }
@@ -271,14 +260,14 @@ impl PixelsOptions {
     }
 
     /// Set a SPIR-V vertex shader.
-    pub fn vertex_spirv(mut self, spirv: Vec<u8>) -> PixelsOptions {
-        self.vertex_spirv = spirv;
+    pub fn vertex_spirv(mut self, spirv: &[u32]) -> PixelsOptions {
+        self.vertex_spirv = spirv.to_vec();
         self
     }
 
     /// Set a SPIR-V fragment shader.
-    pub fn fragment_spirv(mut self, spirv: Vec<u8>) -> PixelsOptions {
-        self.fragment_spirv = spirv;
+    pub fn fragment_spirv(mut self, spirv: &[u32]) -> PixelsOptions {
+        self.fragment_spirv = spirv.to_vec();
         self
     }
 
@@ -295,14 +284,11 @@ impl PixelsOptions {
 
 impl Default for PixelsOptions {
     fn default() -> PixelsOptions {
-        let vertex_spirv = spirv_from_file!(Vertex, "shaders/shader.vert", "main").to_vec();
-        let fragment_spirv = spirv_from_file!(Fragment, "shaders/shader.frag", "main").to_vec();
-
         PixelsOptions {
             request_adapter_options: wgpu::RequestAdapterOptions::default(),
             device_descriptor: wgpu::DeviceDescriptor::default(),
-            vertex_spirv,
-            fragment_spirv,
+            vertex_spirv: include_glsl!("shaders/shader.vert").to_vec(),
+            fragment_spirv: include_glsl!("shaders/shader.frag").to_vec(),
         }
     }
 }
