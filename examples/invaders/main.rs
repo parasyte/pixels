@@ -6,7 +6,7 @@ fn main() -> Result<(), Error> {
     env_logger::init();
     let event_loop = EventLoop::new();
 
-    let (_window, surface) = {
+    let (window, surface) = {
         let window = winit::window::Window::new(&event_loop).unwrap();
         let surface = wgpu::Surface::create(&window);
 
@@ -26,14 +26,11 @@ fn main() -> Result<(), Error> {
                     },
                 ..
             }
-            | event::WindowEvent::CloseRequested => {
-                *control_flow = ControlFlow::Exit;
-            }
-            _ => {}
+            | event::WindowEvent::CloseRequested => *control_flow = ControlFlow::Exit,
+            event::WindowEvent::RedrawRequested => fb.render(),
+            _ => (),
         },
-        event::Event::EventsCleared => {
-            fb.render();
-        }
+        event::Event::EventsCleared => window.request_redraw(),
         _ => (),
     });
 }
