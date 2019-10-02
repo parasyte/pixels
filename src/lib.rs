@@ -1,15 +1,13 @@
 //! A tiny library providing a GPU-powered pixel pixel buffer.
 //!
-//! [`Pixels`] represents a 2D pixel buffer with an explicit image resolution,
-//! making it ideal for prototyping simple pixel-based games, animations, and
-//! emulators. The pixel buffer is rendered entirely on the GPU, allowing
-//! developers to easily incorporate special effects with shaders and a
-//! customizable pipeline.
+//! [`Pixels`] represents a 2D pixel buffer with an explicit image resolution, making it ideal for
+//! prototyping simple pixel-based games, animations, and emulators. The pixel buffer is rendered
+//! entirely on the GPU, allowing developers to easily incorporate special effects with shaders and
+//! a customizable pipeline.
 //!
-//! The GPU interface is offered by [`wgpu`](https://crates.io/crates/wgpu), and
-//! is re-exported for your convenience. Use a windowing framework or context
-//! manager of your choice; [`winit`](https://crates.io/crates/winit) is a good
-//! place to start.
+//! The GPU interface is offered by [`wgpu`](https://crates.io/crates/wgpu), and is re-exported for
+//! your convenience. Use a windowing framework or context manager of your choice;
+//! [`winit`](https://crates.io/crates/winit) is a good place to start.
 
 use std::error::Error as StdError;
 use std::fmt;
@@ -67,9 +65,8 @@ pub enum Error {
 impl<'a> SurfaceTexture<'a> {
     /// Create a logical texture for a window surface.
     ///
-    /// It is recommended (but not required) that the `width` and `height` are
-    /// equivalent to the physical dimentions of the `surface`. E.g. scaled by
-    /// the HiDPI factor.
+    /// It is recommended (but not required) that the `width` and `height` are equivalent to the
+    /// physical dimentions of the `surface`. E.g. scaled by the HiDPI factor.
     ///
     /// # Examples
     ///
@@ -225,8 +222,8 @@ impl<'a> PixelsBuilder<'a> {
 
     /// Set the pixel aspect ratio to simulate non-square pixels.
     ///
-    /// This setting enables a render pass that horizontally scales the pixel
-    /// buffer by the given factor.
+    /// This setting enables a render pass that horizontally scales the pixel buffer by the given
+    /// factor.
     ///
     /// E.g. set this to `8.0 / 7.0` for an 8:7 pixel aspect ratio.
     pub fn pixel_aspect_ratio(mut self, pixel_aspect_ratio: f64) -> PixelsBuilder<'a> {
