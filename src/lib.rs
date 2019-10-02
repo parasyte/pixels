@@ -17,6 +17,14 @@ use std::fmt;
 use vk_shader_macros::include_glsl;
 pub use wgpu;
 
+/// A logical texture for a window surface.
+#[derive(Debug)]
+pub struct SurfaceTexture<'a> {
+    surface: &'a wgpu::Surface,
+    width: u32,
+    height: u32,
+}
+
 /// Represents a 2D frame buffer with an explicit image resolution.
 #[derive(Debug)]
 pub struct Pixels {
@@ -32,6 +40,8 @@ pub struct Pixels {
 pub struct PixelsOptions {
     request_adapter_options: wgpu::RequestAdapterOptions,
     device_descriptor: wgpu::DeviceDescriptor,
+    width: u32,
+    height: u32,
 }
 
 /// All the ways in which creating a frame buffer can fail.
@@ -41,38 +51,55 @@ pub enum Error {
     AdapterNotFound,
 }
 
+impl<'a> SurfaceTexture<'a> {
+    /// Create a logical texture for a window surface.
+    ///
+    /// It is recommended (but not required) that the `width` and `height` are
+    /// equivalent to the physical dimentions of the `surface`. E.g. scaled by
+    /// the HiDPI factor.
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use pixels::SurfaceTexture;
+    /// use wgpu::Surface;
+    /// use winit::event_loop::EventLoop;
+    /// use winit::window::Window;
+    ///
+    /// let event_loop = EventLoop::new();
+    /// let window = Window::new(&event_loop).unwrap();
+    /// let surface = Surface::create(&window);
+    /// let size = window.inner_size().to_physical(window.hidpi_factor());
+    ///
+    /// let width = size.width as u32;
+    /// let height = size.height as u32;
+    ///
+    /// let surface_texture = SurfaceTexture::new(width, height, &surface);
+    /// # Ok::<(), pixels::Error>(())
+    /// ```
+    ///
+    /// # Panics
+    ///
+    /// Panics when `width` or `height` are 0.
+    pub fn new(width: u32, height: u32, surface: &'a wgpu::Surface) -> SurfaceTexture<'a> {
+        assert!(width > 0);
+        assert!(height > 0);
+
+        SurfaceTexture {
+            surface,
+            width,
+            height,
+        }
+    }
+}
+
 /// # Examples
 ///
 /// ```no_run
 /// # use pixels::Pixels;
-/// # struct RWH();
-/// # unsafe impl raw_window_handle::HasRawWindowHandle for RWH {
-/// #   fn raw_window_handle(&self) -> raw_window_handle::RawWindowHandle {
-/// #     #[cfg(target_os = "macos")]
-/// #     return raw_window_handle::RawWindowHandle::MacOS(
-/// #       raw_window_handle::macos::MacOSHandle::empty()
-/// #     );
-/// #     #[cfg(any(
-/// #       target_os = "linux",
-/// #       target_os = "dragonfly",
-/// #       target_os = "freebsd",
-/// #       target_os = "netbsd",
-/// #       target_os = "openbsd"))]
-/// #     return raw_window_handle::RawWindowHandle::X11(
-/// #       raw_window_handle::unix::X11Handle::empty()
-/// #     );
-/// #     #[cfg(target_os = "windows")]
-/// #     return raw_window_handle::RawWindowHandle::Windows(
-/// #       raw_window_handle::windows::WindowsHandle::empty()
-/// #     );
-/// #     #[cfg(target_os = "ios")]
-/// #     return raw_window_handle::RawWindowHandle::IOS(
-/// #       raw_window_handle::ios::IOSHandle::empty()
-/// #     );
-/// #   }
-/// # }
-/// # let surface = wgpu::Surface::create(&RWH());
-/// let fb = Pixels::new(320, 240, &surface)?;
+/// # let surface = wgpu::Surface::create(&pixels_mocks::RWH);
+/// # let surface_texture = pixels::SurfaceTexture::new(1024, 768, &surface);
+/// let fb = Pixels::new(320, 240, surface_texture)?;
 /// # Ok::<(), pixels::Error>(())
 /// ```
 impl Pixels {
@@ -81,8 +108,12 @@ impl Pixels {
     /// # Errors
     ///
     /// Returns an error when a `wgpu::Adapter` cannot be found.
-    pub fn new(width: u32, height: u32, surface: &wgpu::Surface) -> Result<Pixels, Error> {
-        Pixels::new_with_options(width, height, surface, PixelsOptions::new())
+    ///
+    /// # Panics
+    ///
+    /// Panics when `width` or `height` are 0.
+    pub fn new(width: u32, height: u32, surface_texture: SurfaceTexture) -> Result<Pixels, Error> {
+        Pixels::new_with_options(surface_texture, PixelsOptions::new(width, height))
     }
 
     /// Create a frame buffer instance with the given options.
@@ -92,11 +123,11 @@ impl Pixels {
     /// Returns an error when a `wgpu::Adapter` cannot be found or shaders
     /// are invalid SPIR-V.
     pub fn new_with_options(
-        width: u32,
-        height: u32,
-        surface: &wgpu::Surface,
+        surface_texture: SurfaceTexture,
         options: PixelsOptions,
     ) -> Result<Pixels, Error> {
+        // TODO: Create a texture with the dimensions specified in `options`
+
         let adapter = wgpu::Adapter::request(&options.request_adapter_options)
             .ok_or(Error::AdapterNotFound)?;
         let (device, queue) = adapter.request_device(&options.device_descriptor);
@@ -148,12 +179,12 @@ impl Pixels {
         });
 
         let swap_chain = device.create_swap_chain(
-            &surface,
+            surface_texture.surface,
             &wgpu::SwapChainDescriptor {
                 usage: wgpu::TextureUsage::OUTPUT_ATTACHMENT,
                 format: wgpu::TextureFormat::Bgra8UnormSrgb,
-                width,
-                height,
+                width: surface_texture.width,
+                height: surface_texture.height,
                 present_mode: wgpu::PresentMode::Vsync,
             },
         );
@@ -200,43 +231,30 @@ impl Pixels {
 ///
 /// ```no_run
 /// # use pixels::PixelsOptions;
-/// # struct RWH();
-/// # unsafe impl raw_window_handle::HasRawWindowHandle for RWH {
-/// #   fn raw_window_handle(&self) -> raw_window_handle::RawWindowHandle {
-/// #     #[cfg(target_os = "macos")]
-/// #     return raw_window_handle::RawWindowHandle::MacOS(
-/// #       raw_window_handle::macos::MacOSHandle::empty()
-/// #     );
-/// #     #[cfg(any(
-/// #       target_os = "linux",
-/// #       target_os = "dragonfly",
-/// #       target_os = "freebsd",
-/// #       target_os = "netbsd",
-/// #       target_os = "openbsd"))]
-/// #     return raw_window_handle::RawWindowHandle::X11(
-/// #       raw_window_handle::unix::X11Handle::empty()
-/// #     );
-/// #     #[cfg(target_os = "windows")]
-/// #     return raw_window_handle::RawWindowHandle::Windows(
-/// #       raw_window_handle::windows::WindowsHandle::empty()
-/// #     );
-/// #     #[cfg(target_os = "ios")]
-/// #     return raw_window_handle::RawWindowHandle::IOS(
-/// #       raw_window_handle::ios::IOSHandle::empty()
-/// #     );
-/// #   }
-/// # }
-/// # fn main() -> Result<(), pixels::Error> {
-/// # let surface = wgpu::Surface::create(&RWH());
-/// let fb = PixelsOptions::new()
-///     .build(320, 240, &surface)?;
-/// # Ok(())
-/// # }
+/// # let surface = wgpu::Surface::create(&pixels_mocks::RWH);
+/// # let surface_texture = pixels::SurfaceTexture::new(1024, 768, &surface);
+/// let fb = PixelsOptions::new(320, 240)
+/// #   // TODO: demonstrate adding a render pass here
+/// #   //.render_pass(...)
+///     .build(surface_texture)?;
+/// # Ok::<(), pixels::Error>(())
 /// ```
 impl PixelsOptions {
     /// Create a builder that can be finalized into a frame buffer instance.
-    pub fn new() -> PixelsOptions {
-        PixelsOptions::default()
+    ///
+    /// # Panics
+    ///
+    /// Panics when `width` or `height` are 0.
+    pub fn new(width: u32, height: u32) -> PixelsOptions {
+        assert!(width > 0);
+        assert!(height > 0);
+
+        PixelsOptions {
+            request_adapter_options: wgpu::RequestAdapterOptions::default(),
+            device_descriptor: wgpu::DeviceDescriptor::default(),
+            width,
+            height,
+        }
     }
 
     /// Add options for requesting a `wgpu::Adapter`.
@@ -257,17 +275,8 @@ impl PixelsOptions {
     ///
     /// Returns an error when a `wgpu::Adapter` cannot be found or shaders
     /// are invalid SPIR-V.
-    pub fn build(self, width: u32, height: u32, surface: &wgpu::Surface) -> Result<Pixels, Error> {
-        Pixels::new_with_options(width, height, surface, self)
-    }
-}
-
-impl Default for PixelsOptions {
-    fn default() -> PixelsOptions {
-        PixelsOptions {
-            request_adapter_options: wgpu::RequestAdapterOptions::default(),
-            device_descriptor: wgpu::DeviceDescriptor::default(),
-        }
+    pub fn build(self, surface_texture: SurfaceTexture) -> Result<Pixels, Error> {
+        Pixels::new_with_options(surface_texture, self)
     }
 }
 

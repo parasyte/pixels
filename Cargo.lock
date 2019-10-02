@@ -683,10 +683,17 @@ version = "0.0.1"
 dependencies = [
  "env_logger 0.7.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "log 0.4.8 (registry+https://github.com/rust-lang/crates.io-index)",
- "raw-window-handle 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
+ "pixels-mocks 0.1.0",
  "vk-shader-macros 0.2.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "wgpu 0.3.0 (git+https://github.com/gfx-rs/wgpu-rs?rev=697393df4793e1a58578209885036114adfb9213)",
  "winit 0.20.0-alpha3 (registry+https://github.com/rust-lang/crates.io-index)",
+]
+
+[[package]]
+name = "pixels-mocks"
+version = "0.1.0"
+dependencies = [
+ "raw-window-handle 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
