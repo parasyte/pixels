@@ -1,8 +1,8 @@
-//! A tiny library providing a GPU-powered pixel frame buffer.
+//! A tiny library providing a GPU-powered pixel pixel buffer.
 //!
-//! `Pixels` represents a 2D frame buffer with an explicit image resolution,
+//! [`Pixels`] represents a 2D pixel buffer with an explicit image resolution,
 //! making it ideal for prototyping simple pixel-based games, animations, and
-//! emulators. The frame buffer is rendered entirely on the GPU, allowing
+//! emulators. The pixel buffer is rendered entirely on the GPU, allowing
 //! developers to easily incorporate special effects with shaders and a
 //! customizable pipeline.
 //!
@@ -17,6 +17,9 @@ use std::fmt;
 use vk_shader_macros::include_glsl;
 pub use wgpu;
 
+mod render_pass;
+pub use render_pass::RenderPass;
+
 /// A logical texture for a window surface.
 #[derive(Debug)]
 pub struct SurfaceTexture<'a> {
@@ -25,29 +28,39 @@ pub struct SurfaceTexture<'a> {
     height: u32,
 }
 
-/// Represents a 2D frame buffer with an explicit image resolution.
+/// Represents a 2D pixel buffer with an explicit image resolution.
+///
+/// See [`PixelsBuilder`] for building a customized pixel buffer.
 #[derive(Debug)]
 pub struct Pixels {
-    bind_group: wgpu::BindGroup,
     device: wgpu::Device,
     queue: wgpu::Queue,
-    render_pipeline: wgpu::RenderPipeline,
+    renderer: Renderer,
     swap_chain: wgpu::SwapChain,
 }
 
-/// A builder to help create customized frame buffers.
+/// A builder to help create customized pixel buffers.
 #[derive(Debug)]
-pub struct PixelsOptions {
+pub struct PixelsBuilder<'a> {
     request_adapter_options: wgpu::RequestAdapterOptions,
     device_descriptor: wgpu::DeviceDescriptor,
     width: u32,
     height: u32,
+    pixel_aspect_ratio: f64,
+    surface_texture: SurfaceTexture<'a>,
 }
 
-/// All the ways in which creating a frame buffer can fail.
+/// Renderer implements RenderPass.
+#[derive(Debug)]
+struct Renderer {
+    bind_group: wgpu::BindGroup,
+    render_pipeline: wgpu::RenderPipeline,
+}
+
+/// All the ways in which creating a pixel buffer can fail.
 #[derive(Debug)]
 pub enum Error {
-    /// No suitable Adapter found
+    /// No suitable [`wgpu::Adapter`] found
     AdapterNotFound,
 }
 
@@ -93,44 +106,146 @@ impl<'a> SurfaceTexture<'a> {
     }
 }
 
-/// # Examples
-///
-/// ```no_run
-/// # use pixels::Pixels;
-/// # let surface = wgpu::Surface::create(&pixels_mocks::RWH);
-/// # let surface_texture = pixels::SurfaceTexture::new(1024, 768, &surface);
-/// let fb = Pixels::new(320, 240, surface_texture)?;
-/// # Ok::<(), pixels::Error>(())
-/// ```
 impl Pixels {
-    /// Create a frame buffer instance with default options.
+    /// Create a pixel buffer instance with default options.
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// # use pixels::Pixels;
+    /// # let surface = wgpu::Surface::create(&pixels_mocks::RWH);
+    /// # let surface_texture = pixels::SurfaceTexture::new(1024, 768, &surface);
+    /// let fb = Pixels::new(320, 240, surface_texture)?;
+    /// # Ok::<(), pixels::Error>(())
+    /// ```
     ///
     /// # Errors
     ///
-    /// Returns an error when a `wgpu::Adapter` cannot be found.
+    /// Returns an error when a [`wgpu::Adapter`] cannot be found.
     ///
     /// # Panics
     ///
     /// Panics when `width` or `height` are 0.
-    pub fn new(width: u32, height: u32, surface_texture: SurfaceTexture) -> Result<Pixels, Error> {
-        Pixels::new_with_options(surface_texture, PixelsOptions::new(width, height))
+    pub fn new<'a>(
+        width: u32,
+        height: u32,
+        surface_texture: SurfaceTexture<'a>,
+    ) -> Result<Pixels, Error> {
+        PixelsBuilder::new(width, height, surface_texture).build()
     }
 
-    /// Create a frame buffer instance with the given options.
+    // TODO: Support resize
+
+    /// Draw this pixel buffer to the configured [`SurfaceTexture`].
+    pub fn render(&mut self) {
+        // TODO: Center frame buffer in surface
+        let frame = self.swap_chain.get_next_texture();
+        let mut encoder = self
+            .device
+            .create_command_encoder(&wgpu::CommandEncoderDescriptor { todo: 0 });
+
+        // TODO: Run all render passes in a loop
+        self.renderer.render_pass(&mut encoder, &frame.view);
+
+        self.queue.submit(&[encoder.finish()]);
+    }
+}
+
+impl RenderPass for Renderer {
+    fn update_bindings(&mut self, _texture_view: &wgpu::TextureView) {}
+
+    fn render_pass(&self, encoder: &mut wgpu::CommandEncoder, render_target: &wgpu::TextureView) {
+        let mut rpass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
+            color_attachments: &[wgpu::RenderPassColorAttachmentDescriptor {
+                attachment: render_target,
+                resolve_target: None,
+                load_op: wgpu::LoadOp::Clear,
+                store_op: wgpu::StoreOp::Store,
+                clear_color: wgpu::Color::GREEN,
+            }],
+            depth_stencil_attachment: None,
+        });
+        rpass.set_pipeline(&self.render_pipeline);
+        rpass.set_bind_group(0, &self.bind_group, &[]);
+        rpass.draw(0..3, 0..1);
+    }
+}
+
+impl<'a> PixelsBuilder<'a> {
+    /// Create a builder that can be finalized into a [`Pixels`] pixel buffer.
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// # use pixels::PixelsBuilder;
+    /// # let surface = wgpu::Surface::create(&pixels_mocks::RWH);
+    /// # let surface_texture = pixels::SurfaceTexture::new(1024, 768, &surface);
+    /// let fb = PixelsBuilder::new(256, 240, surface_texture)
+    ///     .pixel_aspect_ratio(8.0 / 7.0)
+    /// #   // TODO: demonstrate adding a render pass here
+    /// #   //.render_pass(...)
+    ///     .build()?;
+    /// # Ok::<(), pixels::Error>(())
+    /// ```
+    ///
+    /// # Panics
+    ///
+    /// Panics when `width` or `height` are 0.
+    pub fn new(width: u32, height: u32, surface_texture: SurfaceTexture<'a>) -> PixelsBuilder<'a> {
+        assert!(width > 0);
+        assert!(height > 0);
+
+        PixelsBuilder {
+            request_adapter_options: wgpu::RequestAdapterOptions::default(),
+            device_descriptor: wgpu::DeviceDescriptor::default(),
+            width,
+            height,
+            pixel_aspect_ratio: 1.0,
+            surface_texture,
+        }
+    }
+
+    /// Add options for requesting a [`wgpu::Adapter`].
+    pub fn request_adapter_options(
+        mut self,
+        request_adapter_options: wgpu::RequestAdapterOptions,
+    ) -> PixelsBuilder<'a> {
+        self.request_adapter_options = request_adapter_options;
+        self
+    }
+
+    /// Add options for requesting a [`wgpu::Device`].
+    pub fn device_descriptor(
+        mut self,
+        device_descriptor: wgpu::DeviceDescriptor,
+    ) -> PixelsBuilder<'a> {
+        self.device_descriptor = device_descriptor;
+        self
+    }
+
+    /// Set the pixel aspect ratio to simulate non-square pixels.
+    ///
+    /// This setting enables a render pass that horizontally scales the pixel
+    /// buffer by the given factor.
+    ///
+    /// E.g. set this to `8.0 / 7.0` for an 8:7 pixel aspect ratio.
+    pub fn pixel_aspect_ratio(mut self, pixel_aspect_ratio: f64) -> PixelsBuilder<'a> {
+        self.pixel_aspect_ratio = pixel_aspect_ratio;
+        self
+    }
+
+    /// Create a pixel buffer from the options builder.
     ///
     /// # Errors
     ///
-    /// Returns an error when a `wgpu::Adapter` cannot be found or shaders
-    /// are invalid SPIR-V.
-    pub fn new_with_options(
-        surface_texture: SurfaceTexture,
-        options: PixelsOptions,
-    ) -> Result<Pixels, Error> {
+    /// Returns an error when a [`wgpu::Adapter`] cannot be found.
+    pub fn build(self) -> Result<Pixels, Error> {
         // TODO: Create a texture with the dimensions specified in `options`
+        // TODO: Use `options.pixel_aspect_ratio` to stretch the scaled texture
 
-        let adapter = wgpu::Adapter::request(&options.request_adapter_options)
-            .ok_or(Error::AdapterNotFound)?;
-        let (device, queue) = adapter.request_device(&options.device_descriptor);
+        let adapter =
+            wgpu::Adapter::request(&self.request_adapter_options).ok_or(Error::AdapterNotFound)?;
+        let (device, queue) = adapter.request_device(&self.device_descriptor);
 
         let vs_module = device.create_shader_module(include_glsl!("shaders/shader.vert"));
         let fs_module = device.create_shader_module(include_glsl!("shaders/shader.frag"));
@@ -179,104 +294,27 @@ impl Pixels {
         });
 
         let swap_chain = device.create_swap_chain(
-            surface_texture.surface,
+            self.surface_texture.surface,
             &wgpu::SwapChainDescriptor {
                 usage: wgpu::TextureUsage::OUTPUT_ATTACHMENT,
                 format: wgpu::TextureFormat::Bgra8UnormSrgb,
-                width: surface_texture.width,
-                height: surface_texture.height,
+                width: self.surface_texture.width,
+                height: self.surface_texture.height,
                 present_mode: wgpu::PresentMode::Vsync,
             },
         );
 
-        Ok(Pixels {
+        let renderer = Renderer {
             bind_group,
+            render_pipeline,
+        };
+
+        Ok(Pixels {
             device,
             queue,
-            render_pipeline,
+            renderer,
             swap_chain,
         })
-    }
-
-    // TODO: Support resize
-
-    /// Draw this frame buffer to the configured `wgpu::Surface`.
-    pub fn render(&mut self) {
-        // TODO: Center frame buffer in surface
-        let frame = self.swap_chain.get_next_texture();
-        let mut encoder = self
-            .device
-            .create_command_encoder(&wgpu::CommandEncoderDescriptor { todo: 0 });
-        {
-            let mut rpass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
-                color_attachments: &[wgpu::RenderPassColorAttachmentDescriptor {
-                    attachment: &frame.view,
-                    resolve_target: None,
-                    load_op: wgpu::LoadOp::Clear,
-                    store_op: wgpu::StoreOp::Store,
-                    clear_color: wgpu::Color::GREEN,
-                }],
-                depth_stencil_attachment: None,
-            });
-            rpass.set_pipeline(&self.render_pipeline);
-            rpass.set_bind_group(0, &self.bind_group, &[]);
-            rpass.draw(0..3, 0..1);
-        }
-
-        self.queue.submit(&[encoder.finish()]);
-    }
-}
-
-/// # Examples
-///
-/// ```no_run
-/// # use pixels::PixelsOptions;
-/// # let surface = wgpu::Surface::create(&pixels_mocks::RWH);
-/// # let surface_texture = pixels::SurfaceTexture::new(1024, 768, &surface);
-/// let fb = PixelsOptions::new(320, 240)
-/// #   // TODO: demonstrate adding a render pass here
-/// #   //.render_pass(...)
-///     .build(surface_texture)?;
-/// # Ok::<(), pixels::Error>(())
-/// ```
-impl PixelsOptions {
-    /// Create a builder that can be finalized into a frame buffer instance.
-    ///
-    /// # Panics
-    ///
-    /// Panics when `width` or `height` are 0.
-    pub fn new(width: u32, height: u32) -> PixelsOptions {
-        assert!(width > 0);
-        assert!(height > 0);
-
-        PixelsOptions {
-            request_adapter_options: wgpu::RequestAdapterOptions::default(),
-            device_descriptor: wgpu::DeviceDescriptor::default(),
-            width,
-            height,
-        }
-    }
-
-    /// Add options for requesting a `wgpu::Adapter`.
-    pub fn request_adapter_options(mut self, rao: wgpu::RequestAdapterOptions) -> PixelsOptions {
-        self.request_adapter_options = rao;
-        self
-    }
-
-    /// Add options for requesting a `wgpu::Device`.
-    pub fn device_descriptor(mut self, dd: wgpu::DeviceDescriptor) -> PixelsOptions {
-        self.device_descriptor = dd;
-        self
-    }
-
-    /// Create a frame buffer from the options builder.
-    ///
-    /// # Errors
-    ///
-    /// Returns an error when a `wgpu::Adapter` cannot be found or shaders
-    /// are invalid SPIR-V.
-    pub fn build(self, surface_texture: SurfaceTexture) -> Result<Pixels, Error> {
-        Pixels::new_with_options(surface_texture, self)
     }
 }
 
