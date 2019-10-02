@@ -32,8 +32,6 @@ pub struct Pixels {
 pub struct PixelsOptions {
     request_adapter_options: wgpu::RequestAdapterOptions,
     device_descriptor: wgpu::DeviceDescriptor,
-    vertex_spirv: Vec<u32>,
-    fragment_spirv: Vec<u32>,
 }
 
 /// All the ways in which creating a frame buffer can fail.
@@ -102,8 +100,9 @@ impl Pixels {
         let adapter = wgpu::Adapter::request(&options.request_adapter_options)
             .ok_or(Error::AdapterNotFound)?;
         let (device, queue) = adapter.request_device(&options.device_descriptor);
-        let vs_module = device.create_shader_module(&options.vertex_spirv);
-        let fs_module = device.create_shader_module(&options.fragment_spirv);
+
+        let vs_module = device.create_shader_module(include_glsl!("shaders/shader.vert"));
+        let fs_module = device.create_shader_module(include_glsl!("shaders/shader.frag"));
 
         // The rest of this is technically a fixed-function pipeline... For now!
         let bind_group_layout =
@@ -200,8 +199,6 @@ impl Pixels {
 /// # Examples
 ///
 /// ```no_run
-/// use vk_shader_macros::include_glsl;
-///
 /// # use pixels::PixelsOptions;
 /// # struct RWH();
 /// # unsafe impl raw_window_handle::HasRawWindowHandle for RWH {
@@ -232,7 +229,6 @@ impl Pixels {
 /// # fn main() -> Result<(), pixels::Error> {
 /// # let surface = wgpu::Surface::create(&RWH());
 /// let fb = PixelsOptions::new()
-///     .fragment_spirv(include_glsl!("shaders/shader.frag"))
 ///     .build(320, 240, &surface)?;
 /// # Ok(())
 /// # }
@@ -255,18 +251,6 @@ impl PixelsOptions {
         self
     }
 
-    /// Set a SPIR-V vertex shader.
-    pub fn vertex_spirv(mut self, spirv: &[u32]) -> PixelsOptions {
-        self.vertex_spirv = spirv.to_vec();
-        self
-    }
-
-    /// Set a SPIR-V fragment shader.
-    pub fn fragment_spirv(mut self, spirv: &[u32]) -> PixelsOptions {
-        self.fragment_spirv = spirv.to_vec();
-        self
-    }
-
     /// Create a frame buffer from the options builder.
     ///
     /// # Errors
@@ -283,8 +267,6 @@ impl Default for PixelsOptions {
         PixelsOptions {
             request_adapter_options: wgpu::RequestAdapterOptions::default(),
             device_descriptor: wgpu::DeviceDescriptor::default(),
-            vertex_spirv: include_glsl!("shaders/shader.vert").to_vec(),
-            fragment_spirv: include_glsl!("shaders/shader.frag").to_vec(),
         }
     }
 }
