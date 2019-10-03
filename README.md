@@ -4,7 +4,7 @@ A tiny hardware-accelerated pixel frame buffer. :crab:
 
 ## But why?
 
-Rapidly prototype a simple 2D game, pixel-based animations, or an emulator for your favorite platform. Then add shaders to simulate a CRT or vector display.
+Rapidly prototype a simple 2D game, pixel-based animations, or an emulator for your favorite platform. Then add shaders to simulate a CRT or just to spice it up with some nice VFX.
 
 `pixels` is more than just a library to push pixels to a screen, but less than a full framework. You're in charge of managing a window environment, event loop, and input handling.
 
