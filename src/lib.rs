@@ -31,10 +31,14 @@ pub struct SurfaceTexture<'a> {
 /// See [`PixelsBuilder`] for building a customized pixel buffer.
 #[derive(Debug)]
 pub struct Pixels {
+    width: u32,
+    height: u32,
     device: wgpu::Device,
     queue: wgpu::Queue,
     renderer: Renderer,
     swap_chain: wgpu::SwapChain,
+    texture_extent: wgpu::Extent3d,
+    texture: wgpu::Texture,
 }
 
 /// A builder to help create customized pixel buffers.
@@ -133,6 +137,39 @@ impl Pixels {
 
     // TODO: Support resize
 
+    /// Update the pixel buffer with the `texels` byte slice.
+    pub fn update(&mut self, texels: &[u8]) {
+        let mut encoder = self
+            .device
+            .create_command_encoder(&wgpu::CommandEncoderDescriptor { todo: 0 });
+
+        let buffer = self
+            .device
+            .create_buffer_mapped(texels.len(), wgpu::BufferUsage::COPY_SRC)
+            .fill_from_slice(&texels);
+        encoder.copy_buffer_to_texture(
+            wgpu::BufferCopyView {
+                buffer: &buffer,
+                offset: 0,
+                row_pitch: 4 * self.width,
+                image_height: self.height,
+            },
+            wgpu::TextureCopyView {
+                texture: &self.texture,
+                mip_level: 0,
+                array_layer: 0,
+                origin: wgpu::Origin3d {
+                    x: 0.0,
+                    y: 0.0,
+                    z: 0.0,
+                },
+            },
+            self.texture_extent,
+        );
+
+        self.queue.submit(&[encoder.finish()]);
+    }
+
     /// Draw this pixel buffer to the configured [`SurfaceTexture`].
     pub fn render(&mut self) {
         // TODO: Center frame buffer in surface
@@ -158,13 +195,13 @@ impl RenderPass for Renderer {
                 resolve_target: None,
                 load_op: wgpu::LoadOp::Clear,
                 store_op: wgpu::StoreOp::Store,
-                clear_color: wgpu::Color::GREEN,
+                clear_color: wgpu::Color::BLACK,
             }],
             depth_stencil_attachment: None,
         });
         rpass.set_pipeline(&self.render_pipeline);
         rpass.set_bind_group(0, &self.bind_group, &[]);
-        rpass.draw(0..3, 0..1);
+        rpass.draw(0..6, 0..1);
     }
 }
 
@@ -237,7 +274,6 @@ impl<'a> PixelsBuilder<'a> {
     ///
     /// Returns an error when a [`wgpu::Adapter`] cannot be found.
     pub fn build(self) -> Result<Pixels, Error> {
-        // TODO: Create a texture with the dimensions specified in `options`
         // TODO: Use `options.pixel_aspect_ratio` to stretch the scaled texture
 
         let adapter =
@@ -248,16 +284,75 @@ impl<'a> PixelsBuilder<'a> {
         let fs_module = device.create_shader_module(include_glsl!("shaders/shader.frag"));
 
         // The rest of this is technically a fixed-function pipeline... For now!
-        let bind_group_layout =
-            device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor { bindings: &[] });
+
+        // Create a texture
+        let width = self.width;
+        let height = self.height;
+        let texture_extent = wgpu::Extent3d {
+            width,
+            height,
+            depth: 1,
+        };
+        let texture = device.create_texture(&wgpu::TextureDescriptor {
+            size: texture_extent,
+            array_layer_count: 1,
+            mip_level_count: 1,
+            sample_count: 1,
+            dimension: wgpu::TextureDimension::D2,
+            format: wgpu::TextureFormat::Rgba8UnormSrgb,
+            usage: wgpu::TextureUsage::SAMPLED | wgpu::TextureUsage::COPY_DST,
+        });
+        let texture_view = texture.create_default_view();
+
+        // Create a texture sampler with nearest neighbor
+        let sampler = device.create_sampler(&wgpu::SamplerDescriptor {
+            address_mode_u: wgpu::AddressMode::ClampToEdge,
+            address_mode_v: wgpu::AddressMode::ClampToEdge,
+            address_mode_w: wgpu::AddressMode::ClampToEdge,
+            mag_filter: wgpu::FilterMode::Nearest,
+            min_filter: wgpu::FilterMode::Nearest,
+            mipmap_filter: wgpu::FilterMode::Nearest,
+            lod_min_clamp: 0.0,
+            lod_max_clamp: 1.0,
+            compare_function: wgpu::CompareFunction::Always,
+        });
+
+        // Create bind group
+        let bind_group_layout = device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
+            bindings: &[
+                wgpu::BindGroupLayoutBinding {
+                    binding: 0,
+                    visibility: wgpu::ShaderStage::FRAGMENT,
+                    ty: wgpu::BindingType::SampledTexture {
+                        multisampled: false,
+                        dimension: wgpu::TextureViewDimension::D2,
+                    },
+                },
+                wgpu::BindGroupLayoutBinding {
+                    binding: 1,
+                    visibility: wgpu::ShaderStage::FRAGMENT,
+                    ty: wgpu::BindingType::Sampler,
+                },
+            ],
+        });
         let bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
             layout: &bind_group_layout,
-            bindings: &[],
+            bindings: &[
+                wgpu::Binding {
+                    binding: 0,
+                    resource: wgpu::BindingResource::TextureView(&texture_view),
+                },
+                wgpu::Binding {
+                    binding: 1,
+                    resource: wgpu::BindingResource::Sampler(&sampler),
+                },
+            ],
         });
+
+        // Create pipeline
         let pipeline_layout = device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
             bind_group_layouts: &[&bind_group_layout],
         });
-
         let render_pipeline = device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
             layout: &pipeline_layout,
             vertex_stage: wgpu::ProgrammableStageDescriptor {
@@ -290,6 +385,7 @@ impl<'a> PixelsBuilder<'a> {
             alpha_to_coverage_enabled: false,
         });
 
+        // Create swap chain
         let swap_chain = device.create_swap_chain(
             self.surface_texture.surface,
             &wgpu::SwapChainDescriptor {
@@ -301,16 +397,21 @@ impl<'a> PixelsBuilder<'a> {
             },
         );
 
+        // Create a renderer that impls `RenderPass`
         let renderer = Renderer {
             bind_group,
             render_pipeline,
         };
 
         Ok(Pixels {
+            width,
+            height,
             device,
             queue,
             renderer,
             swap_chain,
+            texture_extent,
+            texture,
         })
     }
 }
