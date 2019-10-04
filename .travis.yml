@@ -1,0 +1,22 @@
+language: rust
+rust:
+# MSRV
+- 1.36.0
+
+# All of the latest release channels
+- stable
+- beta
+- nightly
+
+cache: cargo
+
+matrix:
+  fast_finish: true
+
+before_script:
+- rustup component add rustfmt
+
+script:
+- cargo build
+- cargo test
+- cargo fmt --all -- --check

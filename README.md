@@ -1,3 +1,5 @@
+[![Build Status](https://travis-ci.org/parasyte/pixels.svg?branch=master)](https://travis-ci.org/parasyte/pixels)
+
 ![Pixels Logo](img/pixels.png)
 
 A tiny hardware-accelerated pixel frame buffer. :crab:
