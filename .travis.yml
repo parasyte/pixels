@@ -1,14 +1,19 @@
 language: rust
 rust:
-  # MSRV
-  - 1.35.0
+# MSRV
+- 1.36.0
 
-  # All of the latest release channels
-  - stable
-  - beta
-  - nightly
+# All of the latest release channels
+- stable
+- beta
+- nightly
 
 cache: cargo
 
 matrix:
   fast_finish: true
+
+script:
+- cargo build
+- cargo test
+- cargo fmt --all -- --check
