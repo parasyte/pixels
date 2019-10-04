@@ -39,6 +39,7 @@ pub struct Pixels {
     swap_chain: wgpu::SwapChain,
     texture_extent: wgpu::Extent3d,
     texture: wgpu::Texture,
+    texture_format_size: u32,
 }
 
 /// A builder to help create customized pixel buffers.
@@ -50,6 +51,7 @@ pub struct PixelsBuilder<'a> {
     height: u32,
     pixel_aspect_ratio: f64,
     surface_texture: SurfaceTexture<'a>,
+    texture_format: wgpu::TextureFormat,
 }
 
 /// Renderer implements RenderPass.
@@ -137,12 +139,20 @@ impl Pixels {
 
     // TODO: Support resize
 
-    /// Update the pixel buffer with the `texels` byte slice.
-    pub fn update(&mut self, texels: &[u8]) {
+    /// Draw this pixel buffer to the configured [`SurfaceTexture`].
+    ///
+    /// # Arguments
+    ///
+    /// * `texels` - Byte slice of texture pixels (AKA texels) to draw. The texture format can be
+    /// configured with `PixelsBuilder`.
+    pub fn render(&mut self, texels: &[u8]) {
+        // TODO: Center frame buffer in surface
+        let frame = self.swap_chain.get_next_texture();
         let mut encoder = self
             .device
             .create_command_encoder(&wgpu::CommandEncoderDescriptor { todo: 0 });
 
+        // Update the pixel buffer texture view
         let buffer = self
             .device
             .create_buffer_mapped(texels.len(), wgpu::BufferUsage::COPY_SRC)
@@ -151,7 +161,7 @@ impl Pixels {
             wgpu::BufferCopyView {
                 buffer: &buffer,
                 offset: 0,
-                row_pitch: 4 * self.width,
+                row_pitch: self.width * self.texture_format_size,
                 image_height: self.height,
             },
             wgpu::TextureCopyView {
@@ -166,17 +176,6 @@ impl Pixels {
             },
             self.texture_extent,
         );
-
-        self.queue.submit(&[encoder.finish()]);
-    }
-
-    /// Draw this pixel buffer to the configured [`SurfaceTexture`].
-    pub fn render(&mut self) {
-        // TODO: Center frame buffer in surface
-        let frame = self.swap_chain.get_next_texture();
-        let mut encoder = self
-            .device
-            .create_command_encoder(&wgpu::CommandEncoderDescriptor { todo: 0 });
 
         // TODO: Run all render passes in a loop
         self.renderer.render_pass(&mut encoder, &frame.view);
@@ -236,6 +235,7 @@ impl<'a> PixelsBuilder<'a> {
             height,
             pixel_aspect_ratio: 1.0,
             surface_texture,
+            texture_format: wgpu::TextureFormat::Rgba8UnormSrgb,
         }
     }
 
@@ -265,6 +265,16 @@ impl<'a> PixelsBuilder<'a> {
     /// E.g. set this to `8.0 / 7.0` for an 8:7 pixel aspect ratio.
     pub fn pixel_aspect_ratio(mut self, pixel_aspect_ratio: f64) -> PixelsBuilder<'a> {
         self.pixel_aspect_ratio = pixel_aspect_ratio;
+        self
+    }
+
+    /// Set the texture format.
+    ///
+    /// The default value is [`wgpu::TextureFormat::Rgba8UnormSrgb`], which is 4 unsigned bytes in
+    /// `RGBA` order using the SRGB color space. This is typically what you want when you are
+    /// working with color values from popular image editing tools or web apps.
+    pub fn texture_format(mut self, texture_format: wgpu::TextureFormat) -> PixelsBuilder<'a> {
+        self.texture_format = texture_format;
         self
     }
 
@@ -299,10 +309,11 @@ impl<'a> PixelsBuilder<'a> {
             mip_level_count: 1,
             sample_count: 1,
             dimension: wgpu::TextureDimension::D2,
-            format: wgpu::TextureFormat::Rgba8UnormSrgb,
+            format: self.texture_format,
             usage: wgpu::TextureUsage::SAMPLED | wgpu::TextureUsage::COPY_DST,
         });
         let texture_view = texture.create_default_view();
+        let texture_format_size = get_texture_format_size(self.texture_format);
 
         // Create a texture sampler with nearest neighbor
         let sampler = device.create_sampler(&wgpu::SamplerDescriptor {
@@ -412,6 +423,7 @@ impl<'a> PixelsBuilder<'a> {
             swap_chain,
             texture_extent,
             texture,
+            texture_format_size,
         })
     }
 }
@@ -427,5 +439,63 @@ impl StdError for Error {
         match self {
             Error::AdapterNotFound => "No suitable Adapter found",
         }
+    }
+}
+
+fn get_texture_format_size(texture_format: wgpu::TextureFormat) -> u32 {
+    match texture_format {
+        // 8-bit formats
+        wgpu::TextureFormat::R8Unorm
+        | wgpu::TextureFormat::R8Snorm
+        | wgpu::TextureFormat::R8Uint
+        | wgpu::TextureFormat::R8Sint => 1,
+
+        // 16-bit formats
+        wgpu::TextureFormat::R16Unorm
+        | wgpu::TextureFormat::R16Snorm
+        | wgpu::TextureFormat::R16Uint
+        | wgpu::TextureFormat::R16Sint
+        | wgpu::TextureFormat::R16Float
+        | wgpu::TextureFormat::Rg8Unorm
+        | wgpu::TextureFormat::Rg8Snorm
+        | wgpu::TextureFormat::Rg8Uint
+        | wgpu::TextureFormat::Rg8Sint => 2,
+
+        // 32-bit formats
+        wgpu::TextureFormat::R32Uint
+        | wgpu::TextureFormat::R32Sint
+        | wgpu::TextureFormat::R32Float
+        | wgpu::TextureFormat::Rg16Unorm
+        | wgpu::TextureFormat::Rg16Snorm
+        | wgpu::TextureFormat::Rg16Uint
+        | wgpu::TextureFormat::Rg16Sint
+        | wgpu::TextureFormat::Rg16Float
+        | wgpu::TextureFormat::Rgba8Unorm
+        | wgpu::TextureFormat::Rgba8UnormSrgb
+        | wgpu::TextureFormat::Rgba8Snorm
+        | wgpu::TextureFormat::Rgba8Uint
+        | wgpu::TextureFormat::Rgba8Sint
+        | wgpu::TextureFormat::Bgra8Unorm
+        | wgpu::TextureFormat::Bgra8UnormSrgb
+        | wgpu::TextureFormat::Rgb10a2Unorm
+        | wgpu::TextureFormat::Rg11b10Float
+        | wgpu::TextureFormat::Depth32Float
+        | wgpu::TextureFormat::Depth24Plus
+        | wgpu::TextureFormat::Depth24PlusStencil8 => 4,
+
+        // 64-bit formats
+        wgpu::TextureFormat::Rg32Uint
+        | wgpu::TextureFormat::Rg32Sint
+        | wgpu::TextureFormat::Rg32Float
+        | wgpu::TextureFormat::Rgba16Unorm
+        | wgpu::TextureFormat::Rgba16Snorm
+        | wgpu::TextureFormat::Rgba16Uint
+        | wgpu::TextureFormat::Rgba16Sint
+        | wgpu::TextureFormat::Rgba16Float => 8,
+
+        // 128-bit formats
+        wgpu::TextureFormat::Rgba32Uint
+        | wgpu::TextureFormat::Rgba32Sint
+        | wgpu::TextureFormat::Rgba32Float => 16,
     }
 }

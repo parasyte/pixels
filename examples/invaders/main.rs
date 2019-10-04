@@ -58,7 +58,7 @@ fn main() -> Result<(), Error> {
     let surface_texture = SurfaceTexture::new(width, height, &surface);
     let mut fb = Pixels::new(320, 240, surface_texture)?;
 
-    fb.update(&scale_pixel_ferris(320, 240));
+    let ferris = scale_pixel_ferris(320, 240);
 
     event_loop.run(move |event, _, control_flow| match event {
         event::Event::WindowEvent { event, .. } => match event {
@@ -72,7 +72,7 @@ fn main() -> Result<(), Error> {
                 ..
             }
             | event::WindowEvent::CloseRequested => *control_flow = ControlFlow::Exit,
-            event::WindowEvent::RedrawRequested => fb.render(),
+            event::WindowEvent::RedrawRequested => fb.render(&ferris),
             _ => (),
         },
         event::Event::EventsCleared => window.request_redraw(),
