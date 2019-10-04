@@ -31,8 +31,6 @@ pub struct SurfaceTexture<'a> {
 /// See [`PixelsBuilder`] for building a customized pixel buffer.
 #[derive(Debug)]
 pub struct Pixels {
-    width: u32,
-    height: u32,
     device: wgpu::Device,
     queue: wgpu::Queue,
     renderer: Renderer,
@@ -161,8 +159,8 @@ impl Pixels {
             wgpu::BufferCopyView {
                 buffer: &buffer,
                 offset: 0,
-                row_pitch: self.width * self.texture_format_size,
-                image_height: self.height,
+                row_pitch: self.texture_extent.width * self.texture_format_size,
+                image_height: self.texture_extent.height,
             },
             wgpu::TextureCopyView {
                 texture: &self.texture,
@@ -415,8 +413,6 @@ impl<'a> PixelsBuilder<'a> {
         };
 
         Ok(Pixels {
-            width,
-            height,
             device,
             queue,
             renderer,
