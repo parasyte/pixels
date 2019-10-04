@@ -1,3 +1,4 @@
+use std::fmt;
 use wgpu::TextureView;
 
 /// Objects that implement this trait can be added to [`Pixels`] as a render pass.
@@ -30,5 +31,28 @@ pub trait RenderPass {
 
     /// Called when it is time to execute this render pass. Use the `encoder` to encode all
     /// commands related to this render pass. The result must be stored to the `render_target`.
-    fn render_pass(&self, encoder: &mut wgpu::CommandEncoder, render_target: &TextureView);
+    ///
+    /// # Arguments
+    /// * `encoder` - Command encoder for the render pass
+    /// * `render_target` - A reference to the output texture
+    /// * `texels` - The byte slice passed to `Pixels::render`
+    fn render_pass(
+        &self,
+        encoder: &mut wgpu::CommandEncoder,
+        render_target: &TextureView,
+        texels: &[u8],
+    );
+
+    /// This function implements [`Debug`](fmt::Debug) for trait objects.
+    ///
+    /// You are encouraged to override the default impl to provide better debug messages.
+    fn debug(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "dyn RenderPass")
+    }
+}
+
+impl fmt::Debug for dyn RenderPass + 'static {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        self.debug(f)
+    }
 }
