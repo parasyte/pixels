@@ -13,6 +13,9 @@ cache: cargo
 matrix:
   fast_finish: true
 
+before_script:
+- rustup component add rustfmt
+
 script:
 - cargo build
 - cargo test
