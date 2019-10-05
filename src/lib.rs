@@ -16,6 +16,7 @@ use std::rc::Rc;
 
 use vk_shader_macros::include_glsl;
 pub use wgpu;
+use wgpu::TextureView;
 
 mod render_pass;
 pub use render_pass::RenderPass;
@@ -24,7 +25,7 @@ pub use render_pass::RenderPass;
 type RPObject = Box<dyn RenderPass>;
 type RPDevice = Rc<wgpu::Device>;
 type RPQueue = Rc<RefCell<wgpu::Queue>>;
-type RPTexture = wgpu::TextureView;
+type RenderPassFactory = Box<dyn Fn(RPDevice, RPQueue, &TextureView) -> RPObject>;
 
 /// A logical texture for a window surface.
 #[derive(Debug)]
@@ -57,7 +58,7 @@ pub struct PixelsBuilder<'a> {
     pixel_aspect_ratio: f64,
     surface_texture: SurfaceTexture<'a>,
     texture_format: wgpu::TextureFormat,
-    renderer_factories: Vec<Box<dyn Fn(RPDevice, RPQueue, &RPTexture) -> RPObject>>,
+    renderer_factories: Vec<RenderPassFactory>,
 }
 
 /// Renderer implements RenderPass.
@@ -139,11 +140,7 @@ impl Pixels {
     /// # Panics
     ///
     /// Panics when `width` or `height` are 0.
-    pub fn new<'a>(
-        width: u32,
-        height: u32,
-        surface_texture: SurfaceTexture<'a>,
-    ) -> Result<Pixels, Error> {
+    pub fn new(width: u32, height: u32, surface_texture: SurfaceTexture) -> Result<Pixels, Error> {
         PixelsBuilder::new(width, height, surface_texture).build()
     }
 
@@ -175,12 +172,12 @@ impl Pixels {
 }
 
 impl RenderPass for Renderer {
-    fn update_bindings(&mut self, _texture_view: &wgpu::TextureView) {}
+    fn update_bindings(&mut self, _texture_view: &TextureView) {}
 
     fn render_pass(
         &self,
         encoder: &mut wgpu::CommandEncoder,
-        render_target: &wgpu::TextureView,
+        render_target: &TextureView,
         texels: &[u8],
     ) {
         // Update the pixel buffer texture view
@@ -330,7 +327,7 @@ impl<'a> PixelsBuilder<'a> {
     /// render pass.
     pub fn add_render_pass(
         mut self,
-        factory: impl Fn(RPDevice, RPQueue, &RPTexture) -> RPObject + 'static,
+        factory: impl Fn(RPDevice, RPQueue, &TextureView) -> RPObject + 'static,
     ) -> PixelsBuilder<'a> {
         self.renderer_factories.push(Box::new(factory));
         self
