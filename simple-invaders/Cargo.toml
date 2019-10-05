@@ -1,0 +1,8 @@
+[package]
+name = "simple-invaders"
+version = "0.1.0"
+authors = ["Jay Oster <jay@kodewerx.org>"]
+edition = "2018"
+
+[dependencies]
+pcx = "0.2"
