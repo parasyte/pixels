@@ -9,6 +9,7 @@
 //! your convenience. Use a windowing framework or context manager of your choice;
 //! [`winit`](https://crates.io/crates/winit) is a good place to start.
 
+use std::cell::RefCell;
 use std::error::Error as StdError;
 use std::fmt;
 use std::rc::Rc;
@@ -18,6 +19,12 @@ pub use wgpu;
 
 mod render_pass;
 pub use render_pass::RenderPass;
+
+// Type aliases for RenderPass
+type RPObject = Box<dyn RenderPass>;
+type RPDevice = Rc<wgpu::Device>;
+type RPQueue = Rc<RefCell<wgpu::Queue>>;
+type RPTexture = wgpu::TextureView;
 
 /// A logical texture for a window surface.
 #[derive(Debug)]
@@ -34,15 +41,14 @@ pub struct SurfaceTexture<'a> {
 pub struct Pixels {
     // WGPU state
     device: Rc<wgpu::Device>,
-    queue: wgpu::Queue,
+    queue: Rc<RefCell<wgpu::Queue>>,
     swap_chain: wgpu::SwapChain,
 
     // List of render passes
-    renderers: Vec<Box<dyn RenderPass>>,
+    renderers: Vec<RPObject>,
 }
 
 /// A builder to help create customized pixel buffers.
-#[derive(Debug)]
 pub struct PixelsBuilder<'a> {
     request_adapter_options: wgpu::RequestAdapterOptions,
     device_descriptor: wgpu::DeviceDescriptor,
@@ -51,7 +57,7 @@ pub struct PixelsBuilder<'a> {
     pixel_aspect_ratio: f64,
     surface_texture: SurfaceTexture<'a>,
     texture_format: wgpu::TextureFormat,
-    renderers: Vec<Box<dyn RenderPass>>,
+    renderer_factories: Vec<Box<dyn Fn(RPDevice, RPQueue, &RPTexture) -> RPObject>>,
 }
 
 /// Renderer implements RenderPass.
@@ -160,17 +166,11 @@ impl Pixels {
 
         // Execute all render passes
         for renderer in self.renderers.iter() {
+            // TODO: Create a texture chain so that each pass receives the texture drawn by the previous
             renderer.render_pass(&mut encoder, &frame.view, texels);
         }
 
-        self.queue.submit(&[encoder.finish()]);
-    }
-
-    /// Get a reference to the [`wgpu::Device`].
-    ///
-    /// This is used for creating a custom [`RenderPass`].
-    pub fn device(&self) -> Rc<wgpu::Device> {
-        self.device.clone()
+        self.queue.borrow_mut().submit(&[encoder.finish()]);
     }
 }
 
@@ -238,10 +238,24 @@ impl<'a> PixelsBuilder<'a> {
     /// # use pixels::PixelsBuilder;
     /// # let surface = wgpu::Surface::create(&pixels_mocks::RWH);
     /// # let surface_texture = pixels::SurfaceTexture::new(1024, 768, &surface);
+    /// struct MyRenderPass {
+    ///     // ...
+    /// };
+    ///
+    /// impl pixels::RenderPass for MyRenderPass {
+    ///     // ...
+    /// # fn update_bindings(&mut self, _: &wgpu::TextureView) {}
+    /// # fn render_pass(&self, _: &mut wgpu::CommandEncoder, _: &wgpu::TextureView, _: &[u8]) {}
+    /// }
+    ///
     /// let fb = PixelsBuilder::new(256, 240, surface_texture)
     ///     .pixel_aspect_ratio(8.0 / 7.0)
-    /// #   // TODO: demonstrate adding a render pass here
-    /// #   //.render_pass(...)
+    ///     .add_render_pass(|device, queue, texture| {
+    ///         // Create reources for MyRenderPass here
+    ///         Box::new(MyRenderPass {
+    ///             // ...
+    ///         })
+    ///     })
     ///     .build()?;
     /// # Ok::<(), pixels::Error>(())
     /// ```
@@ -261,7 +275,7 @@ impl<'a> PixelsBuilder<'a> {
             pixel_aspect_ratio: 1.0,
             surface_texture,
             texture_format: wgpu::TextureFormat::Rgba8UnormSrgb,
-            renderers: Vec::new(),
+            renderer_factories: Vec::new(),
         }
     }
 
@@ -307,11 +321,18 @@ impl<'a> PixelsBuilder<'a> {
     /// Add a render pass.
     ///
     /// Render passes are executed in the order they are added.
-    pub fn add_render_pass<R>(mut self, render_pass: R) -> PixelsBuilder<'a>
-    where
-        R: RenderPass + 'static,
-    {
-        self.renderers.push(Box::new(render_pass));
+    ///
+    /// # Factory Arguments
+    ///
+    /// * `device` - A reference-counted [`wgpu::Device`] which allows you to create GPU resources.
+    /// * `queue` - A reference-counted [`wgpu::Queue`] which can execute command buffers.
+    /// * `texture` - A [`wgpu::TextureView`] reference that is used as the texture input for the
+    /// render pass.
+    pub fn add_render_pass(
+        mut self,
+        factory: impl Fn(RPDevice, RPQueue, &RPTexture) -> RPObject + 'static,
+    ) -> PixelsBuilder<'a> {
+        self.renderer_factories.push(Box::new(factory));
         self
     }
 
@@ -320,13 +341,14 @@ impl<'a> PixelsBuilder<'a> {
     /// # Errors
     ///
     /// Returns an error when a [`wgpu::Adapter`] cannot be found.
-    pub fn build(mut self) -> Result<Pixels, Error> {
+    pub fn build(self) -> Result<Pixels, Error> {
         // TODO: Use `options.pixel_aspect_ratio` to stretch the scaled texture
 
         let adapter =
             wgpu::Adapter::request(&self.request_adapter_options).ok_or(Error::AdapterNotFound)?;
         let (device, queue) = adapter.request_device(&self.device_descriptor);
         let device = Rc::new(device);
+        let queue = Rc::new(RefCell::new(queue));
 
         let vs_module = device.create_shader_module(include_glsl!("shaders/shader.vert"));
         let fs_module = device.create_shader_module(include_glsl!("shaders/shader.frag"));
@@ -456,14 +478,19 @@ impl<'a> PixelsBuilder<'a> {
             texture_format_size,
         };
 
-        // Add the default renderer to the head of the render passes list
-        self.renderers.insert(0, Box::new(renderer));
+        let mut renderers: Vec<Box<dyn RenderPass>> = vec![Box::new(renderer)];
+
+        // Create all render passes
+        renderers.extend(self.renderer_factories.iter().map(|f| {
+            // TODO: Create a texture chain so that each pass recieves the texture drawn by the previous
+            f(device.clone(), queue.clone(), &texture_view)
+        }));
 
         Ok(Pixels {
             device,
             queue,
             swap_chain,
-            renderers: self.renderers,
+            renderers,
         })
     }
 }
