@@ -3,10 +3,8 @@ rust:
 # MSRV
 - 1.36.0
 
-# All of the latest release channels
+# Stable release channel
 - stable
-- beta
-- nightly
 
 cache: cargo
 
@@ -14,9 +12,10 @@ matrix:
   fast_finish: true
 
 before_script:
+- rustup component add clippy
 - rustup component add rustfmt
 
 script:
-- cargo build
+- cargo clippy -- -D warnings
 - cargo test
 - cargo fmt --all -- --check
