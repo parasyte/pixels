@@ -9,6 +9,8 @@
 //! your convenience. Use a windowing framework or context manager of your choice;
 //! [`winit`](https://crates.io/crates/winit) is a good place to start.
 
+#![deny(clippy::all)]
+
 use std::cell::RefCell;
 use std::error::Error as StdError;
 use std::fmt;
@@ -61,7 +63,7 @@ pub struct PixelsBuilder<'a> {
     renderer_factories: Vec<RenderPassFactory>,
 }
 
-/// Renderer implements RenderPass.
+/// Renderer implements [`RenderPass`].
 #[derive(Debug)]
 struct Renderer {
     device: Rc<wgpu::Device>,
@@ -184,7 +186,7 @@ impl RenderPass for Renderer {
         let buffer = self
             .device
             .create_buffer_mapped(texels.len(), wgpu::BufferUsage::COPY_SRC)
-            .fill_from_slice(&texels);
+            .fill_from_slice(texels);
         encoder.copy_buffer_to_texture(
             wgpu::BufferCopyView {
                 buffer: &buffer,
@@ -277,7 +279,7 @@ impl<'a> PixelsBuilder<'a> {
     }
 
     /// Add options for requesting a [`wgpu::Adapter`].
-    pub fn request_adapter_options(
+    pub const fn request_adapter_options(
         mut self,
         request_adapter_options: wgpu::RequestAdapterOptions,
     ) -> PixelsBuilder<'a> {
@@ -286,7 +288,7 @@ impl<'a> PixelsBuilder<'a> {
     }
 
     /// Add options for requesting a [`wgpu::Device`].
-    pub fn device_descriptor(
+    pub const fn device_descriptor(
         mut self,
         device_descriptor: wgpu::DeviceDescriptor,
     ) -> PixelsBuilder<'a> {
@@ -300,7 +302,7 @@ impl<'a> PixelsBuilder<'a> {
     /// factor.
     ///
     /// E.g. set this to `8.0 / 7.0` for an 8:7 pixel aspect ratio.
-    pub fn pixel_aspect_ratio(mut self, pixel_aspect_ratio: f64) -> PixelsBuilder<'a> {
+    pub const fn pixel_aspect_ratio(mut self, pixel_aspect_ratio: f64) -> PixelsBuilder<'a> {
         self.pixel_aspect_ratio = pixel_aspect_ratio;
         self
     }
@@ -310,7 +312,10 @@ impl<'a> PixelsBuilder<'a> {
     /// The default value is [`wgpu::TextureFormat::Rgba8UnormSrgb`], which is 4 unsigned bytes in
     /// `RGBA` order using the SRGB color space. This is typically what you want when you are
     /// working with color values from popular image editing tools or web apps.
-    pub fn texture_format(mut self, texture_format: wgpu::TextureFormat) -> PixelsBuilder<'a> {
+    pub const fn texture_format(
+        mut self,
+        texture_format: wgpu::TextureFormat,
+    ) -> PixelsBuilder<'a> {
         self.texture_format = texture_format;
         self
     }
