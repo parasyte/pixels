@@ -31,10 +31,10 @@ pub type BoxedRenderPass = Box<dyn RenderPass>;
 pub trait RenderPass {
     /// This method will be called when the input [`wgpu::TextureView`] needs to be rebinded.
     ///
-    /// A [`wgpu::TextureView`] is provided to the `RenderPass` constructor as an input texture
-    /// with the original [`SurfaceTexture`] size. This method is called in response to resizing
-    /// the [`SurfaceTexture`], where your `RenderPass` impl can update its input texture for the
-    /// new size.
+    /// A [`wgpu::TextureView`] is provided to the `RenderPass` factory as an input texture with
+    /// the original [`SurfaceTexture`] size. This method is called in response to resizing the
+    /// [`SurfaceTexture`], where your `RenderPass` impl can update its input texture for the new
+    /// size.
     ///
     /// [`Pixels`]: ./struct.Pixels.html
     /// [`SurfaceTexture`]: ./struct.SurfaceTexture.html
