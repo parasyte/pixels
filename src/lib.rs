@@ -312,7 +312,10 @@ impl<'a> PixelsBuilder<'a> {
     /// The default value is [`wgpu::TextureFormat::Rgba8UnormSrgb`], which is 4 unsigned bytes in
     /// `RGBA` order using the SRGB color space. This is typically what you want when you are
     /// working with color values from popular image editing tools or web apps.
-    pub const fn texture_format(mut self, texture_format: wgpu::TextureFormat) -> PixelsBuilder<'a> {
+    pub const fn texture_format(
+        mut self,
+        texture_format: wgpu::TextureFormat,
+    ) -> PixelsBuilder<'a> {
         self.texture_format = texture_format;
         self
     }
