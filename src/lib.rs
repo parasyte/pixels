@@ -16,18 +16,16 @@ use std::error::Error as StdError;
 use std::fmt;
 use std::rc::Rc;
 
-use vk_shader_macros::include_glsl;
 pub use wgpu;
 use wgpu::TextureView;
 
 mod render_pass;
-pub use render_pass::RenderPass;
+pub use render_pass::{BoxedRenderPass, Device, Queue, RenderPass};
 
-// Type aliases for RenderPass
-type RPObject = Box<dyn RenderPass>;
-type RPDevice = Rc<wgpu::Device>;
-type RPQueue = Rc<RefCell<wgpu::Queue>>;
-type RenderPassFactory = Box<dyn Fn(RPDevice, RPQueue, &TextureView) -> RPObject>;
+mod renderers;
+use renderers::Renderer;
+
+type RenderPassFactory = Box<dyn Fn(Device, Queue, &TextureView) -> BoxedRenderPass>;
 
 /// A logical texture for a window surface.
 #[derive(Debug)]
@@ -48,7 +46,12 @@ pub struct Pixels {
     swap_chain: wgpu::SwapChain,
 
     // List of render passes
-    renderers: Vec<RPObject>,
+    renderers: Vec<BoxedRenderPass>,
+
+    // Texture state for the texel upload
+    texture: wgpu::Texture,
+    texture_extent: wgpu::Extent3d,
+    texture_format_size: u32,
 }
 
 /// A builder to help create customized pixel buffers.
@@ -61,17 +64,6 @@ pub struct PixelsBuilder<'a> {
     surface_texture: SurfaceTexture<'a>,
     texture_format: wgpu::TextureFormat,
     renderer_factories: Vec<RenderPassFactory>,
-}
-
-/// Renderer implements [`RenderPass`].
-#[derive(Debug)]
-struct Renderer {
-    device: Rc<wgpu::Device>,
-    bind_group: wgpu::BindGroup,
-    render_pipeline: wgpu::RenderPipeline,
-    texture: wgpu::Texture,
-    texture_extent: wgpu::Extent3d,
-    texture_format_size: u32,
 }
 
 /// All the ways in which creating a pixel buffer can fail.
@@ -163,25 +155,6 @@ impl Pixels {
             .device
             .create_command_encoder(&wgpu::CommandEncoderDescriptor { todo: 0 });
 
-        // Execute all render passes
-        for renderer in self.renderers.iter() {
-            // TODO: Create a texture chain so that each pass receives the texture drawn by the previous
-            renderer.render_pass(&mut encoder, &frame.view, texels);
-        }
-
-        self.queue.borrow_mut().submit(&[encoder.finish()]);
-    }
-}
-
-impl RenderPass for Renderer {
-    fn update_bindings(&mut self, _texture_view: &TextureView) {}
-
-    fn render_pass(
-        &self,
-        encoder: &mut wgpu::CommandEncoder,
-        render_target: &TextureView,
-        texels: &[u8],
-    ) {
         // Update the pixel buffer texture view
         let buffer = self
             .device
@@ -207,24 +180,13 @@ impl RenderPass for Renderer {
             self.texture_extent,
         );
 
-        // Draw the updated texture to the render target
-        let mut rpass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
-            color_attachments: &[wgpu::RenderPassColorAttachmentDescriptor {
-                attachment: render_target,
-                resolve_target: None,
-                load_op: wgpu::LoadOp::Clear,
-                store_op: wgpu::StoreOp::Store,
-                clear_color: wgpu::Color::BLACK,
-            }],
-            depth_stencil_attachment: None,
-        });
-        rpass.set_pipeline(&self.render_pipeline);
-        rpass.set_bind_group(0, &self.bind_group, &[]);
-        rpass.draw(0..6, 0..1);
-    }
+        // Execute all render passes
+        for renderer in self.renderers.iter() {
+            // TODO: Create a texture chain so that each pass receives the texture drawn by the previous
+            renderer.render_pass(&mut encoder, &frame.view);
+        }
 
-    fn debug(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{:?}", self)
+        self.queue.borrow_mut().submit(&[encoder.finish()]);
     }
 }
 
@@ -244,7 +206,7 @@ impl<'a> PixelsBuilder<'a> {
     /// impl pixels::RenderPass for MyRenderPass {
     ///     // ...
     /// # fn update_bindings(&mut self, _: &wgpu::TextureView) {}
-    /// # fn render_pass(&self, _: &mut wgpu::CommandEncoder, _: &wgpu::TextureView, _: &[u8]) {}
+    /// # fn render_pass(&self, _: &mut wgpu::CommandEncoder, _: &wgpu::TextureView) {}
     /// }
     ///
     /// let fb = PixelsBuilder::new(256, 240, surface_texture)
@@ -330,9 +292,41 @@ impl<'a> PixelsBuilder<'a> {
     /// * `queue` - A reference-counted [`wgpu::Queue`] which can execute command buffers.
     /// * `texture` - A [`wgpu::TextureView`] reference that is used as the texture input for the
     /// render pass.
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use pixels::{BoxedRenderPass, Device, PixelsBuilder, Queue, RenderPass};
+    /// use wgpu::TextureView;
+    ///
+    /// struct MyRenderPass {
+    ///     device: Device,
+    ///     queue: Queue,
+    /// }
+    ///
+    /// impl MyRenderPass {
+    ///     fn factory(device: Device, queue: Queue, texture: &TextureView) -> BoxedRenderPass {
+    ///         // Create a bind group, pipeline, etc. and store all of the necessary state...
+    ///         Box::new(MyRenderPass { device, queue })
+    ///     }
+    /// }
+    ///
+    /// impl RenderPass for MyRenderPass {
+    ///     // ...
+    /// # fn update_bindings(&mut self, _: &wgpu::TextureView) {}
+    /// # fn render_pass(&self, _: &mut wgpu::CommandEncoder, _: &wgpu::TextureView) {}
+    /// }
+    ///
+    /// # let surface = wgpu::Surface::create(&pixels_mocks::RWH);
+    /// # let surface_texture = pixels::SurfaceTexture::new(1024, 768, &surface);
+    /// let builder = PixelsBuilder::new(320, 240, surface_texture)
+    ///     .add_render_pass(MyRenderPass::factory)
+    ///     .build()?;
+    /// # Ok::<(), pixels::Error>(())
+    /// ```
     pub fn add_render_pass(
         mut self,
-        factory: impl Fn(RPDevice, RPQueue, &TextureView) -> RPObject + 'static,
+        factory: impl Fn(Device, Queue, &TextureView) -> BoxedRenderPass + 'static,
     ) -> PixelsBuilder<'a> {
         self.renderer_factories.push(Box::new(factory));
         self
@@ -351,9 +345,6 @@ impl<'a> PixelsBuilder<'a> {
         let (device, queue) = adapter.request_device(&self.device_descriptor);
         let device = Rc::new(device);
         let queue = Rc::new(RefCell::new(queue));
-
-        let vs_module = device.create_shader_module(include_glsl!("shaders/shader.vert"));
-        let fs_module = device.create_shader_module(include_glsl!("shaders/shader.frag"));
 
         // The rest of this is technically a fixed-function pipeline... For now!
 
@@ -377,87 +368,6 @@ impl<'a> PixelsBuilder<'a> {
         let texture_view = texture.create_default_view();
         let texture_format_size = get_texture_format_size(self.texture_format);
 
-        // Create a texture sampler with nearest neighbor
-        let sampler = device.create_sampler(&wgpu::SamplerDescriptor {
-            address_mode_u: wgpu::AddressMode::ClampToEdge,
-            address_mode_v: wgpu::AddressMode::ClampToEdge,
-            address_mode_w: wgpu::AddressMode::ClampToEdge,
-            mag_filter: wgpu::FilterMode::Nearest,
-            min_filter: wgpu::FilterMode::Nearest,
-            mipmap_filter: wgpu::FilterMode::Nearest,
-            lod_min_clamp: 0.0,
-            lod_max_clamp: 1.0,
-            compare_function: wgpu::CompareFunction::Always,
-        });
-
-        // Create bind group
-        let bind_group_layout = device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
-            bindings: &[
-                wgpu::BindGroupLayoutBinding {
-                    binding: 0,
-                    visibility: wgpu::ShaderStage::FRAGMENT,
-                    ty: wgpu::BindingType::SampledTexture {
-                        multisampled: false,
-                        dimension: wgpu::TextureViewDimension::D2,
-                    },
-                },
-                wgpu::BindGroupLayoutBinding {
-                    binding: 1,
-                    visibility: wgpu::ShaderStage::FRAGMENT,
-                    ty: wgpu::BindingType::Sampler,
-                },
-            ],
-        });
-        let bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
-            layout: &bind_group_layout,
-            bindings: &[
-                wgpu::Binding {
-                    binding: 0,
-                    resource: wgpu::BindingResource::TextureView(&texture_view),
-                },
-                wgpu::Binding {
-                    binding: 1,
-                    resource: wgpu::BindingResource::Sampler(&sampler),
-                },
-            ],
-        });
-
-        // Create pipeline
-        let pipeline_layout = device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
-            bind_group_layouts: &[&bind_group_layout],
-        });
-        let render_pipeline = device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
-            layout: &pipeline_layout,
-            vertex_stage: wgpu::ProgrammableStageDescriptor {
-                module: &vs_module,
-                entry_point: "main",
-            },
-            fragment_stage: Some(wgpu::ProgrammableStageDescriptor {
-                module: &fs_module,
-                entry_point: "main",
-            }),
-            rasterization_state: Some(wgpu::RasterizationStateDescriptor {
-                front_face: wgpu::FrontFace::Ccw,
-                cull_mode: wgpu::CullMode::None,
-                depth_bias: 0,
-                depth_bias_slope_scale: 0.0,
-                depth_bias_clamp: 0.0,
-            }),
-            primitive_topology: wgpu::PrimitiveTopology::TriangleList,
-            color_states: &[wgpu::ColorStateDescriptor {
-                format: wgpu::TextureFormat::Bgra8UnormSrgb,
-                color_blend: wgpu::BlendDescriptor::REPLACE,
-                alpha_blend: wgpu::BlendDescriptor::REPLACE,
-                write_mask: wgpu::ColorWrite::ALL,
-            }],
-            depth_stencil_state: None,
-            index_format: wgpu::IndexFormat::Uint16,
-            vertex_buffers: &[],
-            sample_count: 1,
-            sample_mask: !0,
-            alpha_to_coverage_enabled: false,
-        });
-
         // Create swap chain
         let swap_chain = device.create_swap_chain(
             self.surface_texture.surface,
@@ -471,16 +381,11 @@ impl<'a> PixelsBuilder<'a> {
         );
 
         // Create a renderer that impls `RenderPass`
-        let renderer = Renderer {
-            device: device.clone(),
-            bind_group,
-            render_pipeline,
-            texture,
-            texture_extent,
-            texture_format_size,
-        };
-
-        let mut renderers: Vec<Box<dyn RenderPass>> = vec![Box::new(renderer)];
+        let mut renderers = vec![Renderer::factory(
+            device.clone(),
+            queue.clone(),
+            &texture_view,
+        )];
 
         // Create all render passes
         renderers.extend(self.renderer_factories.iter().map(|f| {
@@ -493,6 +398,9 @@ impl<'a> PixelsBuilder<'a> {
             queue,
             swap_chain,
             renderers,
+            texture,
+            texture_extent,
+            texture_format_size,
         })
     }
 }
