@@ -7,6 +7,8 @@ type CachedSprite = (usize, usize, Rc<Vec<u8>>);
 // Invader positioning
 const START: Point = Point::new(24, 60);
 const GRID: Point = Point::new(16, 16);
+const ROWS: usize = 5;
+const COLS: usize = 11;
 
 // Screen handling
 pub const SCREEN_WIDTH: usize = 224;
@@ -142,7 +144,7 @@ impl World {
             sprite: SpriteRef::new(&assets, "player1"),
             pos: Point::new(80, 216),
         };
-        let shields = (0..5)
+        let shields = (0..4)
             .map(|i| Shield {
                 sprite: Sprite::new(&assets, "shield"),
                 pos: Point::new(i * 45 + 32, 192),
@@ -166,43 +168,37 @@ impl World {
     }
 
     pub fn update(&mut self) {
-        // Update the next invader
-        let row = self.invaders.stepper.row;
-        let col = self.invaders.stepper.col;
+        // Find the next invader
+        let mut invader = None;
+        while let None = invader {
+            let (col, row) = self.invaders.stepper.incr();
+            invader = self.invaders.grid[row][col].as_mut();
+        }
+        let invader = invader.unwrap();
 
         // Animate the invader
-        if let Some(invader) = &mut self.invaders.grid[row][col] {
-            invader.sprite.frame = match invader.sprite.frame.as_ref() {
-                "blipjoy1" => {
-                    invader.sprite.pixels = self.assets.sprites.get("blipjoy2").unwrap().2.clone();
-                    "blipjoy2".into()
-                }
-                "blipjoy2" => {
-                    invader.sprite.pixels = self.assets.sprites.get("blipjoy1").unwrap().2.clone();
-                    "blipjoy1".into()
-                }
-                "ferris1" => {
-                    invader.sprite.pixels = self.assets.sprites.get("ferris2").unwrap().2.clone();
-                    "ferris2".into()
-                }
-                "ferris2" => {
-                    invader.sprite.pixels = self.assets.sprites.get("ferris1").unwrap().2.clone();
-                    "ferris1".into()
-                }
-                _ => unreachable!(),
-            };
-        }
+        let (pixels, frame) = match invader.sprite.frame.as_ref() {
+            "blipjoy1" => (
+                self.assets.sprites.get("blipjoy2").unwrap().2.clone(),
+                "blipjoy2".into(),
+            ),
+            "blipjoy2" => (
+                self.assets.sprites.get("blipjoy1").unwrap().2.clone(),
+                "blipjoy1".into(),
+            ),
+            "ferris1" => (
+                self.assets.sprites.get("ferris2").unwrap().2.clone(),
+                "ferris2".into(),
+            ),
+            "ferris2" => (
+                self.assets.sprites.get("ferris1").unwrap().2.clone(),
+                "ferris1".into(),
+            ),
+            _ => unreachable!(),
+        };
 
-        // Find the next invader
-        self.invaders.stepper.col += 1;
-        if self.invaders.stepper.col >= 11 {
-            self.invaders.stepper.col = 0;
-            if self.invaders.stepper.row == 0 {
-                self.invaders.stepper.row = 4;
-            } else {
-                self.invaders.stepper.row -= 1;
-            }
-        }
+        invader.sprite.pixels = pixels;
+        invader.sprite.frame = frame;
     }
 
     pub fn draw(&mut self) -> &[u8] {
@@ -256,9 +252,28 @@ impl std::ops::Mul for Point {
     }
 }
 
+impl Stepper {
+    fn incr(&mut self) -> (usize, usize) {
+        self.col += 1;
+        if self.col >= COLS {
+            self.col = 0;
+            if self.row == 0 {
+                self.row = ROWS - 1;
+            } else {
+                self.row -= 1;
+            }
+        }
+
+        (self.col, self.row)
+    }
+}
+
 impl Default for Stepper {
     fn default() -> Self {
-        Self { row: 4, col: 0 }
+        Self {
+            row: 0,
+            col: COLS - 1,
+        }
     }
 }
 
@@ -266,8 +281,8 @@ impl Default for Bounds {
     fn default() -> Self {
         Self {
             left: START.x,
-            right: START.x + 11 * GRID.x,
-            bottom: START.y + 5 * GRID.y,
+            right: START.x + COLS * GRID.x,
+            bottom: START.y + ROWS * GRID.y,
         }
     }
 }
@@ -435,7 +450,7 @@ fn make_invader_grid(assets: &Assets) -> Vec<Vec<Option<Invader>>> {
 
     (0..1)
         .map(|y| {
-            (0..11)
+            (0..COLS)
                 .map(|x| {
                     Some(Invader {
                         sprite: SpriteRef::new(assets, "blipjoy1"),
@@ -446,7 +461,7 @@ fn make_invader_grid(assets: &Assets) -> Vec<Vec<Option<Invader>>> {
                 .collect()
         })
         .chain((1..3).map(|y| {
-            (0..11)
+            (0..COLS)
                 .map(|x| {
                     Some(Invader {
                         sprite: SpriteRef::new(assets, "ferris1"),
@@ -457,7 +472,7 @@ fn make_invader_grid(assets: &Assets) -> Vec<Vec<Option<Invader>>> {
                 .collect()
         }))
         .chain((3..5).map(|y| {
-            (0..11)
+            (0..COLS)
                 .map(|x| {
                     Some(Invader {
                         // TODO: Need a third invader
