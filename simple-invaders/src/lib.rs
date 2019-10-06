@@ -1,18 +1,19 @@
-use std::collections::HashMap;
-use std::io::Cursor;
-use std::rc::Rc;
+mod loader;
+mod sprites;
 
-type CachedSprite = (usize, usize, Rc<Vec<u8>>);
+use loader::{load_assets, Assets};
+use sprites::{blit, Sprite, SpriteRef, Sprites};
+
+/// The screen width is constant (units are in pixels)
+pub const SCREEN_WIDTH: usize = 224;
+/// The screen height is constant (units are in pixels)
+pub const SCREEN_HEIGHT: usize = 256;
 
 // Invader positioning
 const START: Point = Point::new(24, 60);
 const GRID: Point = Point::new(16, 16);
 const ROWS: usize = 5;
 const COLS: usize = 11;
-
-// Screen handling
-pub const SCREEN_WIDTH: usize = 224;
-pub const SCREEN_HEIGHT: usize = 256;
 
 #[derive(Debug)]
 pub struct World {
@@ -26,13 +27,6 @@ pub struct World {
     screen: Vec<u8>,
 }
 
-/// A list of assets loaded into memory.
-#[derive(Debug)]
-struct Assets {
-    // sounds: TODO
-    sprites: HashMap<String, CachedSprite>,
-}
-
 /// A tiny position vector
 #[derive(Debug, Default, Eq, PartialEq)]
 struct Point {
@@ -40,7 +34,7 @@ struct Point {
     y: usize,
 }
 
-/// A collection of invaders.
+/// A formation of invaders.
 #[derive(Debug)]
 struct Invaders {
     grid: Vec<Vec<Option<Invader>>>,
@@ -103,34 +97,8 @@ struct Cannon {
     pos: Point,
 }
 
-/// Sprites can be drawn and animated.
-#[derive(Debug)]
-struct Sprite {
-    width: usize,
-    height: usize,
-    pixels: Vec<u8>,
-    frame: String,
-}
-
-/// SpriteRefs can be drawn and animated.
-///
-/// They reference their pixel data (instead of owning it).
-#[derive(Debug)]
-struct SpriteRef {
-    width: usize,
-    height: usize,
-    pixels: Rc<Vec<u8>>,
-    frame: String,
-}
-
-trait Sprites {
-    fn width(&self) -> usize;
-    fn height(&self) -> usize;
-    fn pixels(&self) -> &[u8];
-    fn frame(&self) -> &str;
-}
-
 impl World {
+    /// Create a new simple-invaders `World`.
     pub fn new() -> World {
         // Load assets first
         let assets = load_assets();
@@ -167,6 +135,7 @@ impl World {
         }
     }
 
+    /// Update the internal state.
     pub fn update(&mut self) {
         // Find the next invader
         let mut invader = None;
@@ -177,30 +146,20 @@ impl World {
         let invader = invader.unwrap();
 
         // Animate the invader
-        let (pixels, frame) = match invader.sprite.frame.as_ref() {
-            "blipjoy1" => (
-                self.assets.sprites.get("blipjoy2").unwrap().2.clone(),
-                "blipjoy2".into(),
-            ),
-            "blipjoy2" => (
-                self.assets.sprites.get("blipjoy1").unwrap().2.clone(),
-                "blipjoy1".into(),
-            ),
-            "ferris1" => (
-                self.assets.sprites.get("ferris2").unwrap().2.clone(),
-                "ferris2".into(),
-            ),
-            "ferris2" => (
-                self.assets.sprites.get("ferris1").unwrap().2.clone(),
-                "ferris1".into(),
-            ),
+        let assets = self.assets.sprites();
+        let (pixels, frame) = match invader.sprite.frame().as_ref() {
+            "blipjoy1" => (assets.get("blipjoy2").unwrap().2.clone(), "blipjoy2".into()),
+            "blipjoy2" => (assets.get("blipjoy1").unwrap().2.clone(), "blipjoy1".into()),
+            "ferris1" => (assets.get("ferris2").unwrap().2.clone(), "ferris2".into()),
+            "ferris2" => (assets.get("ferris1").unwrap().2.clone(), "ferris1".into()),
             _ => unreachable!(),
         };
 
-        invader.sprite.pixels = pixels;
-        invader.sprite.frame = frame;
+        invader.sprite.update_pixels(pixels);
+        invader.sprite.update_frame(frame);
     }
 
+    /// Draw the internal state to the screen.
     pub fn draw(&mut self) -> &[u8] {
         // Clear the screen
         self.clear();
@@ -217,6 +176,7 @@ impl World {
         &self.screen
     }
 
+    /// Clear the screen
     fn clear(&mut self) {
         for (i, byte) in self.screen.iter_mut().enumerate() {
             *byte = if i % 4 == 3 { 255 } else { 0 };
@@ -287,162 +247,6 @@ impl Default for Bounds {
     }
 }
 
-impl Sprite {
-    fn new(assets: &Assets, name: &str) -> Sprite {
-        let cached_sprite = assets.sprites.get(name).unwrap();
-        Sprite {
-            width: cached_sprite.0,
-            height: cached_sprite.1,
-            pixels: cached_sprite.2.to_vec(),
-            frame: name.into(),
-        }
-    }
-}
-
-impl Sprites for Sprite {
-    fn width(&self) -> usize {
-        self.width
-    }
-
-    fn height(&self) -> usize {
-        self.height
-    }
-
-    fn pixels(&self) -> &[u8] {
-        &self.pixels
-    }
-
-    fn frame(&self) -> &str {
-        &self.frame
-    }
-}
-
-impl SpriteRef {
-    fn new(assets: &Assets, name: &str) -> SpriteRef {
-        let cached_sprite = assets.sprites.get(name).unwrap();
-        SpriteRef {
-            width: cached_sprite.0,
-            height: cached_sprite.1,
-            pixels: cached_sprite.2.clone(),
-            frame: name.into(),
-        }
-    }
-}
-
-impl Sprites for SpriteRef {
-    fn width(&self) -> usize {
-        self.width
-    }
-
-    fn height(&self) -> usize {
-        self.height
-    }
-
-    fn pixels(&self) -> &[u8] {
-        &self.pixels
-    }
-
-    fn frame(&self) -> &str {
-        &self.frame
-    }
-}
-
-/// Load all static assets into an `Assets` structure
-fn load_assets() -> Assets {
-    let mut sprites = HashMap::new();
-
-    sprites.insert(
-        "blipjoy1".into(),
-        load_pcx(include_bytes!("assets/blipjoy1.pcx")),
-    );
-    sprites.insert(
-        "blipjoy2".into(),
-        load_pcx(include_bytes!("assets/blipjoy2.pcx")),
-    );
-    sprites.insert(
-        "ferris1".into(),
-        load_pcx(include_bytes!("assets/ferris1.pcx")),
-    );
-    sprites.insert(
-        "ferris2".into(),
-        load_pcx(include_bytes!("assets/ferris2.pcx")),
-    );
-    sprites.insert(
-        "player1".into(),
-        load_pcx(include_bytes!("assets/player1.pcx")),
-    );
-    sprites.insert(
-        "player2".into(),
-        load_pcx(include_bytes!("assets/player2.pcx")),
-    );
-    sprites.insert(
-        "shield".into(),
-        load_pcx(include_bytes!("assets/shield.pcx")),
-    );
-    // sprites.insert("laser1".into(), load_pcx(include_bytes!("assets/laser1.pcx")));
-    // sprites.insert("laser2".into(), load_pcx(include_bytes!("assets/laser2.pcx")));
-
-    Assets { sprites }
-}
-
-/// Convert PCX data to raw pixels
-fn load_pcx(pcx: &[u8]) -> CachedSprite {
-    let mut reader = pcx::Reader::new(Cursor::new(pcx)).unwrap();
-    let width = reader.width() as usize;
-    let height = reader.height() as usize;
-    let mut result = Vec::new();
-
-    if reader.is_paletted() {
-        // Read the raw pixel data
-        let mut buffer = Vec::new();
-        buffer.resize_with(width * height, Default::default);
-        for y in 0..height {
-            let a = y as usize * width;
-            let b = a + width;
-            reader.next_row_paletted(&mut buffer[a..b]).unwrap();
-        }
-
-        // Read the pallete
-        let mut palette = Vec::new();
-        let palette_length = reader.palette_length().unwrap() as usize;
-        palette.resize_with(palette_length * 3, Default::default);
-        reader.read_palette(&mut palette).unwrap();
-
-        // Copy to result with an alpha component
-        let pixels = buffer
-            .into_iter()
-            .map(|pal| {
-                let i = pal as usize * 3;
-                &palette[i..i + 3]
-            })
-            .flatten()
-            .cloned()
-            .collect::<Vec<u8>>();
-        result.extend_from_slice(&pixels);
-    } else {
-        for _ in 0..height {
-            // Read the raw pixel data
-            let mut buffer = Vec::new();
-            buffer.resize_with(width * 3, Default::default);
-            reader.next_row_rgb(&mut buffer[..]).unwrap();
-
-            // Copy to result with an alpha component
-            let pixels = buffer
-                .chunks(3)
-                .map(|rgb| {
-                    let mut rgb = rgb.to_vec();
-                    rgb.push(255);
-                    rgb
-                })
-                .flatten()
-                .collect::<Vec<u8>>();
-            result.extend_from_slice(&pixels);
-        }
-    }
-
-    (width, height, Rc::new(result))
-}
-
 /// Create a grid of invaders.
 fn make_invader_grid(assets: &Assets) -> Vec<Vec<Option<Invader>>> {
     const BLIPJOY_OFFSET: Point = Point::new(3, 4);
@@ -484,50 +288,4 @@ fn make_invader_grid(assets: &Assets) -> Vec<Vec<Option<Invader>>> {
                 .collect()
         }))
         .collect()
-}
-
-fn blit<S>(screen: &mut [u8], dest: &Point, sprite: &S)
-where
-    S: Sprites,
-{
-    let pixels = sprite.pixels();
-    let width = sprite.width() * 4;
-
-    let mut s = 0;
-    for y in 0..sprite.height() {
-        let i = dest.x * 4 + dest.y * SCREEN_WIDTH * 4 + y * SCREEN_WIDTH * 4;
-        screen[i..i + width].copy_from_slice(&pixels[s..s + width]);
-        s += width;
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use crate::*;
-
-    #[test]
-    fn test_pcx() {
-        let pixels = load_pcx(include_bytes!("assets/blipjoy1.pcx"));
-        let expected = vec![
-            0, 0, 0, 255, 255, 255, 255, 255, 0, 0, 0, 255, 0, 0, 0, 255, 0, 0, 0, 255, 0, 0, 0,
-            255, 0, 0, 0, 255, 0, 0, 0, 255, 255, 255, 255, 255, 0, 0, 0, 255, 0, 0, 0, 255, 0, 0,
-            0, 255, 255, 255, 255, 255, 0, 0, 0, 255, 0, 0, 0, 255, 0, 0, 0, 255, 0, 0, 0, 255,
-            255, 255, 255, 255, 0, 0, 0, 255, 0, 0, 0, 255, 0, 0, 0, 255, 0, 0, 0, 255, 0, 0, 0,
-            255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 0,
-            0, 0, 255, 0, 0, 0, 255, 0, 0, 0, 255, 0, 0, 0, 255, 0, 0, 0, 255, 255, 255, 255, 255,
-            0, 0, 0, 255, 255, 255, 255, 255, 255, 255, 255, 255, 0, 0, 0, 255, 255, 255, 255, 255,
-            0, 0, 0, 255, 0, 0, 0, 255, 0, 0, 0, 255, 255, 255, 255, 255, 0, 0, 0, 255, 255, 255,
-            255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 0, 0, 0, 255,
-            255, 255, 255, 255, 0, 0, 0, 255, 0, 0, 0, 255, 255, 255, 255, 255, 0, 0, 0, 255, 255,
-            255, 255, 255, 0, 0, 0, 255, 0, 0, 0, 255, 255, 255, 255, 255, 0, 0, 0, 255, 255, 255,
-            255, 255, 0, 0, 0, 255, 0, 0, 0, 255, 255, 255, 255, 255, 0, 0, 0, 255, 0, 0, 0, 255,
-            255, 255, 255, 255, 255, 255, 255, 255, 0, 0, 0, 255, 0, 0, 0, 255, 255, 255, 255, 255,
-            0, 0, 0, 255, 0, 0, 0, 255, 0, 0, 0, 255, 255, 255, 255, 255, 0, 0, 0, 255, 0, 0, 0,
-            255, 0, 0, 0, 255, 0, 0, 0, 255, 255, 255, 255, 255, 0, 0, 0, 255, 0, 0, 0, 255,
-        ];
-
-        assert_eq!(pixels.0, 10, "Width differs");
-        assert_eq!(pixels.1, 8, "Height differs");
-        assert_eq!(Rc::try_unwrap(pixels.2).unwrap(), expected, "Pixels differ");
-    }
 }

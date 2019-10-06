@@ -14,6 +14,7 @@ fn main() -> Result<(), Error> {
 
         let window = winit::window::WindowBuilder::new()
             .with_inner_size(winit::dpi::LogicalSize::new(width, height))
+            .with_title("pixel invaders")
             .build(&event_loop)
             .unwrap();
         let surface = wgpu::Surface::create(&window);
