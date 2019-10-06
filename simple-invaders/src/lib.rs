@@ -228,6 +228,12 @@ impl World {
     }
 }
 
+impl Default for World {
+    fn default() -> Self {
+        World::new()
+    }
+}
+
 impl Point {
     const fn new(x: usize, y: usize) -> Point {
         Point { x, y }

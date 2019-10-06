@@ -16,6 +16,6 @@ before_script:
 - rustup component add rustfmt
 
 script:
-- cargo clippy -- -D warnings
-- cargo test
+- cargo clippy --workspace -- -D warnings
+- cargo test --workspace
 - cargo fmt --all -- --check
