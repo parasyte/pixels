@@ -154,7 +154,7 @@ impl World {
     /// * `dt`: The time delta since last update.
     /// * `controls`: The player inputs.
     pub fn update(&mut self, dt: Duration, controls: Controls) {
-        let one_frame = Duration::from_secs_f64(1.0 / 60.0);
+        let one_frame = Duration::new(0, 16_666_667);
 
         // Advance the timer by the delta time
         self.timing += dt;
