@@ -148,10 +148,10 @@ impl World {
         // Animate the invader
         let assets = self.assets.sprites();
         let (pixels, frame) = match invader.sprite.frame().as_ref() {
-            "blipjoy1" => (assets.get("blipjoy2").unwrap().2.clone(), "blipjoy2".into()),
-            "blipjoy2" => (assets.get("blipjoy1").unwrap().2.clone(), "blipjoy1".into()),
-            "ferris1" => (assets.get("ferris2").unwrap().2.clone(), "ferris2".into()),
-            "ferris2" => (assets.get("ferris1").unwrap().2.clone(), "ferris1".into()),
+            "blipjoy1" => (assets.get("blipjoy2").unwrap().2.clone(), "blipjoy2"),
+            "blipjoy2" => (assets.get("blipjoy1").unwrap().2.clone(), "blipjoy1"),
+            "ferris1" => (assets.get("ferris2").unwrap().2.clone(), "ferris2"),
+            "ferris2" => (assets.get("ferris1").unwrap().2.clone(), "ferris1"),
             _ => unreachable!(),
         };
 
