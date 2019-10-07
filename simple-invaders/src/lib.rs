@@ -1,8 +1,18 @@
-mod loader;
-mod sprites;
+//! A simple Space Invaders clone to demonstrate `pixels`.
+//!
+//! This doesn't use anything fancy like a game engine, so you may not want to build a game like
+//! this in practice. That said, the game is fully functional, and it should not be too difficult
+//! to understand the code.
 
+use std::time::Duration;
+
+pub use controls::{Controls, Direction};
 use loader::{load_assets, Assets};
 use sprites::{blit, Sprite, SpriteRef, Sprites};
+
+mod controls;
+mod loader;
+mod sprites;
 
 /// The screen width is constant (units are in pixels)
 pub const SCREEN_WIDTH: usize = 224;
@@ -25,6 +35,7 @@ pub struct World {
     score: u32,
     assets: Assets,
     screen: Vec<u8>,
+    timing: Duration,
 }
 
 /// A tiny position vector
@@ -132,11 +143,47 @@ impl World {
             score: 0,
             assets,
             screen,
+            timing: Duration::default(),
         }
     }
 
     /// Update the internal state.
-    pub fn update(&mut self) {
+    ///
+    /// # Arguments
+    ///
+    /// * `dt`: The time delta since last update.
+    /// * `controls`: The player inputs.
+    pub fn update(&mut self, dt: Duration, controls: Controls) {
+        let one_frame = Duration::from_secs_f64(1.0 / 60.0);
+
+        // Advance the timer by the delta time
+        self.timing += dt;
+
+        // Step the game logic by one frame at a time
+        while self.timing >= one_frame {
+            self.timing -= one_frame;
+            self.step(&controls);
+        }
+    }
+
+    /// Draw the internal state to the screen.
+    pub fn draw(&mut self) -> &[u8] {
+        // Clear the screen
+        self.clear();
+
+        // Draw the invaders
+        for row in &self.invaders.grid {
+            for col in row {
+                if let Some(invader) = col {
+                    blit(&mut self.screen, &invader.pos, &invader.sprite);
+                }
+            }
+        }
+
+        &self.screen
+    }
+
+    fn step(&mut self, _controls: &Controls) {
         // Find the next invader
         let mut invader = None;
         while let None = invader {
@@ -157,23 +204,6 @@ impl World {
 
         invader.sprite.update_pixels(pixels);
         invader.sprite.update_frame(frame);
-    }
-
-    /// Draw the internal state to the screen.
-    pub fn draw(&mut self) -> &[u8] {
-        // Clear the screen
-        self.clear();
-
-        // Draw the invaders
-        for row in &self.invaders.grid {
-            for col in row {
-                if let Some(invader) = col {
-                    blit(&mut self.screen, &invader.pos, &invader.sprite);
-                }
-            }
-        }
-
-        &self.screen
     }
 
     /// Clear the screen

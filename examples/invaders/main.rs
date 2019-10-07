@@ -1,5 +1,7 @@
+use std::time::Instant;
+
 use pixels::{Error, Pixels, SurfaceTexture};
-use simple_invaders::{World, SCREEN_HEIGHT, SCREEN_WIDTH};
+use simple_invaders::{Controls, Direction, World, SCREEN_HEIGHT, SCREEN_WIDTH};
 use winit::event;
 use winit::event_loop::{ControlFlow, EventLoop};
 
@@ -26,6 +28,7 @@ fn main() -> Result<(), Error> {
     let surface_texture = SurfaceTexture::new(width, height, &surface);
     let mut fb = Pixels::new(224, 256, surface_texture)?;
     let mut invaders = World::new();
+    let mut last = Instant::now();
 
     event_loop.run(move |event, _, control_flow| match event {
         event::Event::WindowEvent { event, .. } => match event {
@@ -43,7 +46,18 @@ fn main() -> Result<(), Error> {
             _ => (),
         },
         event::Event::EventsCleared => {
-            invaders.update();
+            // Get a new delta time.
+            let now = Instant::now();
+            let dt = now.duration_since(last);
+            last = now;
+
+            // TODO: Keyboard and controller input.
+            let controls = Controls {
+                direction: Direction::Still,
+                fire: false,
+            };
+
+            invaders.update(dt, controls);
             window.request_redraw();
         }
         _ => (),
