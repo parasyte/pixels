@@ -240,11 +240,9 @@ impl World {
             }
             _ => false,
         };
-        if animate_player {
-            if self.frame_count - self.player.last_update >= 3 {
-                self.player.last_update = self.frame_count;
-                self.player.sprite.animate(&self.assets);
-            }
+        if animate_player && self.frame_count - self.player.last_update >= 3 {
+            self.player.last_update = self.frame_count;
+            self.player.sprite.animate(&self.assets);
         }
     }
 
