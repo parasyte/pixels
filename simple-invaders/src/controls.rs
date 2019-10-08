@@ -19,8 +19,8 @@ pub enum Direction {
 }
 
 impl Default for Controls {
-    fn default() -> Self {
-        Self {
+    fn default() -> Controls {
+        Controls {
             direction: Direction::default(),
             fire: false,
         }
@@ -28,7 +28,7 @@ impl Default for Controls {
 }
 
 impl Default for Direction {
-    fn default() -> Self {
-        Self::Still
+    fn default() -> Direction {
+        Direction::Still
     }
 }
