@@ -29,9 +29,11 @@ fn main() -> Result<(), Error> {
     let mut fb = Pixels::new(224, 256, surface_texture)?;
     let mut invaders = World::new();
     let mut last = Instant::now();
+    let mut controls = Controls::default();
 
     event_loop.run(move |event, _, control_flow| match event {
         event::Event::WindowEvent { event, .. } => match event {
+            // Close events
             event::WindowEvent::KeyboardInput {
                 input:
                     event::KeyboardInput {
@@ -42,7 +44,41 @@ fn main() -> Result<(), Error> {
                 ..
             }
             | event::WindowEvent::CloseRequested => *control_flow = ControlFlow::Exit,
+
+            // Keyboard controls
+            event::WindowEvent::KeyboardInput {
+                input:
+                    event::KeyboardInput {
+                        virtual_keycode: Some(virtual_code),
+                        state: event::ElementState::Pressed,
+                        ..
+                    },
+                ..
+            } => match virtual_code {
+                event::VirtualKeyCode::Left => controls.direction = Direction::Left,
+                event::VirtualKeyCode::Right => controls.direction = Direction::Right,
+                event::VirtualKeyCode::Space => controls.fire = true,
+                _ => (),
+            },
+
+            event::WindowEvent::KeyboardInput {
+                input:
+                    event::KeyboardInput {
+                        virtual_keycode: Some(virtual_code),
+                        state: event::ElementState::Released,
+                        ..
+                    },
+                ..
+            } => match virtual_code {
+                event::VirtualKeyCode::Left => controls.direction = Direction::Still,
+                event::VirtualKeyCode::Right => controls.direction = Direction::Still,
+                event::VirtualKeyCode::Space => controls.fire = false,
+                _ => (),
+            },
+
+            // Redraw the screen
             event::WindowEvent::RedrawRequested => fb.render(invaders.draw()),
+
             _ => (),
         },
         event::Event::EventsCleared => {
@@ -51,13 +87,8 @@ fn main() -> Result<(), Error> {
             let dt = now.duration_since(last);
             last = now;
 
-            // TODO: Keyboard and controller input.
-            let controls = Controls {
-                direction: Direction::Still,
-                fire: false,
-            };
-
-            invaders.update(dt, controls);
+            // Update the game logic and request redraw
+            invaders.update(dt, &controls);
             window.request_redraw();
         }
         _ => (),

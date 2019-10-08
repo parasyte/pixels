@@ -36,6 +36,7 @@ pub struct World {
     assets: Assets,
     screen: Vec<u8>,
     timing: Duration,
+    frame_count: usize,
 }
 
 /// A tiny position vector
@@ -84,6 +85,7 @@ struct Bounds {
 struct Player {
     sprite: SpriteRef,
     pos: Point,
+    last_update: usize,
 }
 
 /// The shield entity.
@@ -124,6 +126,7 @@ impl World {
         let player = Player {
             sprite: SpriteRef::new(&assets, Player1),
             pos: Point::new(80, 216),
+            last_update: 0,
         };
         let shields = (0..4)
             .map(|i| Shield {
@@ -146,6 +149,7 @@ impl World {
             assets,
             screen,
             timing: Duration::default(),
+            frame_count: 0,
         }
     }
 
@@ -155,7 +159,7 @@ impl World {
     ///
     /// * `dt`: The time delta since last update.
     /// * `controls`: The player inputs.
-    pub fn update(&mut self, dt: Duration, _controls: Controls) {
+    pub fn update(&mut self, dt: Duration, controls: &Controls) {
         let one_frame = Duration::new(0, 16_666_667);
 
         // Advance the timer by the delta time
@@ -163,11 +167,14 @@ impl World {
 
         // Step the invaders one by one
         while self.timing >= one_frame {
+            self.frame_count += 1;
             self.timing -= one_frame;
             self.step_invaders();
         }
 
-        // TODO: Handle controls to move the player
+        // Handle player movement and animation
+        self.step_player(controls);
+
         // TODO: Handle lasers and bullets
         // Movements can be multiplied by the delta-time frame count, instead of looping
     }
@@ -186,6 +193,14 @@ impl World {
             }
         }
 
+        // Draw the shields
+        for shield in &self.shields {
+            blit(&mut self.screen, &shield.pos, &shield.sprite);
+        }
+
+        // Draw the player
+        blit(&mut self.screen, &self.player.pos, &self.player.sprite);
+
         &self.screen
     }
 
@@ -202,6 +217,35 @@ impl World {
 
         // Animate the invader
         invader.sprite.animate(&self.assets);
+    }
+
+    fn step_player(&mut self, controls: &Controls) {
+        let animate_player = match controls.direction {
+            Direction::Left => {
+                if self.player.pos.x > 0 {
+                    self.player.pos.x -= 1;
+                    true
+                } else {
+                    false
+                }
+            }
+
+            Direction::Right => {
+                if self.player.pos.x < 224 - 16 {
+                    self.player.pos.x += 1;
+                    true
+                } else {
+                    false
+                }
+            }
+            _ => false,
+        };
+        if animate_player {
+            if self.frame_count - self.player.last_update >= 3 {
+                self.player.last_update = self.frame_count;
+                self.player.sprite.animate(&self.assets);
+            }
+        }
     }
 
     /// Clear the screen
@@ -281,6 +325,7 @@ fn make_invader_grid(assets: &Assets) -> Vec<Vec<Option<Invader>>> {
 
     const BLIPJOY_OFFSET: Point = Point::new(3, 4);
     const FERRIS_OFFSET: Point = Point::new(3, 5);
+    const CTHULHU_OFFSET: Point = Point::new(1, 3);
 
     (0..1)
         .map(|y| {
@@ -310,7 +355,7 @@ fn make_invader_grid(assets: &Assets) -> Vec<Vec<Option<Invader>>> {
                 .map(|x| {
                     Some(Invader {
                         sprite: SpriteRef::new(assets, Cthulhu1),
-                        pos: START + BLIPJOY_OFFSET + Point::new(x, y) * GRID,
+                        pos: START + CTHULHU_OFFSET + Point::new(x, y) * GRID,
                         score: 10,
                     })
                 })
