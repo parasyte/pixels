@@ -2,55 +2,43 @@ use std::collections::HashMap;
 use std::io::Cursor;
 use std::rc::Rc;
 
-use crate::sprites::CachedSprite;
+use crate::sprites::{CachedSprite, Frame};
 
 /// A list of assets loaded into memory.
 #[derive(Debug)]
 pub(crate) struct Assets {
     // sounds: TODO
-    sprites: HashMap<String, CachedSprite>,
+    sprites: HashMap<Frame, CachedSprite>,
 }
 
 impl Assets {
-    pub(crate) fn sprites(&self) -> &HashMap<String, CachedSprite> {
+    pub(crate) fn sprites(&self) -> &HashMap<Frame, CachedSprite> {
         &self.sprites
     }
 }
 
 /// Load all static assets into an `Assets` structure
 pub(crate) fn load_assets() -> Assets {
+    use Frame::*;
+
     let mut sprites = HashMap::new();
 
-    sprites.insert(
-        "blipjoy1".into(),
-        load_pcx(include_bytes!("assets/blipjoy1.pcx")),
-    );
-    sprites.insert(
-        "blipjoy2".into(),
-        load_pcx(include_bytes!("assets/blipjoy2.pcx")),
-    );
-    sprites.insert(
-        "ferris1".into(),
-        load_pcx(include_bytes!("assets/ferris1.pcx")),
-    );
-    sprites.insert(
-        "ferris2".into(),
-        load_pcx(include_bytes!("assets/ferris2.pcx")),
-    );
-    sprites.insert(
-        "player1".into(),
-        load_pcx(include_bytes!("assets/player1.pcx")),
-    );
-    sprites.insert(
-        "player2".into(),
-        load_pcx(include_bytes!("assets/player2.pcx")),
-    );
-    sprites.insert(
-        "shield".into(),
-        load_pcx(include_bytes!("assets/shield.pcx")),
-    );
-    // sprites.insert("laser1".into(), load_pcx(include_bytes!("assets/laser1.pcx")));
-    // sprites.insert("laser2".into(), load_pcx(include_bytes!("assets/laser2.pcx")));
+    sprites.insert(Blipjoy1, load_pcx(include_bytes!("assets/blipjoy1.pcx")));
+    sprites.insert(Blipjoy2, load_pcx(include_bytes!("assets/blipjoy2.pcx")));
+
+    sprites.insert(Ferris1, load_pcx(include_bytes!("assets/ferris1.pcx")));
+    sprites.insert(Ferris2, load_pcx(include_bytes!("assets/ferris2.pcx")));
+
+    sprites.insert(Cthulhu1, load_pcx(include_bytes!("assets/cthulhu1.pcx")));
+    sprites.insert(Cthulhu2, load_pcx(include_bytes!("assets/cthulhu2.pcx")));
+
+    sprites.insert(Player1, load_pcx(include_bytes!("assets/player1.pcx")));
+    sprites.insert(Player2, load_pcx(include_bytes!("assets/player2.pcx")));
+
+    sprites.insert(Shield1, load_pcx(include_bytes!("assets/shield.pcx")));
+
+    // sprites.insert(Laser1, load_pcx(include_bytes!("assets/laser1.pcx")));
+    // sprites.insert(Laser2, load_pcx(include_bytes!("assets/laser2.pcx")));
 
     Assets { sprites }
 }
