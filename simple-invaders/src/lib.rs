@@ -8,7 +8,7 @@ use std::time::Duration;
 
 pub use controls::{Controls, Direction};
 use loader::{load_assets, Assets};
-use sprites::{blit, Sprite, SpriteRef, Sprites};
+use sprites::{blit, Drawable, Frame, Sprite, SpriteRef};
 
 mod controls;
 mod loader;
@@ -31,7 +31,7 @@ pub struct World {
     lasers: Vec<Laser>,
     shields: Vec<Shield>,
     player: Player,
-    cannons: Vec<Cannon>,
+    bullets: Vec<Bullet>,
     score: u32,
     assets: Assets,
     screen: Vec<u8>,
@@ -103,7 +103,7 @@ struct Laser {
 
 /// The cannon entity.
 #[derive(Debug)]
-struct Cannon {
+struct Bullet {
     sprite: SpriteRef,
     pos: Point,
 }
@@ -111,6 +111,8 @@ struct Cannon {
 impl World {
     /// Create a new simple-invaders `World`.
     pub fn new() -> World {
+        use Frame::*;
+
         // Load assets first
         let assets = load_assets();
 
@@ -120,12 +122,12 @@ impl World {
             bounds: Bounds::default(),
         };
         let player = Player {
-            sprite: SpriteRef::new(&assets, "player1"),
+            sprite: SpriteRef::new(&assets, Player1),
             pos: Point::new(80, 216),
         };
         let shields = (0..4)
             .map(|i| Shield {
-                sprite: Sprite::new(&assets, "shield"),
+                sprite: Sprite::new(&assets, Shield1),
                 pos: Point::new(i * 45 + 32, 192),
             })
             .collect();
@@ -139,7 +141,7 @@ impl World {
             lasers: Vec::new(),
             shields,
             player,
-            cannons: Vec::new(),
+            bullets: Vec::new(),
             score: 0,
             assets,
             screen,
@@ -153,17 +155,21 @@ impl World {
     ///
     /// * `dt`: The time delta since last update.
     /// * `controls`: The player inputs.
-    pub fn update(&mut self, dt: Duration, controls: Controls) {
+    pub fn update(&mut self, dt: Duration, _controls: Controls) {
         let one_frame = Duration::new(0, 16_666_667);
 
         // Advance the timer by the delta time
         self.timing += dt;
 
-        // Step the game logic by one frame at a time
+        // Step the invaders one by one
         while self.timing >= one_frame {
             self.timing -= one_frame;
-            self.step(&controls);
+            self.step_invaders();
         }
+
+        // TODO: Handle controls to move the player
+        // TODO: Handle lasers and bullets
+        // Movements can be multiplied by the delta-time frame count, instead of looping
     }
 
     /// Draw the internal state to the screen.
@@ -183,7 +189,7 @@ impl World {
         &self.screen
     }
 
-    fn step(&mut self, _controls: &Controls) {
+    fn step_invaders(&mut self) {
         // Find the next invader
         let mut invader = None;
         while let None = invader {
@@ -192,18 +198,10 @@ impl World {
         }
         let invader = invader.unwrap();
 
-        // Animate the invader
-        let assets = self.assets.sprites();
-        let (pixels, frame) = match invader.sprite.frame().as_ref() {
-            "blipjoy1" => (assets.get("blipjoy2").unwrap().2.clone(), "blipjoy2"),
-            "blipjoy2" => (assets.get("blipjoy1").unwrap().2.clone(), "blipjoy1"),
-            "ferris1" => (assets.get("ferris2").unwrap().2.clone(), "ferris2"),
-            "ferris2" => (assets.get("ferris1").unwrap().2.clone(), "ferris1"),
-            _ => unreachable!(),
-        };
+        // TODO: Move the invader
 
-        invader.sprite.update_pixels(pixels);
-        invader.sprite.update_frame(frame);
+        // Animate the invader
+        invader.sprite.animate(&self.assets);
     }
 
     /// Clear the screen
@@ -279,6 +277,8 @@ impl Default for Bounds {
 
 /// Create a grid of invaders.
 fn make_invader_grid(assets: &Assets) -> Vec<Vec<Option<Invader>>> {
+    use Frame::*;
+
     const BLIPJOY_OFFSET: Point = Point::new(3, 4);
     const FERRIS_OFFSET: Point = Point::new(3, 5);
 
@@ -287,7 +287,7 @@ fn make_invader_grid(assets: &Assets) -> Vec<Vec<Option<Invader>>> {
             (0..COLS)
                 .map(|x| {
                     Some(Invader {
-                        sprite: SpriteRef::new(assets, "blipjoy1"),
+                        sprite: SpriteRef::new(assets, Blipjoy1),
                         pos: START + BLIPJOY_OFFSET + Point::new(x, y) * GRID,
                         score: 10,
                     })
@@ -298,7 +298,7 @@ fn make_invader_grid(assets: &Assets) -> Vec<Vec<Option<Invader>>> {
             (0..COLS)
                 .map(|x| {
                     Some(Invader {
-                        sprite: SpriteRef::new(assets, "ferris1"),
+                        sprite: SpriteRef::new(assets, Ferris1),
                         pos: START + FERRIS_OFFSET + Point::new(x, y) * GRID,
                         score: 10,
                     })
@@ -309,8 +309,7 @@ fn make_invader_grid(assets: &Assets) -> Vec<Vec<Option<Invader>>> {
             (0..COLS)
                 .map(|x| {
                     Some(Invader {
-                        // TODO: Need a third invader
-                        sprite: SpriteRef::new(assets, "blipjoy1"),
+                        sprite: SpriteRef::new(assets, Cthulhu1),
                         pos: START + BLIPJOY_OFFSET + Point::new(x, y) * GRID,
                         score: 10,
                     })
