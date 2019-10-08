@@ -1,4 +1,5 @@
 /// Player control inputs.
+#[derive(Debug)]
 pub struct Controls {
     /// Move the player.
     pub direction: Direction,
@@ -7,6 +8,7 @@ pub struct Controls {
 }
 
 /// The player can only move left or right, but can also be stationary.
+#[derive(Debug)]
 pub enum Direction {
     /// Do not move the player.
     Still,
@@ -14,4 +16,19 @@ pub enum Direction {
     Left,
     /// Move to the right.
     Right,
+}
+
+impl Default for Controls {
+    fn default() -> Controls {
+        Controls {
+            direction: Direction::default(),
+            fire: false,
+        }
+    }
+}
+
+impl Default for Direction {
+    fn default() -> Direction {
+        Direction::Still
+    }
 }
