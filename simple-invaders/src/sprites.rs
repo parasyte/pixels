@@ -85,11 +85,12 @@ pub(crate) trait Drawable {
 
 impl Sprite {
     pub(crate) fn new(assets: &Assets, frame: Frame) -> Sprite {
-        let cached_sprite = assets.sprites().get(&frame).unwrap();
+        let (width, height, pixels) = assets.sprites().get(&frame).unwrap();
+
         Sprite {
-            width: cached_sprite.0,
-            height: cached_sprite.1,
-            pixels: cached_sprite.2.to_vec(),
+            width: *width,
+            height: *height,
+            pixels: pixels.to_vec(),
             frame,
         }
     }
@@ -97,11 +98,12 @@ impl Sprite {
 
 impl SpriteRef {
     pub(crate) fn new(assets: &Assets, frame: Frame) -> SpriteRef {
-        let cached_sprite = assets.sprites().get(&frame).unwrap();
+        let (width, height, pixels) = assets.sprites().get(&frame).unwrap();
+
         SpriteRef {
-            width: cached_sprite.0,
-            height: cached_sprite.1,
-            pixels: cached_sprite.2.clone(),
+            width: *width,
+            height: *height,
+            pixels: pixels.clone(),
             frame,
         }
     }
