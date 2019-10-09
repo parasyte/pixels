@@ -4,11 +4,12 @@
 //! this in practice. That said, the game is fully functional, and it should not be too difficult
 //! to understand the code.
 
+use std::env;
 use std::time::Duration;
 
 pub use controls::{Controls, Direction};
 use loader::{load_assets, Assets};
-use sprites::{blit, Animation, Frame, Sprite, SpriteRef};
+use sprites::{blit, rect, Animation, Frame, Sprite, SpriteRef};
 
 mod controls;
 mod loader;
@@ -36,6 +37,8 @@ pub struct World {
     assets: Assets,
     screen: Vec<u8>,
     dt: Duration,
+    gameover: bool,
+    debug: bool,
 }
 
 /// A tiny position vector
@@ -58,6 +61,7 @@ struct Invaders {
 struct Invader {
     sprite: SpriteRef,
     pos: Point,
+    direction: Direction,
     score: u32,
 }
 
@@ -117,6 +121,7 @@ impl World {
         // Load assets first
         let assets = load_assets();
 
+        // TODO: Create invaders one-at-a-time
         let invaders = Invaders {
             grid: make_invader_grid(&assets),
             stepper: Stepper::default(),
@@ -138,6 +143,12 @@ impl World {
         let mut screen = Vec::new();
         screen.resize_with(SCREEN_WIDTH * SCREEN_HEIGHT * 4, Default::default);
 
+        // Enable debug mode with `DEBUG=true` environment variable
+        let debug = env::var("DEBUG")
+            .unwrap_or("false".to_string())
+            .parse()
+            .unwrap_or(false);
+
         World {
             invaders,
             lasers: Vec::new(),
@@ -148,6 +159,8 @@ impl World {
             assets,
             screen,
             dt: Duration::default(),
+            gameover: false,
+            debug,
         }
     }
 
@@ -158,6 +171,11 @@ impl World {
     /// * `dt`: The time delta since last update.
     /// * `controls`: The player inputs.
     pub fn update(&mut self, dt: Duration, controls: &Controls) {
+        if self.gameover {
+            // TODO: Add a game over screen
+            return;
+        }
+
         let one_frame = Duration::new(0, 16_666_667);
 
         // Advance the timer by the delta time
@@ -198,6 +216,14 @@ impl World {
         // Draw the player
         blit(&mut self.screen, &self.player.pos, &self.player.sprite);
 
+        if self.debug {
+            // Draw invaders bounding box
+            let p1 = Point::new(self.invaders.bounds.left, START.y);
+            let p2 = Point::new(self.invaders.bounds.right, self.invaders.bounds.bottom);
+            let red = [255, 0, 0, 255];
+            rect(&mut self.screen, &p1, &p2, &red);
+        }
+
         &self.screen
     }
 
@@ -210,7 +236,74 @@ impl World {
         }
         let invader = invader.unwrap();
 
-        // TODO: Move the invader
+        // Move the invader
+        let stepper = &self.invaders.stepper;
+        let mut bounds = &mut self.invaders.bounds;
+
+        // TODO: Cleanup and remove dupliacte code
+        match invader.direction {
+            Direction::Left => {
+                if bounds.left >= 2 {
+                    invader.pos.x -= 2;
+
+                    // Adjust the invaders bounding box
+                    // FIXME: This only works if the corner invader is alive
+                    if stepper.col == 10 && stepper.row == 0 {
+                        bounds.left -= 2;
+                        bounds.right -= 2;
+                    }
+                } else {
+                    invader.direction = Direction::Right;
+                    invader.pos.x += 2;
+                    invader.pos.y += 8;
+
+                    // Adjust the invaders bounding box
+                    // FIXME: This only works if the corner invader is alive
+                    if stepper.col == 0 && stepper.row == 4 {
+                        if invader.pos.y >= self.player.pos.y {
+                            self.gameover = true;
+                        }
+
+                        bounds.right += 2;
+                        bounds.bottom += 8;
+                    } else if stepper.col == 10 && stepper.row == 0 {
+                        bounds.left += 2;
+                    }
+                }
+            },
+            Direction::Right => {
+                if bounds.right + 2 <= SCREEN_WIDTH {
+                    invader.pos.x += 2;
+
+                    // Adjust the invaders bounding box
+                    // FIXME: This only works if the corner invader is alive
+                    if stepper.col == 10 && stepper.row == 0 {
+                        bounds.left += 2;
+                        bounds.right += 2;
+                    }
+                } else {
+                    // TODO: Stop moving down at some point!
+                    invader.direction = Direction::Left;
+                    invader.pos.x -= 2;
+                    invader.pos.y += 8;
+
+                    // Adjust the invaders bounding box
+                    // FIXME: This only works if the corner invader is alive
+                    if stepper.col == 0 && stepper.row == 4 {
+                        // When the lowest invader reaches `player.pos.y`, it's game over!
+                        if invader.pos.y >= self.player.pos.y {
+                            self.gameover = true;
+                        }
+
+                        bounds.left -= 2;
+                        bounds.bottom += 8;
+                    } else if stepper.col == 10 && stepper.row == 0 {
+                        bounds.right -= 2;
+                    }
+                }
+            },
+            _ => unreachable!(),
+        }
 
         // Animate the invader
         invader.sprite.step_frame(&self.assets);
@@ -226,7 +319,7 @@ impl World {
             }
 
             Direction::Right => {
-                if self.player.pos.x < 224 - 16 {
+                if self.player.pos.x < SCREEN_WIDTH - 16 {
                     self.player.pos.x += 1;
                     self.player.sprite.animate(&self.assets, dt);
                 }
@@ -321,6 +414,7 @@ fn make_invader_grid(assets: &Assets) -> Vec<Vec<Option<Invader>>> {
                     Some(Invader {
                         sprite: SpriteRef::new(assets, Blipjoy1, Duration::default()),
                         pos: START + BLIPJOY_OFFSET + Point::new(x, y) * GRID,
+                        direction: Direction::Right,
                         score: 10,
                     })
                 })
@@ -332,6 +426,7 @@ fn make_invader_grid(assets: &Assets) -> Vec<Vec<Option<Invader>>> {
                     Some(Invader {
                         sprite: SpriteRef::new(assets, Ferris1, Duration::default()),
                         pos: START + FERRIS_OFFSET + Point::new(x, y) * GRID,
+                        direction: Direction::Right,
                         score: 10,
                     })
                 })
@@ -343,6 +438,7 @@ fn make_invader_grid(assets: &Assets) -> Vec<Vec<Option<Invader>>> {
                     Some(Invader {
                         sprite: SpriteRef::new(assets, Cthulhu1, Duration::default()),
                         pos: START + CTHULHU_OFFSET + Point::new(x, y) * GRID,
+                        direction: Direction::Right,
                         score: 10,
                     })
                 })

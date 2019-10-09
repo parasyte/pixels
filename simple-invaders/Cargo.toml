@@ -6,3 +6,4 @@ edition = "2018"
 
 [dependencies]
 pcx = "0.2"
+line_drawing = "0.8"
