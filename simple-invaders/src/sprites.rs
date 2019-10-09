@@ -2,9 +2,9 @@ use std::cmp::min;
 use std::rc::Rc;
 use std::time::Duration;
 
-use line_drawing::Bresenham;
 use crate::loader::Assets;
-use crate::{Point, SCREEN_WIDTH, SCREEN_HEIGHT};
+use crate::{Point, SCREEN_HEIGHT, SCREEN_WIDTH};
+use line_drawing::Bresenham;
 
 // This is the type stored in the `Assets` hash map
 pub(crate) type CachedSprite = (usize, usize, Rc<Vec<u8>>);
@@ -109,7 +109,6 @@ impl SpriteRef {
 
             // Laser1 => (assets.get(&Laser2).unwrap().2.clone(), Laser2),
             // Laser2 => (assets.get(&Laser1).unwrap().2.clone(), Laser1),
-
             _ => unreachable!(),
         };
 
@@ -179,7 +178,7 @@ where
 }
 
 /// Draw a line to the pixel buffer using Bresenham's algorithm.
-pub(crate) fn line(screen: &mut [u8], p1: &Point, p2: &Point, color: &[u8; 4]) {
+pub(crate) fn line(screen: &mut [u8], p1: &Point, p2: &Point, color: [u8; 4]) {
     let p1 = (p1.x as i64, p1.y as i64);
     let p2 = (p2.x as i64, p2.y as i64);
 
@@ -188,12 +187,12 @@ pub(crate) fn line(screen: &mut [u8], p1: &Point, p2: &Point, color: &[u8; 4]) {
         let y = min(y as usize, SCREEN_HEIGHT - 1);
         let i = x * 4 + y * SCREEN_WIDTH * 4;
 
-        screen[i..i + 4].copy_from_slice(color);
+        screen[i..i + 4].copy_from_slice(&color);
     }
 }
 
 /// Draw a rectangle to the pixel buffer using two points in opposite corners.
-pub(crate) fn rect(screen: &mut [u8], p1: &Point, p2: &Point, color: &[u8; 4]) {
+pub(crate) fn rect(screen: &mut [u8], p1: &Point, p2: &Point, color: [u8; 4]) {
     let p3 = Point::new(p1.x, p2.y);
     let p4 = Point::new(p2.x, p1.y);
 

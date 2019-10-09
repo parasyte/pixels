@@ -145,7 +145,7 @@ impl World {
 
         // Enable debug mode with `DEBUG=true` environment variable
         let debug = env::var("DEBUG")
-            .unwrap_or("false".to_string())
+            .unwrap_or_else(|_| "false".to_string())
             .parse()
             .unwrap_or(false);
 
@@ -221,7 +221,7 @@ impl World {
             let p1 = Point::new(self.invaders.bounds.left, START.y);
             let p2 = Point::new(self.invaders.bounds.right, self.invaders.bounds.bottom);
             let red = [255, 0, 0, 255];
-            rect(&mut self.screen, &p1, &p2, &red);
+            rect(&mut self.screen, &p1, &p2, red);
         }
 
         &self.screen
@@ -270,7 +270,7 @@ impl World {
                         bounds.left += 2;
                     }
                 }
-            },
+            }
             Direction::Right => {
                 if bounds.right + 2 <= SCREEN_WIDTH {
                     invader.pos.x += 2;
@@ -301,7 +301,7 @@ impl World {
                         bounds.right -= 2;
                     }
                 }
-            },
+            }
             _ => unreachable!(),
         }
 
