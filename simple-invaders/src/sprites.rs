@@ -1,4 +1,5 @@
 use std::rc::Rc;
+use std::time::Duration;
 
 use crate::loader::Assets;
 use crate::{Point, SCREEN_WIDTH};
@@ -26,13 +27,15 @@ pub(crate) enum Frame {
     // Laser2,
 }
 
-/// Sprites can be drawn and animated.
+/// Sprites can be drawn and procedurally generated.
+///
+/// A `Sprite` owns its pixel data, and cannot be animated. Use a `SpriteRef` if you need
+/// animations.
 #[derive(Debug)]
 pub(crate) struct Sprite {
     width: usize,
     height: usize,
     pixels: Vec<u8>,
-    frame: Frame,
 }
 
 /// SpriteRefs can be drawn and animated.
@@ -44,6 +47,8 @@ pub(crate) struct SpriteRef {
     height: usize,
     pixels: Rc<Vec<u8>>,
     frame: Frame,
+    duration: Duration,
+    dt: Duration,
 }
 
 /// Drawables can be blitted to the pixel buffer and animated.
@@ -51,15 +56,43 @@ pub(crate) trait Drawable {
     fn width(&self) -> usize;
     fn height(&self) -> usize;
     fn pixels(&self) -> &[u8];
-    fn update_pixels(&mut self, pixels: Rc<Vec<u8>>);
-    fn frame(&self) -> &Frame;
-    fn update_frame(&mut self, frame: Frame);
+}
 
-    fn animate(&mut self, assets: &Assets) {
+pub(crate) trait Animation {
+    fn animate(&mut self, assets: &Assets, dt: Duration);
+}
+
+impl Sprite {
+    pub(crate) fn new(assets: &Assets, frame: Frame) -> Sprite {
+        let (width, height, pixels) = assets.sprites().get(&frame).unwrap();
+
+        Sprite {
+            width: *width,
+            height: *height,
+            pixels: pixels.to_vec(),
+        }
+    }
+}
+
+impl SpriteRef {
+    pub(crate) fn new(assets: &Assets, frame: Frame, duration: Duration) -> SpriteRef {
+        let (width, height, pixels) = assets.sprites().get(&frame).unwrap();
+
+        SpriteRef {
+            width: *width,
+            height: *height,
+            pixels: pixels.clone(),
+            frame,
+            duration,
+            dt: Duration::default(),
+        }
+    }
+
+    pub(crate) fn step_frame(&mut self, assets: &Assets) {
         use Frame::*;
 
         let assets = assets.sprites();
-        let (pixels, frame) = match self.frame() {
+        let (pixels, frame) = match self.frame {
             Blipjoy1 => (assets.get(&Blipjoy2).unwrap().2.clone(), Blipjoy2),
             Blipjoy2 => (assets.get(&Blipjoy1).unwrap().2.clone(), Blipjoy1),
 
@@ -78,34 +111,8 @@ pub(crate) trait Drawable {
             // Laser2 => (assets.get(&Laser1).unwrap().2.clone(), Laser1),
         };
 
-        self.update_pixels(pixels);
-        self.update_frame(frame);
-    }
-}
-
-impl Sprite {
-    pub(crate) fn new(assets: &Assets, frame: Frame) -> Sprite {
-        let (width, height, pixels) = assets.sprites().get(&frame).unwrap();
-
-        Sprite {
-            width: *width,
-            height: *height,
-            pixels: pixels.to_vec(),
-            frame,
-        }
-    }
-}
-
-impl SpriteRef {
-    pub(crate) fn new(assets: &Assets, frame: Frame) -> SpriteRef {
-        let (width, height, pixels) = assets.sprites().get(&frame).unwrap();
-
-        SpriteRef {
-            width: *width,
-            height: *height,
-            pixels: pixels.clone(),
-            frame,
-        }
+        self.pixels = pixels;
+        self.frame = frame;
     }
 }
 
@@ -121,18 +128,6 @@ impl Drawable for Sprite {
     fn pixels(&self) -> &[u8] {
         &self.pixels
     }
-
-    fn update_pixels(&mut self, pixels: Rc<Vec<u8>>) {
-        self.pixels = pixels.to_vec();
-    }
-
-    fn frame(&self) -> &Frame {
-        &self.frame
-    }
-
-    fn update_frame(&mut self, frame: Frame) {
-        self.frame = frame;
-    }
 }
 
 impl Drawable for SpriteRef {
@@ -147,17 +142,20 @@ impl Drawable for SpriteRef {
     fn pixels(&self) -> &[u8] {
         &self.pixels
     }
+}
 
-    fn update_pixels(&mut self, pixels: Rc<Vec<u8>>) {
-        self.pixels = pixels;
-    }
+impl Animation for SpriteRef {
+    fn animate(&mut self, assets: &Assets, dt: Duration) {
+        if self.duration.subsec_nanos() == 0 {
+            self.step_frame(assets);
+        } else {
+            self.dt += dt;
 
-    fn frame(&self) -> &Frame {
-        &self.frame
-    }
-
-    fn update_frame(&mut self, frame: Frame) {
-        self.frame = frame;
+            while self.dt >= self.duration {
+                self.dt -= self.duration;
+                self.step_frame(assets);
+            }
+        }
     }
 }
 

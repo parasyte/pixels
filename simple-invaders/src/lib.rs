@@ -8,7 +8,7 @@ use std::time::Duration;
 
 pub use controls::{Controls, Direction};
 use loader::{load_assets, Assets};
-use sprites::{blit, Drawable, Frame, Sprite, SpriteRef};
+use sprites::{blit, Animation, Frame, Sprite, SpriteRef};
 
 mod controls;
 mod loader;
@@ -35,8 +35,7 @@ pub struct World {
     score: u32,
     assets: Assets,
     screen: Vec<u8>,
-    timing: Duration,
-    frame_count: usize,
+    dt: Duration,
 }
 
 /// A tiny position vector
@@ -124,7 +123,7 @@ impl World {
             bounds: Bounds::default(),
         };
         let player = Player {
-            sprite: SpriteRef::new(&assets, Player1),
+            sprite: SpriteRef::new(&assets, Player1, Duration::from_millis(100)),
             pos: Point::new(80, 216),
             last_update: 0,
         };
@@ -148,8 +147,7 @@ impl World {
             score: 0,
             assets,
             screen,
-            timing: Duration::default(),
-            frame_count: 0,
+            dt: Duration::default(),
         }
     }
 
@@ -163,17 +161,16 @@ impl World {
         let one_frame = Duration::new(0, 16_666_667);
 
         // Advance the timer by the delta time
-        self.timing += dt;
+        self.dt += dt;
 
         // Step the invaders one by one
-        while self.timing >= one_frame {
-            self.frame_count += 1;
-            self.timing -= one_frame;
+        while self.dt >= one_frame {
+            self.dt -= one_frame;
             self.step_invaders();
         }
 
         // Handle player movement and animation
-        self.step_player(controls);
+        self.step_player(controls, dt);
 
         // TODO: Handle lasers and bullets
         // Movements can be multiplied by the delta-time frame count, instead of looping
@@ -216,34 +213,25 @@ impl World {
         // TODO: Move the invader
 
         // Animate the invader
-        invader.sprite.animate(&self.assets);
+        invader.sprite.step_frame(&self.assets);
     }
 
-    fn step_player(&mut self, controls: &Controls) {
-        let animate_player = match controls.direction {
+    fn step_player(&mut self, controls: &Controls, dt: Duration) {
+        match controls.direction {
             Direction::Left => {
                 if self.player.pos.x > 0 {
                     self.player.pos.x -= 1;
-                    true
-                } else {
-                    false
+                    self.player.sprite.animate(&self.assets, dt);
                 }
             }
 
             Direction::Right => {
                 if self.player.pos.x < 224 - 16 {
                     self.player.pos.x += 1;
-                    true
-                } else {
-                    false
+                    self.player.sprite.animate(&self.assets, dt);
                 }
             }
-            _ => false,
-        };
-
-        if animate_player && self.frame_count - self.player.last_update >= 3 {
-            self.player.last_update = self.frame_count;
-            self.player.sprite.animate(&self.assets);
+            _ => (),
         }
     }
 
@@ -331,7 +319,7 @@ fn make_invader_grid(assets: &Assets) -> Vec<Vec<Option<Invader>>> {
             (0..COLS)
                 .map(|x| {
                     Some(Invader {
-                        sprite: SpriteRef::new(assets, Blipjoy1),
+                        sprite: SpriteRef::new(assets, Blipjoy1, Duration::default()),
                         pos: START + BLIPJOY_OFFSET + Point::new(x, y) * GRID,
                         score: 10,
                     })
@@ -342,7 +330,7 @@ fn make_invader_grid(assets: &Assets) -> Vec<Vec<Option<Invader>>> {
             (0..COLS)
                 .map(|x| {
                     Some(Invader {
-                        sprite: SpriteRef::new(assets, Ferris1),
+                        sprite: SpriteRef::new(assets, Ferris1, Duration::default()),
                         pos: START + FERRIS_OFFSET + Point::new(x, y) * GRID,
                         score: 10,
                     })
@@ -353,7 +341,7 @@ fn make_invader_grid(assets: &Assets) -> Vec<Vec<Option<Invader>>> {
             (0..COLS)
                 .map(|x| {
                     Some(Invader {
-                        sprite: SpriteRef::new(assets, Cthulhu1),
+                        sprite: SpriteRef::new(assets, Cthulhu1, Duration::default()),
                         pos: START + CTHULHU_OFFSET + Point::new(x, y) * GRID,
                         score: 10,
                     })
