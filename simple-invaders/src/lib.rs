@@ -9,7 +9,7 @@ use std::time::Duration;
 
 pub use controls::{Controls, Direction};
 use loader::{load_assets, Assets};
-use sprites::{blit, rect, Animation, Frame, Sprite, SpriteRef};
+use sprites::{blit, line, Animation, Frame, Sprite, SpriteRef};
 
 mod controls;
 mod loader;
@@ -21,7 +21,7 @@ pub const SCREEN_WIDTH: usize = 224;
 pub const SCREEN_HEIGHT: usize = 256;
 
 // Invader positioning
-const START: Point = Point::new(24, 60);
+const START: Point = Point::new(24, 64);
 const GRID: Point = Point::new(16, 16);
 const ROWS: usize = 5;
 const COLS: usize = 11;
@@ -41,36 +41,29 @@ pub struct World {
     debug: bool,
 }
 
-/// A tiny position vector
+/// A tiny position vector.
 #[derive(Debug, Default, Eq, PartialEq)]
 struct Point {
     x: usize,
     y: usize,
 }
 
-/// A formation of invaders.
+/// A fleet of invaders.
 #[derive(Debug)]
 struct Invaders {
     grid: Vec<Vec<Option<Invader>>>,
-    stepper: Stepper,
+    stepper: Point,
+    direction: Direction,
+    descend: bool,
     bounds: Bounds,
 }
 
-/// Everything you ever wanted to know about Invaders
+/// Everything you ever wanted to know about Invaders.
 #[derive(Debug)]
 struct Invader {
     sprite: SpriteRef,
     pos: Point,
-    direction: Direction,
     score: u32,
-}
-
-/// The stepper will linerly walk through the 2D vector of invaders, updating their state along the
-/// way.
-#[derive(Debug)]
-struct Stepper {
-    row: usize,
-    col: usize,
 }
 
 /// Creates a boundary around the live invaders.
@@ -78,9 +71,9 @@ struct Stepper {
 /// Used for collision detection and minor optimizations.
 #[derive(Debug)]
 struct Bounds {
-    left: usize,
-    right: usize,
-    bottom: usize,
+    left_col: usize,
+    right_col: usize,
+    px: usize,
 }
 
 /// The player entity.
@@ -124,7 +117,9 @@ impl World {
         // TODO: Create invaders one-at-a-time
         let invaders = Invaders {
             grid: make_invader_grid(&assets),
-            stepper: Stepper::default(),
+            stepper: Point::new(COLS - 1, 0),
+            direction: Direction::Right,
+            descend: false,
             bounds: Bounds::default(),
         };
         let player = Player {
@@ -218,91 +213,70 @@ impl World {
 
         if self.debug {
             // Draw invaders bounding box
-            let p1 = Point::new(self.invaders.bounds.left, START.y);
-            let p2 = Point::new(self.invaders.bounds.right, self.invaders.bounds.bottom);
+            let (left, right) = self.invaders.get_bounds();
             let red = [255, 0, 0, 255];
-            rect(&mut self.screen, &p1, &p2, red);
+
+            let p1 = Point::new(left, START.y);
+            let p2 = Point::new(left, self.player.pos.y);
+            line(&mut self.screen, &p1, &p2, red);
+
+            let p1 = Point::new(right, START.y);
+            let p2 = Point::new(right, self.player.pos.y);
+            line(&mut self.screen, &p1, &p2, red);
         }
 
         &self.screen
     }
 
     fn step_invaders(&mut self) {
-        // Find the next invader
-        let mut invader = None;
-        while let None = invader {
-            let (col, row) = self.invaders.stepper.incr();
-            invader = self.invaders.grid[row][col].as_mut();
+        let (left, right) = self.invaders.get_bounds();
+        let (invader, is_leader) =
+            next_invader(&mut self.invaders.grid, &mut self.invaders.stepper);
+
+        // The leader controls the fleet
+        if is_leader {
+            // The leader first commands the fleet to stop descending
+            self.invaders.descend = false;
+
+            // Then the leader redirects the fleet when they reach the boundaries
+            match self.invaders.direction {
+                Direction::Left => {
+                    if left < 2 {
+                        self.invaders.bounds.px += 2;
+                        self.invaders.descend = true;
+                        self.invaders.direction = Direction::Right;
+                    } else {
+                        self.invaders.bounds.px -= 2;
+                    }
+                }
+                Direction::Right => {
+                    if right > SCREEN_WIDTH - 2 {
+                        self.invaders.bounds.px -= 2;
+                        self.invaders.descend = true;
+                        self.invaders.direction = Direction::Left;
+                    } else {
+                        self.invaders.bounds.px += 2;
+                    }
+                }
+                _ => unreachable!(),
+            }
         }
-        let invader = invader.unwrap();
 
-        // Move the invader
-        let stepper = &self.invaders.stepper;
-        let mut bounds = &mut self.invaders.bounds;
-
-        // TODO: Cleanup and remove dupliacte code
-        match invader.direction {
-            Direction::Left => {
-                if bounds.left >= 2 {
-                    invader.pos.x -= 2;
-
-                    // Adjust the invaders bounding box
-                    // FIXME: This only works if the corner invader is alive
-                    if stepper.col == 10 && stepper.row == 0 {
-                        bounds.left -= 2;
-                        bounds.right -= 2;
-                    }
-                } else {
-                    invader.direction = Direction::Right;
-                    invader.pos.x += 2;
-                    invader.pos.y += 8;
-
-                    // Adjust the invaders bounding box
-                    // FIXME: This only works if the corner invader is alive
-                    if stepper.col == 0 && stepper.row == 4 {
-                        if invader.pos.y >= self.player.pos.y {
-                            self.gameover = true;
-                        }
-
-                        bounds.right += 2;
-                        bounds.bottom += 8;
-                    } else if stepper.col == 10 && stepper.row == 0 {
-                        bounds.left += 2;
-                    }
-                }
-            }
-            Direction::Right => {
-                if bounds.right + 2 <= SCREEN_WIDTH {
-                    invader.pos.x += 2;
-
-                    // Adjust the invaders bounding box
-                    // FIXME: This only works if the corner invader is alive
-                    if stepper.col == 10 && stepper.row == 0 {
-                        bounds.left += 2;
-                        bounds.right += 2;
-                    }
-                } else {
-                    // TODO: Stop moving down at some point!
-                    invader.direction = Direction::Left;
-                    invader.pos.x -= 2;
-                    invader.pos.y += 8;
-
-                    // Adjust the invaders bounding box
-                    // FIXME: This only works if the corner invader is alive
-                    if stepper.col == 0 && stepper.row == 4 {
-                        // When the lowest invader reaches `player.pos.y`, it's game over!
-                        if invader.pos.y >= self.player.pos.y {
-                            self.gameover = true;
-                        }
-
-                        bounds.left -= 2;
-                        bounds.bottom += 8;
-                    } else if stepper.col == 10 && stepper.row == 0 {
-                        bounds.right -= 2;
-                    }
-                }
-            }
+        // Every invader in the fleet moves 2px per frame
+        match self.invaders.direction {
+            Direction::Left => invader.pos.x -= 2,
+            Direction::Right => invader.pos.x += 2,
             _ => unreachable!(),
+        }
+
+        // And the descend 8px on command
+        if self.invaders.descend {
+            invader.pos.y += 8;
+
+            // One of the end scenarios
+            if invader.pos.y + 8 >= self.player.pos.y {
+                self.gameover = true;
+            }
         }
 
         // Animate the invader
@@ -364,37 +338,23 @@ impl std::ops::Mul for Point {
     }
 }
 
-impl Stepper {
-    fn incr(&mut self) -> (usize, usize) {
-        self.col += 1;
-        if self.col >= COLS {
-            self.col = 0;
-            if self.row == 0 {
-                self.row = ROWS - 1;
-            } else {
-                self.row -= 1;
-            }
-        }
+impl Invaders {
+    fn get_bounds(&self) -> (usize, usize) {
+        let width = (self.bounds.right_col - self.bounds.left_col + 1) * GRID.x;
 
-        (self.col, self.row)
-    }
-}
+        let left = self.bounds.px;
+        let right = left + width;
 
-impl Default for Stepper {
-    fn default() -> Self {
-        Self {
-            row: 0,
-            col: COLS - 1,
-        }
+        (left, right)
     }
 }
 
 impl Default for Bounds {
     fn default() -> Self {
         Self {
-            left: START.x,
-            right: START.x + COLS * GRID.x,
-            bottom: START.y + ROWS * GRID.y,
+            left_col: 0,
+            right_col: COLS - 1,
+            px: START.x,
         }
     }
 }
@@ -414,7 +374,6 @@ fn make_invader_grid(assets: &Assets) -> Vec<Vec<Option<Invader>>> {
                     Some(Invader {
                         sprite: SpriteRef::new(assets, Blipjoy1, Duration::default()),
                         pos: START + BLIPJOY_OFFSET + Point::new(x, y) * GRID,
-                        direction: Direction::Right,
                         score: 10,
                     })
                 })
@@ -426,7 +385,6 @@ fn make_invader_grid(assets: &Assets) -> Vec<Vec<Option<Invader>>> {
                     Some(Invader {
                         sprite: SpriteRef::new(assets, Ferris1, Duration::default()),
                         pos: START + FERRIS_OFFSET + Point::new(x, y) * GRID,
-                        direction: Direction::Right,
                         score: 10,
                     })
                 })
@@ -438,11 +396,37 @@ fn make_invader_grid(assets: &Assets) -> Vec<Vec<Option<Invader>>> {
                     Some(Invader {
                         sprite: SpriteRef::new(assets, Cthulhu1, Duration::default()),
                         pos: START + CTHULHU_OFFSET + Point::new(x, y) * GRID,
-                        direction: Direction::Right,
                         score: 10,
                     })
                 })
                 .collect()
         }))
         .collect()
+}
+
+fn next_invader<'a>(
+    invaders: &'a mut Vec<Vec<Option<Invader>>>,
+    stepper: &mut Point,
+) -> (&'a mut Invader, bool) {
+    let mut is_leader = false;
+
+    loop {
+        // Iterate through the entire grid
+        stepper.x += 1;
+        if stepper.x >= COLS {
+            stepper.x = 0;
+            if stepper.y == 0 {
+                stepper.y = ROWS - 1;
+
+                // After a full cycle, the next invader will be the leader
+                is_leader = true;
+            } else {
+                stepper.y -= 1;
+            }
+        }
+
+        if invaders[stepper.y][stepper.x].is_some() {
+            return (invaders[stepper.y][stepper.x].as_mut().unwrap(), is_leader);
+        }
+    }
 }
