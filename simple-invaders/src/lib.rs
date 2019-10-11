@@ -81,7 +81,7 @@ struct Bounds {
 struct Player {
     sprite: SpriteRef,
     pos: Point,
-    last_update: usize,
+    dt: usize,
 }
 
 /// The shield entity.
@@ -125,7 +125,7 @@ impl World {
         let player = Player {
             sprite: SpriteRef::new(&assets, Player1, Duration::from_millis(100)),
             pos: Point::new(80, 216),
-            last_update: 0,
+            dt: 0,
         };
         let shields = (0..4)
             .map(|i| Shield {
@@ -284,17 +284,21 @@ impl World {
     }
 
     fn step_player(&mut self, controls: &Controls, dt: Duration) {
+        self.player.dt += dt.subsec_nanos() as usize;
+        let frames = self.player.dt / 16_666_667;
+        self.player.dt -= frames * 16_666_667;
+
         match controls.direction {
             Direction::Left => {
-                if self.player.pos.x > 0 {
-                    self.player.pos.x -= 1;
+                if self.player.pos.x >= frames {
+                    self.player.pos.x -= frames;
                     self.player.sprite.animate(&self.assets, dt);
                 }
             }
 
             Direction::Right => {
-                if self.player.pos.x < SCREEN_WIDTH - 16 {
-                    self.player.pos.x += 1;
+                if self.player.pos.x < SCREEN_WIDTH - 15 - frames {
+                    self.player.pos.x += frames;
                     self.player.sprite.animate(&self.assets, dt);
                 }
             }
