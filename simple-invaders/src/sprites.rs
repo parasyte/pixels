@@ -165,6 +165,9 @@ pub(crate) fn blit<S>(screen: &mut [u8], dest: &Point, sprite: &S)
 where
     S: Drawable,
 {
+    assert!(dest.x + sprite.width() <= SCREEN_WIDTH);
+    assert!(dest.y + sprite.height() <= SCREEN_HEIGHT);
+
     let pixels = sprite.pixels();
     let width = sprite.width() * 4;
 
