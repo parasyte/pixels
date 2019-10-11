@@ -171,8 +171,15 @@ where
     let mut s = 0;
     for y in 0..sprite.height() {
         let i = dest.x * 4 + dest.y * SCREEN_WIDTH * 4 + y * SCREEN_WIDTH * 4;
-        // TODO: Support "transparency"
-        screen[i..i + width].copy_from_slice(&pixels[s..s + width]);
+
+        // Merge pixels from sprite into screen
+        let zipped = screen[i..i + width].iter_mut().zip(&pixels[s..s + width]);
+        for (left, right) in zipped {
+            if *right > 0 {
+                *left = *right;
+            }
+        }
+
         s += width;
     }
 }
