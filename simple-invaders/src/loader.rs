@@ -37,6 +37,11 @@ pub(crate) fn load_assets() -> Assets {
 
     sprites.insert(Shield1, load_pcx(include_bytes!("assets/shield.pcx")));
 
+    sprites.insert(Bullet1, load_pcx(include_bytes!("assets/bullet1.pcx")));
+    sprites.insert(Bullet2, load_pcx(include_bytes!("assets/bullet2.pcx")));
+    sprites.insert(Bullet3, load_pcx(include_bytes!("assets/bullet3.pcx")));
+    sprites.insert(Bullet4, load_pcx(include_bytes!("assets/bullet4.pcx")));
+
     // sprites.insert(Laser1, load_pcx(include_bytes!("assets/laser1.pcx")));
     // sprites.insert(Laser2, load_pcx(include_bytes!("assets/laser2.pcx")));
 

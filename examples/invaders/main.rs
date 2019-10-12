@@ -88,7 +88,7 @@ fn main() -> Result<(), Error> {
             last = now;
 
             // Update the game logic and request redraw
-            invaders.update(dt, &controls);
+            invaders.update(&dt, &controls);
             window.request_redraw();
         }
         _ => (),

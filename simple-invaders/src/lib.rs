@@ -32,7 +32,7 @@ pub struct World {
     lasers: Vec<Laser>,
     shields: Vec<Shield>,
     player: Player,
-    bullets: Vec<Bullet>,
+    bullet: Option<Bullet>,
     score: u32,
     assets: Assets,
     screen: Vec<u8>,
@@ -104,6 +104,7 @@ struct Laser {
 struct Bullet {
     sprite: SpriteRef,
     pos: Point,
+    dt: usize,
 }
 
 impl World {
@@ -149,7 +150,7 @@ impl World {
             lasers: Vec::new(),
             shields,
             player,
-            bullets: Vec::new(),
+            bullet: None,
             score: 0,
             assets,
             screen,
@@ -165,7 +166,7 @@ impl World {
     ///
     /// * `dt`: The time delta since last update.
     /// * `controls`: The player inputs.
-    pub fn update(&mut self, dt: Duration, controls: &Controls) {
+    pub fn update(&mut self, dt: &Duration, controls: &Controls) {
         if self.gameover {
             // TODO: Add a game over screen
             return;
@@ -174,7 +175,7 @@ impl World {
         let one_frame = Duration::new(0, 16_666_667);
 
         // Advance the timer by the delta time
-        self.dt += dt;
+        self.dt += *dt;
 
         // Step the invaders one by one
         while self.dt >= one_frame {
@@ -185,7 +186,19 @@ impl World {
         // Handle player movement and animation
         self.step_player(controls, dt);
 
-        // TODO: Handle lasers and bullets
+        // Handle bullet movement
+        if let Some(bullet) = &mut self.bullet {
+            let frames = update_dt(&mut bullet.dt, dt);
+
+            if bullet.pos.y > frames {
+                bullet.pos.y -= frames;
+                bullet.sprite.animate(&self.assets, dt);
+            } else {
+                self.bullet = None;
+            }
+        }
+
+        // TODO: Handle lasers
         // Movements can be multiplied by the delta-time frame count, instead of looping
     }
 
@@ -210,6 +223,11 @@ impl World {
 
         // Draw the player
         blit(&mut self.screen, &self.player.pos, &self.player.sprite);
+
+        // Draw the bullet
+        if let Some(bullet) = &self.bullet {
+            blit(&mut self.screen, &bullet.pos, &bullet.sprite);
+        }
 
         if self.debug {
             // Draw invaders bounding box
@@ -283,10 +301,8 @@ impl World {
         invader.sprite.step_frame(&self.assets);
     }
 
-    fn step_player(&mut self, controls: &Controls, dt: Duration) {
-        self.player.dt += dt.subsec_nanos() as usize;
-        let frames = self.player.dt / 16_666_667;
-        self.player.dt -= frames * 16_666_667;
+    fn step_player(&mut self, controls: &Controls, dt: &Duration) {
+        let frames = update_dt(&mut self.player.dt, dt);
 
         match controls.direction {
             Direction::Left => {
@@ -303,6 +319,14 @@ impl World {
                 }
             }
             _ => (),
+        }
+
+        if controls.fire && self.bullet.is_none() {
+            self.bullet = Some(Bullet {
+                sprite: SpriteRef::new(&self.assets, Frame::Bullet1, Duration::from_millis(50)),
+                pos: Point::new(self.player.pos.x + 7, self.player.pos.y),
+                dt: 0,
+            });
         }
     }
 
@@ -433,4 +457,12 @@ fn next_invader<'a>(
             return (invaders[stepper.y][stepper.x].as_mut().unwrap(), is_leader);
         }
     }
+}
+
+fn update_dt(dest_dt: &mut usize, dt: &Duration) -> usize {
+    *dest_dt += dt.subsec_nanos() as usize;
+    let frames = *dest_dt / 16_666_667;
+    *dest_dt -= frames * 16_666_667;
+
+    frames
 }

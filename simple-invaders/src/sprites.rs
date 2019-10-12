@@ -25,6 +25,11 @@ pub(crate) enum Frame {
     Player2,
 
     Shield1,
+
+    Bullet1,
+    Bullet2,
+    Bullet3,
+    Bullet4,
     // Laser1,
     // Laser2,
 }
@@ -61,7 +66,7 @@ pub(crate) trait Drawable {
 }
 
 pub(crate) trait Animation {
-    fn animate(&mut self, assets: &Assets, dt: Duration);
+    fn animate(&mut self, assets: &Assets, dt: &Duration);
 }
 
 impl Sprite {
@@ -107,6 +112,11 @@ impl SpriteRef {
             Player1 => (assets.get(&Player2).unwrap().2.clone(), Player2),
             Player2 => (assets.get(&Player1).unwrap().2.clone(), Player1),
 
+            Bullet1 => (assets.get(&Bullet2).unwrap().2.clone(), Bullet2),
+            Bullet2 => (assets.get(&Bullet3).unwrap().2.clone(), Bullet3),
+            Bullet3 => (assets.get(&Bullet4).unwrap().2.clone(), Bullet4),
+            Bullet4 => (assets.get(&Bullet1).unwrap().2.clone(), Bullet1),
+
             // Laser1 => (assets.get(&Laser2).unwrap().2.clone(), Laser2),
             // Laser2 => (assets.get(&Laser1).unwrap().2.clone(), Laser1),
             _ => unreachable!(),
@@ -146,11 +156,11 @@ impl Drawable for SpriteRef {
 }
 
 impl Animation for SpriteRef {
-    fn animate(&mut self, assets: &Assets, dt: Duration) {
+    fn animate(&mut self, assets: &Assets, dt: &Duration) {
         if self.duration.subsec_nanos() == 0 {
             self.step_frame(assets);
         } else {
-            self.dt += dt;
+            self.dt += *dt;
 
             while self.dt >= self.duration {
                 self.dt -= self.duration;
