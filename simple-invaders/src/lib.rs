@@ -4,9 +4,9 @@
 //! this in practice. That said, the game is fully functional, and it should not be too difficult
 //! to understand the code.
 
+use rand_core::{OsRng, RngCore};
 use std::env;
 use std::time::Duration;
-use rand_core::{RngCore, OsRng};
 
 pub use controls::{Controls, Direction};
 use loader::{load_assets, Assets};
