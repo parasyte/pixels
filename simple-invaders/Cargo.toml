@@ -5,5 +5,6 @@ authors = ["Jay Oster <jay@kodewerx.org>"]
 edition = "2018"
 
 [dependencies]
-pcx = "0.2"
 line_drawing = "0.8"
+pcx = "0.2"
+rand_core = { version = "0.5", features = ["std"] }

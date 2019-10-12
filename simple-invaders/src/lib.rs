@@ -6,6 +6,7 @@
 
 use std::env;
 use std::time::Duration;
+use rand_core::{RngCore, OsRng};
 
 pub use controls::{Controls, Direction};
 use loader::{load_assets, Assets};
@@ -38,6 +39,7 @@ pub struct World {
     screen: Vec<u8>,
     dt: Duration,
     gameover: bool,
+    random: OsRng,
     debug: bool,
 }
 
@@ -97,6 +99,7 @@ struct Shield {
 struct Laser {
     sprite: SpriteRef,
     pos: Point,
+    dt: usize,
 }
 
 /// The cannon entity.
@@ -156,6 +159,7 @@ impl World {
             screen,
             dt: Duration::default(),
             gameover: false,
+            random: OsRng,
             debug,
         }
     }
@@ -188,18 +192,33 @@ impl World {
 
         // Handle bullet movement
         if let Some(bullet) = &mut self.bullet {
-            let frames = update_dt(&mut bullet.dt, dt);
+            let velocity = update_dt(&mut bullet.dt, dt) * 4;
 
-            if bullet.pos.y > frames {
-                bullet.pos.y -= frames;
+            if bullet.pos.y > velocity {
+                bullet.pos.y -= velocity;
                 bullet.sprite.animate(&self.assets, dt);
             } else {
                 self.bullet = None;
             }
         }
 
-        // TODO: Handle lasers
-        // Movements can be multiplied by the delta-time frame count, instead of looping
+        // Handle laser movement
+        let mut destroy = Vec::new();
+        for (i, laser) in self.lasers.iter_mut().enumerate() {
+            let velocity = update_dt(&mut laser.dt, dt) * 2;
+
+            if laser.pos.y < self.player.pos.y {
+                laser.pos.y += velocity;
+                laser.sprite.animate(&self.assets, dt);
+            } else {
+                destroy.push(i);
+            }
+        }
+
+        // Destroy dead lasers
+        for i in destroy.iter().rev() {
+            self.lasers.remove(*i);
+        }
     }
 
     /// Draw the internal state to the screen.
@@ -227,6 +246,11 @@ impl World {
         // Draw the bullet
         if let Some(bullet) = &self.bullet {
             blit(&mut self.screen, &bullet.pos, &bullet.sprite);
+        }
+
+        // Draw lasers
+        for laser in self.lasers.iter() {
+            blit(&mut self.screen, &laser.pos, &laser.sprite);
         }
 
         if self.debug {
@@ -287,7 +311,7 @@ impl World {
             _ => unreachable!(),
         }
 
-        // And the descend 8px on command
+        // And they descend 8px on command
         if self.invaders.descend {
             invader.pos.y += 8;
 
@@ -299,6 +323,22 @@ impl World {
 
         // Animate the invader
         invader.sprite.step_frame(&self.assets);
+
+        // They also shoot lasers at random with a 1:50 chance
+        let r = self.random.next_u32() as usize;
+        let chance = r % 50;
+        if self.lasers.len() < 3 && chance == 0 {
+            // Pick a random column to begin searching for an invader that can fire a laser
+            let col = r / 50 % COLS;
+            let invader = self.invaders.get_closest_invader(col);
+
+            let laser = Laser {
+                sprite: SpriteRef::new(&self.assets, Frame::Laser1, Duration::from_millis(16)),
+                pos: Point::new(invader.pos.x + 4, invader.pos.y + 10),
+                dt: 0,
+            };
+            self.lasers.push(laser);
+        }
     }
 
     fn step_player(&mut self, controls: &Controls, dt: &Duration) {
@@ -323,7 +363,7 @@ impl World {
 
         if controls.fire && self.bullet.is_none() {
             self.bullet = Some(Bullet {
-                sprite: SpriteRef::new(&self.assets, Frame::Bullet1, Duration::from_millis(50)),
+                sprite: SpriteRef::new(&self.assets, Frame::Bullet1, Duration::from_millis(32)),
                 pos: Point::new(self.player.pos.x + 7, self.player.pos.y),
                 dt: 0,
             });
@@ -374,6 +414,25 @@ impl Invaders {
         let right = left + width;
 
         (left, right)
+    }
+
+    fn get_closest_invader(&self, mut col: usize) -> &Invader {
+        let mut row = ROWS - 1;
+        loop {
+            if self.grid[row][col].is_some() {
+                return self.grid[row][col].as_ref().unwrap();
+            }
+
+            if row == 0 {
+                row = ROWS - 1;
+                col += 1;
+                if col == COLS {
+                    col = 0;
+                }
+            } else {
+                row -= 1;
+            }
+        }
     }
 }
 

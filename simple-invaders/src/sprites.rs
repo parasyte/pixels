@@ -30,8 +30,16 @@ pub(crate) enum Frame {
     Bullet2,
     Bullet3,
     Bullet4,
-    // Laser1,
-    // Laser2,
+    Bullet5,
+
+    Laser1,
+    Laser2,
+    Laser3,
+    Laser4,
+    Laser5,
+    Laser6,
+    Laser7,
+    Laser8,
 }
 
 /// Sprites can be drawn and procedurally generated.
@@ -115,10 +123,18 @@ impl SpriteRef {
             Bullet1 => (assets.get(&Bullet2).unwrap().2.clone(), Bullet2),
             Bullet2 => (assets.get(&Bullet3).unwrap().2.clone(), Bullet3),
             Bullet3 => (assets.get(&Bullet4).unwrap().2.clone(), Bullet4),
-            Bullet4 => (assets.get(&Bullet1).unwrap().2.clone(), Bullet1),
+            Bullet4 => (assets.get(&Bullet5).unwrap().2.clone(), Bullet5),
+            Bullet5 => (assets.get(&Bullet1).unwrap().2.clone(), Bullet1),
 
-            // Laser1 => (assets.get(&Laser2).unwrap().2.clone(), Laser2),
-            // Laser2 => (assets.get(&Laser1).unwrap().2.clone(), Laser1),
+            Laser1 => (assets.get(&Laser2).unwrap().2.clone(), Laser2),
+            Laser2 => (assets.get(&Laser3).unwrap().2.clone(), Laser3),
+            Laser3 => (assets.get(&Laser4).unwrap().2.clone(), Laser4),
+            Laser4 => (assets.get(&Laser5).unwrap().2.clone(), Laser5),
+            Laser5 => (assets.get(&Laser6).unwrap().2.clone(), Laser6),
+            Laser6 => (assets.get(&Laser7).unwrap().2.clone(), Laser7),
+            Laser7 => (assets.get(&Laser8).unwrap().2.clone(), Laser8),
+            Laser8 => (assets.get(&Laser1).unwrap().2.clone(), Laser1),
+
             _ => unreachable!(),
         };
 
