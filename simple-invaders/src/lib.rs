@@ -302,14 +302,28 @@ impl World {
 
                     self.collision.laser_details.push(LaserDetail::Player(i));
                 }
+
+                // Handle laser collisions with bullet
+                if let Some(bullet) = &self.bullet {
+                    let bullet_rect = Rect::from_drawable(&bullet.pos, &bullet.sprite);
+                    if bullet_rect.intersects(&laser_rect) {
+                        // Destroy both
+                        // TODO: Explosion!
+                        destroy.push(i);
+                        self.bullet = None;
+
+                        let detail = BulletDetail::Laser(i);
+                        self.collision.bullet_details.push(detail);
+                    }
+                }
             } else {
                 destroy.push(i);
             }
         }
 
         // Destroy dead lasers
-        for i in destroy.iter().rev() {
-            self.lasers.remove(*i);
+        for &i in destroy.iter().rev() {
+            self.lasers.remove(i);
         }
     }
 
@@ -395,19 +409,11 @@ impl World {
             }
 
             // Draw bounding box for lasers
-            for (i, laser) in self.lasers.iter().enumerate() {
+            for laser in &self.lasers {
                 let p1 = laser.pos;
                 let p2 = p1 + Point::new(laser.sprite.width(), laser.sprite.height());
 
-                // Select color based on collision
-                let detail = LaserDetail::Player(i);
-                let color = if self.collision.laser_details.contains(&detail) {
-                    red
-                } else {
-                    green
-                };
-
-                rect(&mut self.screen, &p1, &p2, color);
+                rect(&mut self.screen, &p1, &p2, green);
             }
 
             // Draw bounding box for player

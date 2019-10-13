@@ -203,9 +203,9 @@ where
 
         // Merge pixels from sprite into screen
         let zipped = screen[i..i + width].iter_mut().zip(&pixels[s..s + width]);
-        for (left, right) in zipped {
-            if *right > 0 {
-                *left = *right;
+        for (left, &right) in zipped {
+            if right > 0 {
+                *left = right;
             }
         }
 
