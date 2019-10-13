@@ -230,10 +230,12 @@ impl World {
                 laser.pos.y += velocity;
                 laser.sprite.animate(&self.assets, dt);
 
-                // Handler collisions
-                self.gameover = self.collision.laser_to_player(laser, i, &self.player);
-                if self.collision.laser_to_bullet(laser, i, &mut self.bullet)
-                    || self.collision.laser_to_shield(laser, i, &mut self.shields)
+                // Handle collisions
+                if self.collision.laser_to_player(laser, &self.player) {
+                    self.gameover = true;
+                    destroy.push(i);
+                } else if self.collision.laser_to_bullet(laser, i, &mut self.bullet)
+                    || self.collision.laser_to_shield(laser, &mut self.shields)
                 {
                     destroy.push(i);
                 }
@@ -249,6 +251,8 @@ impl World {
     }
 
     /// Draw the internal state to the screen.
+    ///
+    /// Calling this method more than once without an `update` call between is a no-op.
     pub fn draw(&mut self) -> &[u8] {
         // Clear the screen
         self.clear();
@@ -281,11 +285,11 @@ impl World {
         }
 
         if self.debug {
-            debug::draw_invaders(&mut self.screen, &self.invaders, &mut self.collision);
+            debug::draw_invaders(&mut self.screen, &self.invaders, &self.collision);
             debug::draw_bullet(&mut self.screen, self.bullet.as_ref());
-            let hit = debug::draw_lasers(&mut self.screen, &self.lasers, &mut self.collision);
-            debug::draw_player(&mut self.screen, &self.player, hit);
-            debug::draw_shields(&mut self.screen, &self.shields, &mut self.collision);
+            debug::draw_lasers(&mut self.screen, &self.lasers);
+            debug::draw_player(&mut self.screen, &self.player, &self.collision);
+            debug::draw_shields(&mut self.screen, &self.shields, &self.collision);
         }
 
         &self.screen

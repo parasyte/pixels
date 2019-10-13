@@ -25,10 +25,10 @@ pub(crate) enum BulletDetail {
 /// Information regarding collisions between lasers and shields or the player.
 #[derive(Debug, Eq, Hash, PartialEq)]
 pub(crate) enum LaserDetail {
-    /// A laser index and shield index pair.
-    Shield(usize, usize),
-    /// A laser index and the player.
-    Player(usize),
+    /// A shield index.
+    Shield(usize),
+    /// Collided with the player.
+    Player,
 }
 
 impl Collision {
@@ -123,11 +123,11 @@ impl Collision {
     }
 
     /// Handle collisions between lasers and the player.
-    pub(crate) fn laser_to_player(&mut self, laser: &Laser, index: usize, player: &Player) -> bool {
+    pub(crate) fn laser_to_player(&mut self, laser: &Laser, player: &Player) -> bool {
         let laser_rect = Rect::from_drawable(&laser.pos, &laser.sprite);
         let player_rect = Rect::from_drawable(&player.pos, &player.sprite);
         if laser_rect.intersects(&player_rect) {
-            self.laser_details.insert(LaserDetail::Player(index));
+            self.laser_details.insert(LaserDetail::Player);
             return true;
         }
 
@@ -166,12 +166,7 @@ impl Collision {
     }
 
     /// Handle collisions between lasers and shields.
-    pub(crate) fn laser_to_shield(
-        &mut self,
-        laser: &Laser,
-        index: usize,
-        shields: &mut [Shield],
-    ) -> bool {
+    pub(crate) fn laser_to_shield(&mut self, laser: &Laser, shields: &mut [Shield]) -> bool {
         let laser_rect = Rect::from_drawable(&laser.pos, &laser.sprite);
         let shield_rects = [
             Rect::from_drawable(&shields[0].pos, &shields[0].sprite),
@@ -188,7 +183,7 @@ impl Collision {
                 // TODO: Break shield
 
                 // TODO: Explosion!
-                let detail = LaserDetail::Shield(index, i);
+                let detail = LaserDetail::Shield(i);
                 self.laser_details.insert(detail);
 
                 // Destroy laser

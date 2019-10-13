@@ -9,7 +9,7 @@ const GREEN: [u8; 4] = [0, 255, 0, 255];
 const BLUE: [u8; 4] = [0, 0, 255, 255];
 const YELLOW: [u8; 4] = [255, 255, 0, 255];
 
-pub(crate) fn draw_invaders(screen: &mut [u8], invaders: &Invaders, collision: &mut Collision) {
+pub(crate) fn draw_invaders(screen: &mut [u8], invaders: &Invaders, collision: &Collision) {
     // Draw invaders bounding box
     {
         let (top, right, bottom, left) = invaders.get_bounds();
@@ -55,51 +55,44 @@ pub(crate) fn draw_bullet(screen: &mut [u8], bullet: Option<&Bullet>) {
     }
 }
 
-pub(crate) fn draw_lasers(screen: &mut [u8], lasers: &[Laser], collision: &mut Collision) -> bool {
+pub(crate) fn draw_lasers(screen: &mut [u8], lasers: &[Laser]) {
     // Draw bounding box for lasers
-    let mut hit_player = false;
-    for (i, laser) in lasers.iter().enumerate() {
+    for laser in lasers {
         let p1 = laser.pos;
         let p2 = p1 + Point::new(laser.sprite.width(), laser.sprite.height());
 
-        let detail = LaserDetail::Player(i);
-        hit_player |= collision.laser_details.contains(&detail);
-
         rect(screen, &p1, &p2, GREEN);
     }
-
-    hit_player
 }
 
-pub(crate) fn draw_player(screen: &mut [u8], player: &Player, hit: bool) {
+pub(crate) fn draw_player(screen: &mut [u8], player: &Player, collision: &Collision) {
     // Draw bounding box for player
     let p1 = player.pos;
     let p2 = p1 + Point::new(player.sprite.width(), player.sprite.height());
 
     // Select color based on collisions
-    let color = if hit { RED } else { GREEN };
+    let detail = LaserDetail::Player;
+    let color = if collision.laser_details.contains(&detail) {
+        RED
+    } else {
+        GREEN
+    };
 
     rect(screen, &p1, &p2, color);
 }
 
-pub(crate) fn draw_shields(screen: &mut [u8], shields: &[Shield], collision: &mut Collision) {
+pub(crate) fn draw_shields(screen: &mut [u8], shields: &[Shield], collision: &Collision) {
     // Draw bounding boxes for shields
     for (i, shield) in shields.iter().enumerate() {
         let p1 = shield.pos;
         let p2 = p1 + Point::new(shield.sprite.width(), shield.sprite.height());
 
-        // Check lasers
-        let mut shield_hit = false;
-        for j in 0..3 {
-            let laser_detail = LaserDetail::Shield(j, i);
-            if collision.laser_details.contains(&laser_detail) {
-                shield_hit = true;
-            }
-        }
-
         // Select color based on collisions
+        let laser_detail = LaserDetail::Shield(i);
         let bullet_detail = BulletDetail::Shield(i);
-        let color = if shield_hit || collision.bullet_details.contains(&bullet_detail) {
+        let color = if collision.laser_details.contains(&laser_detail)
+            || collision.bullet_details.contains(&bullet_detail)
+        {
             RED
         } else {
             GREEN
