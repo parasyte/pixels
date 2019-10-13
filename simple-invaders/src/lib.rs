@@ -115,7 +115,7 @@ struct Bullet {
 }
 
 /// Store information about collisions (for debug mode).
-#[derive(Debug)]
+#[derive(Debug, Default)]
 struct Collision {
     bullet_details: Vec<BulletDetail>,
     laser_details: Vec<LaserDetail>,
@@ -157,6 +157,7 @@ impl World {
             descend: false,
             bounds: Bounds::default(),
         };
+        let lasers = Vec::new();
         let shields = (0..4)
             .map(|i| Shield {
                 sprite: Sprite::new(&assets, Shield1),
@@ -168,28 +169,31 @@ impl World {
             pos: PLAYER_START,
             dt: 0,
         };
-        let collision = Collision {
-            bullet_details: Vec::new(),
-            laser_details: Vec::new(),
-        };
+        let bullet = None;
+        let collision = Collision::default();
+        let score = 0;
 
         // Create a screen with the correct size
         let mut screen = Vec::new();
         screen.resize_with(SCREEN_WIDTH * SCREEN_HEIGHT * 4, Default::default);
 
+        let dt = Duration::default();
+        let gameover = false;
+        let random = OsRng;
+
         World {
             invaders,
-            lasers: Vec::new(),
+            lasers,
             shields,
             player,
-            bullet: None,
+            bullet,
             collision,
-            score: 0,
+            score,
             assets,
             screen,
-            dt: Duration::default(),
-            gameover: false,
-            random: OsRng,
+            dt,
+            gameover,
+            random,
             debug,
         }
     }
