@@ -18,8 +18,8 @@ pub(crate) enum BulletDetail {
     Invader(usize, usize),
     /// A shield index.
     Shield(usize),
-    /// A laser index.
-    Laser(usize),
+    /// Collided with a laser.
+    Laser,
 }
 
 /// Information regarding collisions between lasers and shields or the player.
@@ -135,12 +135,7 @@ impl Collision {
     }
 
     /// Handle collisions between lasers and bullets.
-    pub(crate) fn laser_to_bullet(
-        &mut self,
-        laser: &Laser,
-        index: usize,
-        bullet: &mut Option<Bullet>,
-    ) -> bool {
+    pub(crate) fn laser_to_bullet(&mut self, laser: &Laser, bullet: &mut Option<Bullet>) -> bool {
         let mut destroy = false;
         if bullet.is_some() {
             let laser_rect = Rect::from_drawable(&laser.pos, &laser.sprite);
@@ -149,7 +144,7 @@ impl Collision {
                 let bullet_rect = Rect::from_drawable(&bullet.pos, &bullet.sprite);
                 if bullet_rect.intersects(&laser_rect) {
                     // TODO: Explosion!
-                    let detail = BulletDetail::Laser(index);
+                    let detail = BulletDetail::Laser;
                     self.bullet_details.insert(detail);
 
                     // Destroy laser and bullet

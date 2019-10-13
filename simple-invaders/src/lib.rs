@@ -234,7 +234,7 @@ impl World {
                 if self.collision.laser_to_player(laser, &self.player) {
                     self.gameover = true;
                     destroy.push(i);
-                } else if self.collision.laser_to_bullet(laser, i, &mut self.bullet)
+                } else if self.collision.laser_to_bullet(laser, &mut self.bullet)
                     || self.collision.laser_to_shield(laser, &mut self.shields)
                 {
                     destroy.push(i);
