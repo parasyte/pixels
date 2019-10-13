@@ -5,14 +5,15 @@
 //! to understand the code.
 
 use rand_core::{OsRng, RngCore};
-use std::env;
 use std::time::Duration;
 
-pub use controls::{Controls, Direction};
-use loader::{load_assets, Assets};
-use sprites::{blit, line, Animation, Frame, Sprite, SpriteRef};
+pub use crate::controls::{Controls, Direction};
+use crate::geo::{Point, Rect};
+use crate::loader::{load_assets, Assets};
+use crate::sprites::{blit, rect, Animation, Drawable, Frame, Sprite, SpriteRef};
 
 mod controls;
+mod geo;
 mod loader;
 mod sprites;
 
@@ -27,6 +28,13 @@ const GRID: Point = Point::new(16, 16);
 const ROWS: usize = 5;
 const COLS: usize = 11;
 
+// Player positioning
+const PLAYER_START: Point = Point::new(80, 216);
+
+// Projectile positioning
+const LASER_OFFSET: Point = Point::new(4, 10);
+const BULLET_OFFSET: Point = Point::new(7, 0);
+
 #[derive(Debug)]
 pub struct World {
     invaders: Invaders,
@@ -34,6 +42,7 @@ pub struct World {
     shields: Vec<Shield>,
     player: Player,
     bullet: Option<Bullet>,
+    collision: Collision,
     score: u32,
     assets: Assets,
     screen: Vec<u8>,
@@ -41,13 +50,6 @@ pub struct World {
     gameover: bool,
     random: OsRng,
     debug: bool,
-}
-
-/// A tiny position vector.
-#[derive(Debug, Default, Eq, PartialEq)]
-struct Point {
-    x: usize,
-    y: usize,
 }
 
 /// A fleet of invaders.
@@ -73,9 +75,11 @@ struct Invader {
 /// Used for collision detection and minor optimizations.
 #[derive(Debug)]
 struct Bounds {
+    pos: Point,
     left_col: usize,
     right_col: usize,
-    px: usize,
+    top_row: usize,
+    bottom_row: usize,
 }
 
 /// The player entity.
@@ -110,9 +114,36 @@ struct Bullet {
     dt: usize,
 }
 
+/// Store information about collisions (for debug mode).
+#[derive(Debug)]
+struct Collision {
+    bullet_details: Vec<BulletDetail>,
+    laser_details: Vec<LaserDetail>,
+}
+
+/// Information regarding collisions between bullets and invaders, lasers, or shields.
+#[derive(Debug, Eq, PartialEq)]
+enum BulletDetail {
+    /// A grid position for an invader.
+    Invader(usize, usize),
+    /// A shield index.
+    Shield(usize),
+    /// A laser index.
+    Laser(usize),
+}
+
+/// Information regarding collisions between lasers and shields or the player.
+#[derive(Debug)]
+enum LaserDetail {
+    /// A shield index.
+    Shield(usize),
+    // The player.
+    Player,
+}
+
 impl World {
     /// Create a new simple-invaders `World`.
-    pub fn new() -> World {
+    pub fn new(debug: bool) -> World {
         use Frame::*;
 
         // Load assets first
@@ -126,27 +157,25 @@ impl World {
             descend: false,
             bounds: Bounds::default(),
         };
-        let player = Player {
-            sprite: SpriteRef::new(&assets, Player1, Duration::from_millis(100)),
-            pos: Point::new(80, 216),
-            dt: 0,
-        };
         let shields = (0..4)
             .map(|i| Shield {
                 sprite: Sprite::new(&assets, Shield1),
                 pos: Point::new(i * 45 + 32, 192),
             })
             .collect();
+        let player = Player {
+            sprite: SpriteRef::new(&assets, Player1, Duration::from_millis(100)),
+            pos: PLAYER_START,
+            dt: 0,
+        };
+        let collision = Collision {
+            bullet_details: Vec::new(),
+            laser_details: Vec::new(),
+        };
 
         // Create a screen with the correct size
         let mut screen = Vec::new();
         screen.resize_with(SCREEN_WIDTH * SCREEN_HEIGHT * 4, Default::default);
-
-        // Enable debug mode with `DEBUG=true` environment variable
-        let debug = env::var("DEBUG")
-            .unwrap_or_else(|_| "false".to_string())
-            .parse()
-            .unwrap_or(false);
 
         World {
             invaders,
@@ -154,6 +183,7 @@ impl World {
             shields,
             player,
             bullet: None,
+            collision,
             score: 0,
             assets,
             screen,
@@ -181,6 +211,10 @@ impl World {
         // Advance the timer by the delta time
         self.dt += *dt;
 
+        // Clear the collision details
+        self.collision.bullet_details.clear();
+        self.collision.laser_details.clear();
+
         // Step the invaders one by one
         while self.dt >= one_frame {
             self.dt -= one_frame;
@@ -190,13 +224,56 @@ impl World {
         // Handle player movement and animation
         self.step_player(controls, dt);
 
-        // Handle bullet movement
         if let Some(bullet) = &mut self.bullet {
+            // Handle bullet movement
             let velocity = update_dt(&mut bullet.dt, dt) * 4;
 
             if bullet.pos.y > velocity {
                 bullet.pos.y -= velocity;
                 bullet.sprite.animate(&self.assets, dt);
+
+                // Handle bullet collisions with invaders
+
+                // Broad phase collision detection
+                let (top, right, bottom, left) = self.invaders.get_bounds();
+                let invaders_rect = Rect::new(&Point::new(left, top), &Point::new(right, bottom));
+                let bullet_rect = Rect::from_drawable(&bullet.pos, &bullet.sprite);
+                if bullet_rect.intersects(&invaders_rect) {
+                    // Narrow phase collision detection
+                    let corners = [
+                        // Upper left corner of bullet
+                        (bullet_rect.p1.x, bullet_rect.p1.y),
+                        // Upper right corner of bullet
+                        (bullet_rect.p1.x, bullet_rect.p2.y),
+                        // Lower left corner of bullet
+                        (bullet_rect.p2.x, bullet_rect.p1.y),
+                        // Lower right corner of bullet
+                        (bullet_rect.p2.x, bullet_rect.p2.y),
+                    ];
+
+                    for (x, y) in corners.iter() {
+                        let col = (x - left) / GRID.x + self.invaders.bounds.left_col;
+                        let row = (y - top) / GRID.y + self.invaders.bounds.top_row;
+
+                        if col < COLS && row < ROWS && self.invaders.grid[row][col].is_some() {
+                            let detail = BulletDetail::Invader(col, row);
+                            self.collision.push_bullet_detail(detail);
+                        }
+                    }
+
+                    // If any collision candidate is a hit, kill the bullet and invader
+                    for detail in self.collision.bullet_details.iter() {
+                        if let BulletDetail::Invader(x, y) = *detail {
+                            let invader = self.invaders.grid[y][x].as_ref().unwrap();
+                            let invader_rect = Rect::from_drawable(&invader.pos, &invader.sprite);
+                            if bullet_rect.intersects(&invader_rect) {
+                                // TODO: Explosion! Score!
+                                self.invaders.grid[y][x] = None;
+                                self.bullet = None;
+                            }
+                        }
+                    }
+                }
             } else {
                 self.bullet = None;
             }
@@ -254,24 +331,58 @@ impl World {
         }
 
         if self.debug {
-            // Draw invaders bounding box
-            let (left, right) = self.invaders.get_bounds();
+            // Colors
             let red = [255, 0, 0, 255];
+            let green = [0, 255, 0, 255];
+            let yellow = [255, 255, 0, 255];
 
-            let p1 = Point::new(left, START.y);
-            let p2 = Point::new(left, self.player.pos.y);
-            line(&mut self.screen, &p1, &p2, red);
+            // Draw invaders bounding box
+            let (top, right, bottom, left) = self.invaders.get_bounds();
 
-            let p1 = Point::new(right, START.y);
-            let p2 = Point::new(right, self.player.pos.y);
-            line(&mut self.screen, &p1, &p2, red);
+            let p1 = Point::new(left, top);
+            let p2 = Point::new(right, bottom);
+
+            rect(&mut self.screen, &p1, &p2, red);
+
+            // Draw bounding boxes for each invader
+            for (y, row) in self.invaders.grid.iter().enumerate() {
+                for (x, col) in row.iter().enumerate() {
+                    let detail = BulletDetail::Invader(x, y);
+                    if let Some(invader) = col {
+                        let p1 = invader.pos;
+                        let p2 = p1 + Point::new(invader.sprite.width(), invader.sprite.height());
+
+                        // Select color based on proximity to bullet
+                        let color = if self.collision.bullet_details.contains(&detail) {
+                            yellow
+                        } else {
+                            green
+                        };
+
+                        rect(&mut self.screen, &p1, &p2, color);
+                    } else if self.collision.bullet_details.contains(&detail) {
+                        let p1 = self.invaders.bounds.pos + Point::new(x, y) * GRID;
+                        let p2 = p1 + GRID;
+
+                        rect(&mut self.screen, &p1, &p2, red);
+                    }
+                }
+            }
+
+            // Draw bounding box for bullet
+            if let Some(bullet) = &self.bullet {
+                let p1 = bullet.pos;
+                let p2 = p1 + Point::new(bullet.sprite.width(), bullet.sprite.height());
+
+                rect(&mut self.screen, &p1, &p2, green);
+            }
         }
 
         &self.screen
     }
 
     fn step_invaders(&mut self) {
-        let (left, right) = self.invaders.get_bounds();
+        let (_, right, _, left) = self.invaders.get_bounds();
         let (invader, is_leader) =
             next_invader(&mut self.invaders.grid, &mut self.invaders.stepper);
 
@@ -284,20 +395,22 @@ impl World {
             match self.invaders.direction {
                 Direction::Left => {
                     if left < 2 {
-                        self.invaders.bounds.px += 2;
+                        self.invaders.bounds.pos.x += 2;
+                        self.invaders.bounds.pos.y += 8;
                         self.invaders.descend = true;
                         self.invaders.direction = Direction::Right;
                     } else {
-                        self.invaders.bounds.px -= 2;
+                        self.invaders.bounds.pos.x -= 2;
                     }
                 }
                 Direction::Right => {
                     if right > SCREEN_WIDTH - 2 {
-                        self.invaders.bounds.px -= 2;
+                        self.invaders.bounds.pos.x -= 2;
+                        self.invaders.bounds.pos.y += 8;
                         self.invaders.descend = true;
                         self.invaders.direction = Direction::Left;
                     } else {
-                        self.invaders.bounds.px += 2;
+                        self.invaders.bounds.pos.x += 2;
                     }
                 }
                 _ => unreachable!(),
@@ -334,7 +447,7 @@ impl World {
 
             let laser = Laser {
                 sprite: SpriteRef::new(&self.assets, Frame::Laser1, Duration::from_millis(16)),
-                pos: Point::new(invader.pos.x + 4, invader.pos.y + 10),
+                pos: invader.pos + LASER_OFFSET,
                 dt: 0,
             };
             self.lasers.push(laser);
@@ -343,17 +456,18 @@ impl World {
 
     fn step_player(&mut self, controls: &Controls, dt: &Duration) {
         let frames = update_dt(&mut self.player.dt, dt);
+        let width = self.player.sprite.width();
 
         match controls.direction {
             Direction::Left => {
-                if self.player.pos.x >= frames {
+                if self.player.pos.x > width {
                     self.player.pos.x -= frames;
                     self.player.sprite.animate(&self.assets, dt);
                 }
             }
 
             Direction::Right => {
-                if self.player.pos.x < SCREEN_WIDTH - 15 - frames {
+                if self.player.pos.x < SCREEN_WIDTH - width * 2 {
                     self.player.pos.x += frames;
                     self.player.sprite.animate(&self.assets, dt);
                 }
@@ -364,7 +478,7 @@ impl World {
         if controls.fire && self.bullet.is_none() {
             self.bullet = Some(Bullet {
                 sprite: SpriteRef::new(&self.assets, Frame::Bullet1, Duration::from_millis(32)),
-                pos: Point::new(self.player.pos.x + 7, self.player.pos.y),
+                pos: self.player.pos + BULLET_OFFSET,
                 dt: 0,
             });
         }
@@ -380,40 +494,26 @@ impl World {
 
 impl Default for World {
     fn default() -> Self {
-        World::new()
-    }
-}
-
-impl Point {
-    const fn new(x: usize, y: usize) -> Point {
-        Point { x, y }
-    }
-}
-
-impl std::ops::Add for Point {
-    type Output = Self;
-
-    fn add(self, other: Self) -> Self {
-        Self::new(self.x + other.x, self.y + other.y)
-    }
-}
-
-impl std::ops::Mul for Point {
-    type Output = Self;
-
-    fn mul(self, other: Self) -> Self {
-        Self::new(self.x * other.x, self.y * other.y)
+        World::new(false)
     }
 }
 
 impl Invaders {
-    fn get_bounds(&self) -> (usize, usize) {
+    /// Compute the bounding box for the Invader fleet.
+    ///
+    /// # Returns
+    ///
+    /// Tuple of `(top, right, bottom, left)`, e.g. in CSS clockwise order.
+    fn get_bounds(&self) -> (usize, usize, usize, usize) {
         let width = (self.bounds.right_col - self.bounds.left_col + 1) * GRID.x;
+        let height = (self.bounds.bottom_row - self.bounds.top_row + 1) * GRID.y;
 
-        let left = self.bounds.px;
+        let top = self.bounds.pos.y;
+        let bottom = top + height;
+        let left = self.bounds.pos.x;
         let right = left + width;
 
-        (left, right)
+        (top, right, bottom, left)
     }
 
     fn get_closest_invader(&self, mut col: usize) -> &Invader {
@@ -439,9 +539,19 @@ impl Invaders {
 impl Default for Bounds {
     fn default() -> Self {
         Self {
+            pos: START,
             left_col: 0,
             right_col: COLS - 1,
-            px: START.x,
+            top_row: 0,
+            bottom_row: ROWS - 1,
+        }
+    }
+}
+
+impl Collision {
+    fn push_bullet_detail(&mut self, detail: BulletDetail) {
+        if !self.bullet_details.contains(&detail) {
+            self.bullet_details.push(detail);
         }
     }
 }
@@ -451,7 +561,7 @@ fn make_invader_grid(assets: &Assets) -> Vec<Vec<Option<Invader>>> {
     use Frame::*;
 
     const BLIPJOY_OFFSET: Point = Point::new(3, 4);
-    const FERRIS_OFFSET: Point = Point::new(3, 5);
+    const FERRIS_OFFSET: Point = Point::new(2, 5);
     const CTHULHU_OFFSET: Point = Point::new(1, 3);
 
     (0..1)

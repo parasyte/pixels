@@ -1,3 +1,4 @@
+use std::env;
 use std::time::Instant;
 
 use pixels::{Error, Pixels, SurfaceTexture};
@@ -8,6 +9,12 @@ use winit::event_loop::{ControlFlow, EventLoop};
 fn main() -> Result<(), Error> {
     env_logger::init();
     let event_loop = EventLoop::new();
+
+    // Enable debug mode with `DEBUG=true` environment variable
+    let debug = env::var("DEBUG")
+        .unwrap_or_else(|_| "false".to_string())
+        .parse()
+        .unwrap_or(false);
 
     let (window, surface, width, height) = {
         let scale = 3.0;
@@ -27,7 +34,7 @@ fn main() -> Result<(), Error> {
 
     let surface_texture = SurfaceTexture::new(width, height, &surface);
     let mut fb = Pixels::new(224, 256, surface_texture)?;
-    let mut invaders = World::new();
+    let mut invaders = World::new(debug);
     let mut last = Instant::now();
     let mut controls = Controls::default();
 

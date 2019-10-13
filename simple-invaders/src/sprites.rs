@@ -228,12 +228,13 @@ pub(crate) fn line(screen: &mut [u8], p1: &Point, p2: &Point, color: [u8; 4]) {
 }
 
 /// Draw a rectangle to the pixel buffer using two points in opposite corners.
-pub(crate) fn _rect(screen: &mut [u8], p1: &Point, p2: &Point, color: [u8; 4]) {
+pub(crate) fn rect(screen: &mut [u8], p1: &Point, p2: &Point, color: [u8; 4]) {
+    let p2 = Point::new(p2.x - 1, p2.y - 1);
     let p3 = Point::new(p1.x, p2.y);
     let p4 = Point::new(p2.x, p1.y);
 
     line(screen, p1, &p3, color);
-    line(screen, &p3, p2, color);
-    line(screen, p2, &p4, color);
+    line(screen, &p3, &p2, color);
+    line(screen, &p2, &p4, color);
     line(screen, &p4, p1, color);
 }
