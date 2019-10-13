@@ -8,11 +8,14 @@ use rand_core::{OsRng, RngCore};
 use std::time::Duration;
 
 pub use crate::controls::{Controls, Direction};
-use crate::geo::{Point, Rect};
+use crate::geo::Point;
 use crate::loader::{load_assets, Assets};
-use crate::sprites::{blit, rect, Animation, Drawable, Frame, Sprite, SpriteRef};
+use crate::sprites::{blit, Animation, Drawable, Frame, Sprite, SpriteRef};
+use collision::Collision;
 
+mod collision;
 mod controls;
+mod debug;
 mod geo;
 mod loader;
 mod sprites;
@@ -114,33 +117,6 @@ struct Bullet {
     dt: usize,
 }
 
-/// Store information about collisions (for debug mode).
-#[derive(Debug, Default)]
-struct Collision {
-    bullet_details: Vec<BulletDetail>,
-    laser_details: Vec<LaserDetail>,
-}
-
-/// Information regarding collisions between bullets and invaders, lasers, or shields.
-#[derive(Debug, Eq, PartialEq)]
-enum BulletDetail {
-    /// A grid position (col, row) for an invader.
-    Invader(usize, usize),
-    /// A shield index.
-    Shield(usize),
-    /// A laser index.
-    Laser(usize),
-}
-
-/// Information regarding collisions between lasers and shields or the player.
-#[derive(Debug, Eq, PartialEq)]
-enum LaserDetail {
-    /// A laser index and shield index pair.
-    Shield(usize, usize),
-    /// A laser index and the player.
-    Player(usize),
-}
-
 impl World {
     /// Create a new simple-invaders `World`.
     pub fn new(debug: bool) -> World {
@@ -216,8 +192,7 @@ impl World {
         self.dt += *dt;
 
         // Clear the collision details
-        self.collision.bullet_details.clear();
-        self.collision.laser_details.clear();
+        self.collision.clear();
 
         // Step the invaders one by one
         while self.dt >= one_frame {
@@ -228,13 +203,6 @@ impl World {
         // Handle player movement and animation
         self.step_player(controls, dt);
 
-        let shield_rects = [
-            Rect::from_drawable(&self.shields[0].pos, &self.shields[0].sprite),
-            Rect::from_drawable(&self.shields[1].pos, &self.shields[1].sprite),
-            Rect::from_drawable(&self.shields[2].pos, &self.shields[2].sprite),
-            Rect::from_drawable(&self.shields[3].pos, &self.shields[3].sprite),
-        ];
-
         if let Some(bullet) = &mut self.bullet {
             // Handle bullet movement
             let velocity = update_dt(&mut bullet.dt, dt) * 4;
@@ -243,65 +211,11 @@ impl World {
                 bullet.pos.y -= velocity;
                 bullet.sprite.animate(&self.assets, dt);
 
-                // Handle bullet collisions with invaders
-
-                // Broad phase collision detection
-                let (top, right, bottom, left) = self.invaders.get_bounds();
-                let invaders_rect = Rect::new(&Point::new(left, top), &Point::new(right, bottom));
-                let bullet_rect = Rect::from_drawable(&bullet.pos, &bullet.sprite);
-                if bullet_rect.intersects(&invaders_rect) {
-                    // Narrow phase collision detection
-                    let corners = [
-                        // Upper left corner of bullet
-                        (bullet_rect.p1.x, bullet_rect.p1.y),
-                        // Upper right corner of bullet
-                        (bullet_rect.p1.x, bullet_rect.p2.y),
-                        // Lower left corner of bullet
-                        (bullet_rect.p2.x, bullet_rect.p1.y),
-                        // Lower right corner of bullet
-                        (bullet_rect.p2.x, bullet_rect.p2.y),
-                    ];
-
-                    for (x, y) in corners.iter() {
-                        let col = (x - left) / GRID.x + self.invaders.bounds.left_col;
-                        let row = (y - top) / GRID.y + self.invaders.bounds.top_row;
-
-                        if col < COLS && row < ROWS && self.invaders.grid[row][col].is_some() {
-                            let detail = BulletDetail::Invader(col, row);
-                            self.collision.push_bullet_detail(detail);
-                        }
-                    }
-
-                    // If any collision candidate is a hit, kill the bullet and invader
-                    for detail in self.collision.bullet_details.iter() {
-                        if let BulletDetail::Invader(x, y) = *detail {
-                            let invader = self.invaders.grid[y][x].as_ref().unwrap();
-                            let invader_rect = Rect::from_drawable(&invader.pos, &invader.sprite);
-                            if bullet_rect.intersects(&invader_rect) {
-                                // TODO: Explosion! Score!
-                                self.invaders.grid[y][x] = None;
-
-                                // Destroy bullet
-                                self.bullet = None;
-                            }
-                        }
-                    }
-                }
-
-                // Handle collisions with shields
-                for (i, shield_rect) in shield_rects.iter().enumerate() {
-                    // broad phase collision detection
-                    if bullet_rect.intersects(&shield_rect) {
-                        // TODO: Narrow phase (per-pixel) collision detection
-
-                        // TODO: Explosion!
-                        let detail = BulletDetail::Shield(i);
-                        self.collision.bullet_details.push(detail);
-
-                        // Destroy bullet
-                        self.bullet = None;
-                    }
-                }
+                // Handle collisions
+                self.collision
+                    .bullet_to_invader(&mut self.bullet, &mut self.invaders);
+                self.collision
+                    .bullet_to_shield(&mut self.bullet, &mut self.shields);
             } else {
                 self.bullet = None;
             }
@@ -316,45 +230,12 @@ impl World {
                 laser.pos.y += velocity;
                 laser.sprite.animate(&self.assets, dt);
 
-                // Handler laser collisions with player
-
-                let laser_rect = Rect::from_drawable(&laser.pos, &laser.sprite);
-                let player_rect = Rect::from_drawable(&self.player.pos, &self.player.sprite);
-                if laser_rect.intersects(&player_rect) {
-                    // One of the end scenarios
-                    self.gameover = true;
-
-                    self.collision.laser_details.push(LaserDetail::Player(i));
-                }
-
-                // Handle laser collisions with bullet
-                if let Some(bullet) = &self.bullet {
-                    let bullet_rect = Rect::from_drawable(&bullet.pos, &bullet.sprite);
-                    if bullet_rect.intersects(&laser_rect) {
-                        // TODO: Explosion!
-                        let detail = BulletDetail::Laser(i);
-                        self.collision.bullet_details.push(detail);
-
-                        // Destroy laser and bullet
-                        destroy.push(i);
-                        self.bullet = None;
-                    }
-                }
-
-                // Handle collisions with shields
-                for (j, shield_rect) in shield_rects.iter().enumerate() {
-                    // broad phase collision detection
-                    if laser_rect.intersects(&shield_rect) {
-                        // TODO: Narrow phase (per-pixel) collision detection
-                        // TODO: Break shield
-
-                        // TODO: Explosion!
-                        let detail = LaserDetail::Shield(i, j);
-                        self.collision.laser_details.push(detail);
-
-                        // Destroy laser
-                        destroy.push(i);
-                    }
+                // Handler collisions
+                self.gameover = self.collision.laser_to_player(laser, i, &self.player);
+                if self.collision.laser_to_bullet(laser, i, &mut self.bullet)
+                    || self.collision.laser_to_shield(laser, i, &mut self.shields)
+                {
+                    destroy.push(i);
                 }
             } else {
                 destroy.push(i);
@@ -400,102 +281,11 @@ impl World {
         }
 
         if self.debug {
-            // Colors
-            let red = [255, 0, 0, 255];
-            let green = [0, 255, 0, 255];
-            let blue = [0, 0, 255, 255];
-            let yellow = [255, 255, 0, 255];
-
-            // Draw invaders bounding box
-            {
-                let (top, right, bottom, left) = self.invaders.get_bounds();
-                let p1 = Point::new(left, top);
-                let p2 = Point::new(right, bottom);
-
-                rect(&mut self.screen, &p1, &p2, blue);
-            }
-
-            // Draw bounding boxes for each invader
-            for (y, row) in self.invaders.grid.iter().enumerate() {
-                for (x, col) in row.iter().enumerate() {
-                    let detail = BulletDetail::Invader(x, y);
-                    if let Some(invader) = col {
-                        let p1 = invader.pos;
-                        let p2 = p1 + Point::new(invader.sprite.width(), invader.sprite.height());
-
-                        // Select color based on proximity to bullet
-                        let color = if self.collision.bullet_details.contains(&detail) {
-                            yellow
-                        } else {
-                            green
-                        };
-
-                        rect(&mut self.screen, &p1, &p2, color);
-                    } else if self.collision.bullet_details.contains(&detail) {
-                        let p1 = self.invaders.bounds.pos + Point::new(x, y) * GRID;
-                        let p2 = p1 + GRID;
-
-                        rect(&mut self.screen, &p1, &p2, red);
-                    }
-                }
-            }
-
-            // Draw bounding box for bullet
-            if let Some(bullet) = &self.bullet {
-                let p1 = bullet.pos;
-                let p2 = p1 + Point::new(bullet.sprite.width(), bullet.sprite.height());
-
-                rect(&mut self.screen, &p1, &p2, green);
-            }
-
-            // Draw bounding box for lasers
-            let mut hit_player = false;
-            for (i, laser) in self.lasers.iter().enumerate() {
-                let p1 = laser.pos;
-                let p2 = p1 + Point::new(laser.sprite.width(), laser.sprite.height());
-
-                let detail = LaserDetail::Player(i);
-                hit_player |= self.collision.laser_details.contains(&detail);
-
-                rect(&mut self.screen, &p1, &p2, green);
-            }
-
-            // Draw bounding box for player
-            {
-                let p1 = self.player.pos;
-                let p2 = p1 + Point::new(self.player.sprite.width(), self.player.sprite.height());
-
-                // Select color based on collisions
-                let color = if hit_player { red } else { green };
-
-                rect(&mut self.screen, &p1, &p2, color);
-            }
-
-            // Draw bounding boxes for shields
-            for (i, shield) in self.shields.iter().enumerate() {
-                let p1 = shield.pos;
-                let p2 = p1 + Point::new(shield.sprite.width(), shield.sprite.height());
-
-                // Check lasers
-                let mut shield_hit = false;
-                for j in 0..3 {
-                    let laser_detail = LaserDetail::Shield(j, i);
-                    if self.collision.laser_details.contains(&laser_detail) {
-                        shield_hit = true;
-                    }
-                }
-
-                // Select color based on collisions
-                let bullet_detail = BulletDetail::Shield(i);
-                let color = if shield_hit || self.collision.bullet_details.contains(&bullet_detail)
-                {
-                    red
-                } else {
-                    green
-                };
-
-                rect(&mut self.screen, &p1, &p2, color);
-            }
+            debug::draw_invaders(&mut self.screen, &self.invaders, &mut self.collision);
+            debug::draw_bullet(&mut self.screen, self.bullet.as_ref());
+            let hit = debug::draw_lasers(&mut self.screen, &self.lasers, &mut self.collision);
+            debug::draw_player(&mut self.screen, &self.player, hit);
+            debug::draw_shields(&mut self.screen, &self.shields, &mut self.collision);
         }
 
         &self.screen
@@ -664,14 +454,6 @@ impl Default for Bounds {
             right_col: COLS - 1,
             top_row: 0,
             bottom_row: ROWS - 1,
-        }
-    }
-}
-
-impl Collision {
-    fn push_bullet_detail(&mut self, detail: BulletDetail) {
-        if !self.bullet_details.contains(&detail) {
-            self.bullet_details.push(detail);
         }
     }
 }
