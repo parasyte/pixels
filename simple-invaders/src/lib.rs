@@ -124,7 +124,7 @@ struct Collision {
 /// Information regarding collisions between bullets and invaders, lasers, or shields.
 #[derive(Debug, Eq, PartialEq)]
 enum BulletDetail {
-    /// A grid position for an invader.
+    /// A grid position (col, row) for an invader.
     Invader(usize, usize),
     /// A shield index.
     Shield(usize),
@@ -133,12 +133,12 @@ enum BulletDetail {
 }
 
 /// Information regarding collisions between lasers and shields or the player.
-#[derive(Debug)]
+#[derive(Debug, Eq, PartialEq)]
 enum LaserDetail {
-    /// A shield index.
-    Shield(usize),
-    // The player.
-    Player,
+    /// A laser index and shield index pair.
+    Shield(usize, usize),
+    /// A laser index and the player.
+    Player(usize),
 }
 
 impl World {
@@ -291,6 +291,17 @@ impl World {
             if laser.pos.y < self.player.pos.y {
                 laser.pos.y += velocity;
                 laser.sprite.animate(&self.assets, dt);
+
+                // Handler laser collisions with player
+
+                let laser_rect = Rect::from_drawable(&laser.pos, &laser.sprite);
+                let player_rect = Rect::from_drawable(&self.player.pos, &self.player.sprite);
+                if laser_rect.intersects(&player_rect) {
+                    // One of the end scenarios
+                    self.gameover = true;
+
+                    self.collision.laser_details.push(LaserDetail::Player(i));
+                }
             } else {
                 destroy.push(i);
             }
@@ -338,15 +349,17 @@ impl World {
             // Colors
             let red = [255, 0, 0, 255];
             let green = [0, 255, 0, 255];
+            let blue = [0, 0, 255, 255];
             let yellow = [255, 255, 0, 255];
 
             // Draw invaders bounding box
-            let (top, right, bottom, left) = self.invaders.get_bounds();
+            {
+                let (top, right, bottom, left) = self.invaders.get_bounds();
+                let p1 = Point::new(left, top);
+                let p2 = Point::new(right, bottom);
 
-            let p1 = Point::new(left, top);
-            let p2 = Point::new(right, bottom);
-
-            rect(&mut self.screen, &p1, &p2, red);
+                rect(&mut self.screen, &p1, &p2, blue);
+            }
 
             // Draw bounding boxes for each invader
             for (y, row) in self.invaders.grid.iter().enumerate() {
@@ -379,6 +392,35 @@ impl World {
                 let p2 = p1 + Point::new(bullet.sprite.width(), bullet.sprite.height());
 
                 rect(&mut self.screen, &p1, &p2, green);
+            }
+
+            // Draw bounding box for lasers
+            for (i, laser) in self.lasers.iter().enumerate() {
+                let p1 = laser.pos;
+                let p2 = p1 + Point::new(laser.sprite.width(), laser.sprite.height());
+
+                // Select color based on collision
+                let detail = LaserDetail::Player(i);
+                let color = if self.collision.laser_details.contains(&detail) {
+                    red
+                } else {
+                    green
+                };
+
+                rect(&mut self.screen, &p1, &p2, color);
+            }
+
+            // Draw bounding box for player
+            {
+                let p1 = self.player.pos;
+                let p2 = p1 + Point::new(self.player.sprite.width(), self.player.sprite.height());
+                let color = if self.collision.laser_details.is_empty() {
+                    green
+                } else {
+                    red
+                };
+
+                rect(&mut self.screen, &p1, &p2, color);
             }
         }
 
