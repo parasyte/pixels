@@ -17,6 +17,7 @@ pub(crate) struct Rect {
 }
 
 impl Point {
+    /// Create a new point.
     pub(crate) const fn new(x: usize, y: usize) -> Point {
         Point { x, y }
     }

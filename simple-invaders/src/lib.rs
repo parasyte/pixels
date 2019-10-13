@@ -232,7 +232,9 @@ impl World {
 
                 // Handle collisions
                 if self.collision.laser_to_player(laser, &self.player) {
+                    // One of the end scenarios
                     self.gameover = true;
+
                     destroy.push(i);
                 } else if self.collision.laser_to_bullet(laser, &mut self.bullet)
                     || self.collision.laser_to_shield(laser, &mut self.shields)
@@ -284,6 +286,7 @@ impl World {
             blit(&mut self.screen, &laser.pos, &laser.sprite);
         }
 
+        // Draw debug information
         if self.debug {
             debug::draw_invaders(&mut self.screen, &self.invaders, &self.collision);
             debug::draw_bullet(&mut self.screen, self.bullet.as_ref());

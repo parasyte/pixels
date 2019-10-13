@@ -9,6 +9,7 @@ const GREEN: [u8; 4] = [0, 255, 0, 255];
 const BLUE: [u8; 4] = [0, 0, 255, 255];
 const YELLOW: [u8; 4] = [255, 255, 0, 255];
 
+/// Draw bounding boxes for the invader fleet and each invader.
 pub(crate) fn draw_invaders(screen: &mut [u8], invaders: &Invaders, collision: &Collision) {
     // Draw invaders bounding box
     {
@@ -45,8 +46,8 @@ pub(crate) fn draw_invaders(screen: &mut [u8], invaders: &Invaders, collision: &
     }
 }
 
+/// Draw bounding box for bullet.
 pub(crate) fn draw_bullet(screen: &mut [u8], bullet: Option<&Bullet>) {
-    // Draw bounding box for bullet
     if let Some(bullet) = bullet {
         let p1 = bullet.pos;
         let p2 = p1 + Point::new(bullet.sprite.width(), bullet.sprite.height());
@@ -55,8 +56,8 @@ pub(crate) fn draw_bullet(screen: &mut [u8], bullet: Option<&Bullet>) {
     }
 }
 
+/// Draw bounding box for lasers.
 pub(crate) fn draw_lasers(screen: &mut [u8], lasers: &[Laser]) {
-    // Draw bounding box for lasers
     for laser in lasers {
         let p1 = laser.pos;
         let p2 = p1 + Point::new(laser.sprite.width(), laser.sprite.height());
@@ -65,8 +66,8 @@ pub(crate) fn draw_lasers(screen: &mut [u8], lasers: &[Laser]) {
     }
 }
 
+/// Draw bounding box for player.
 pub(crate) fn draw_player(screen: &mut [u8], player: &Player, collision: &Collision) {
-    // Draw bounding box for player
     let p1 = player.pos;
     let p2 = p1 + Point::new(player.sprite.width(), player.sprite.height());
 
@@ -81,8 +82,8 @@ pub(crate) fn draw_player(screen: &mut [u8], player: &Player, collision: &Collis
     rect(screen, &p1, &p2, color);
 }
 
+/// Draw bounding boxes for shields.
 pub(crate) fn draw_shields(screen: &mut [u8], shields: &[Shield], collision: &Collision) {
-    // Draw bounding boxes for shields
     for (i, shield) in shields.iter().enumerate() {
         let p1 = shield.pos;
         let p2 = p1 + Point::new(shield.sprite.width(), shield.sprite.height());

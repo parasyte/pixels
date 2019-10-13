@@ -54,13 +54,9 @@ impl Collision {
         if bullet_rect.intersects(&invaders_rect) {
             // Narrow phase collision detection
             let corners = [
-                // Upper left corner of bullet
                 (bullet_rect.p1.x, bullet_rect.p1.y),
-                // Upper right corner of bullet
                 (bullet_rect.p1.x, bullet_rect.p2.y),
-                // Lower left corner of bullet
                 (bullet_rect.p2.x, bullet_rect.p1.y),
-                // Lower right corner of bullet
                 (bullet_rect.p2.x, bullet_rect.p2.y),
             ];
 
@@ -94,12 +90,7 @@ impl Collision {
     /// Handle collisions between bullets and shields.
     pub(crate) fn bullet_to_shield(&mut self, bullet: &mut Option<Bullet>, shields: &mut [Shield]) {
         if bullet.is_some() {
-            let shield_rects = [
-                Rect::from_drawable(&shields[0].pos, &shields[0].sprite),
-                Rect::from_drawable(&shields[1].pos, &shields[1].sprite),
-                Rect::from_drawable(&shields[2].pos, &shields[2].sprite),
-                Rect::from_drawable(&shields[3].pos, &shields[3].sprite),
-            ];
+            let shield_rects = create_shield_rects(shields);
             let bullet_rect = {
                 let bullet = bullet.as_ref().unwrap();
                 Rect::from_drawable(&bullet.pos, &bullet.sprite)
@@ -128,10 +119,10 @@ impl Collision {
         let player_rect = Rect::from_drawable(&player.pos, &player.sprite);
         if laser_rect.intersects(&player_rect) {
             self.laser_details.insert(LaserDetail::Player);
-            return true;
+            true
+        } else {
+            false
         }
-
-        false
     }
 
     /// Handle collisions between lasers and bullets.
@@ -163,12 +154,7 @@ impl Collision {
     /// Handle collisions between lasers and shields.
     pub(crate) fn laser_to_shield(&mut self, laser: &Laser, shields: &mut [Shield]) -> bool {
         let laser_rect = Rect::from_drawable(&laser.pos, &laser.sprite);
-        let shield_rects = [
-            Rect::from_drawable(&shields[0].pos, &shields[0].sprite),
-            Rect::from_drawable(&shields[1].pos, &shields[1].sprite),
-            Rect::from_drawable(&shields[2].pos, &shields[2].sprite),
-            Rect::from_drawable(&shields[3].pos, &shields[3].sprite),
-        ];
+        let shield_rects = create_shield_rects(shields);
         let mut destroy = false;
 
         for (i, shield_rect) in shield_rects.iter().enumerate() {
@@ -188,4 +174,13 @@ impl Collision {
 
         destroy
     }
+}
+
+fn create_shield_rects(shields: &[Shield]) -> [Rect; 4] {
+    [
+        Rect::from_drawable(&shields[0].pos, &shields[0].sprite),
+        Rect::from_drawable(&shields[1].pos, &shields[1].sprite),
+        Rect::from_drawable(&shields[2].pos, &shields[2].sprite),
+        Rect::from_drawable(&shields[3].pos, &shields[3].sprite),
+    ]
 }
