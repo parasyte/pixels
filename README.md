@@ -13,9 +13,19 @@ Rapidly prototype a simple 2D game, pixel-based animations, or an emulator for y
 ## Features
 
 - Built on modern graphics APIs: DirectX 12, Vulkan, Metal, OpenGL.
-- Use your own custom shaders for special effects.
+- Use your own custom shaders for special effects. (WIP)
 - Hardware accelerated scaling on perfect pixel boundaries.
-- Supports non-square pixel aspect ratios.
+- Supports non-square pixel aspect ratios. (WIP)
+
+## Examples
+
+To demonstrate `pixels`, I've written a Space Invaders clone. The game logic can be found in the `simple-invaders` crate. The included example uses `simple-invaders` to rasterize the image, and `pixels` to display it. `winit` provides the windowing and event handling.
+
+```bash
+cargo run --example invaders
+```
+
+See the [example's README](./examples/invaders) for more information.
 
 ## Comparison with `minifb`
 
