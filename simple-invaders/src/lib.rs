@@ -212,10 +212,16 @@ impl World {
                 bullet.sprite.animate(&self.assets, dt);
 
                 // Handle collisions
-                self.collision
-                    .bullet_to_invader(&mut self.bullet, &mut self.invaders);
-                self.collision
-                    .bullet_to_shield(&mut self.bullet, &mut self.shields);
+                if self
+                    .collision
+                    .bullet_to_invader(&mut self.bullet, &mut self.invaders)
+                {
+                    // One of the end scenarios
+                    self.gameover = self.invaders.shrink_bounds();
+                } else {
+                    self.collision
+                        .bullet_to_shield(&mut self.bullet, &mut self.shields);
+                }
             } else {
                 self.bullet = None;
             }
@@ -431,6 +437,57 @@ impl Invaders {
         let right = left + width;
 
         (top, right, bottom, left)
+    }
+
+    /// Resize the bounds to fit the live invaders.
+    ///
+    /// # Returns
+    ///
+    /// `true` when all invaders have been destroyed.
+    fn shrink_bounds(&mut self) -> bool {
+        let mut top = ROWS;
+        let mut right = 0;
+        let mut bottom = 0;
+        let mut left = COLS;
+
+        // Scan through the entire grid
+        for (y, row) in self.grid.iter().enumerate() {
+            for (x, col) in row.iter().enumerate() {
+                if col.is_some() {
+                    // Build a boundary box of invaders in the grid
+                    if top > y {
+                        top = y;
+                    }
+                    if bottom < y {
+                        bottom = y;
+                    }
+                    if left > x {
+                        left = x;
+                    }
+                    if right < x {
+                        right = x;
+                    }
+                }
+            }
+        }
+
+        if top > bottom || left > right {
+            // No more invaders left alive
+            return true;
+        }
+
+        // Adjust the bounding box position
+        self.bounds.pos.x += (left - self.bounds.left_col) * GRID.x;
+        self.bounds.pos.y += (top - self.bounds.top_row) * GRID.y;
+
+        // Adjust the bounding box columns and rows
+        self.bounds.left_col = left;
+        self.bounds.right_col = right;
+        self.bounds.top_row = top;
+        self.bounds.bottom_row = bottom;
+
+        // No more changes
+        false
     }
 
     fn get_closest_invader(&self, mut col: usize) -> &Invader {

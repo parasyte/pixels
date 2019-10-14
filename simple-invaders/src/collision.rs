@@ -43,7 +43,7 @@ impl Collision {
         &mut self,
         bullet: &mut Option<Bullet>,
         invaders: &mut Invaders,
-    ) {
+    ) -> bool {
         // Broad phase collision detection
         let (top, right, bottom, left) = invaders.get_bounds();
         let invaders_rect = Rect::new(&Point::new(left, top), &Point::new(right, bottom));
@@ -81,10 +81,14 @@ impl Collision {
 
                         // Destroy bullet
                         *bullet = None;
+
+                        return true;
                     }
                 }
             }
         }
+
+        false
     }
 
     /// Handle collisions between bullets and shields.

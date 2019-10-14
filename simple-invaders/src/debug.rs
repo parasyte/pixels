@@ -37,6 +37,8 @@ pub(crate) fn draw_invaders(screen: &mut [u8], invaders: &Invaders, collision: &
 
                 rect(screen, &p1, &p2, color);
             } else if collision.bullet_details.contains(&detail) {
+                let x = x - invaders.bounds.left_col;
+                let y = y - invaders.bounds.top_row;
                 let p1 = invaders.bounds.pos + Point::new(x, y) * GRID;
                 let p2 = p1 + GRID;
 
