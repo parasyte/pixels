@@ -1,3 +1,4 @@
+use std::env;
 use std::time::Instant;
 
 use pixels::{Error, Pixels, SurfaceTexture};
@@ -8,6 +9,12 @@ use winit::event_loop::{ControlFlow, EventLoop};
 fn main() -> Result<(), Error> {
     env_logger::init();
     let event_loop = EventLoop::new();
+
+    // Enable debug mode with `DEBUG=true` environment variable
+    let debug = env::var("DEBUG")
+        .unwrap_or_else(|_| "false".to_string())
+        .parse()
+        .unwrap_or(false);
 
     let (window, surface, width, height) = {
         let scale = 3.0;
@@ -27,9 +34,13 @@ fn main() -> Result<(), Error> {
 
     let surface_texture = SurfaceTexture::new(width, height, &surface);
     let mut fb = Pixels::new(224, 256, surface_texture)?;
-    let mut invaders = World::new();
+    let mut invaders = World::new(debug);
     let mut last = Instant::now();
+
     let mut controls = Controls::default();
+    let mut last_state = false;
+    let mut button_state = false;
+    let mut rising_edge = false;
 
     event_loop.run(move |event, _, control_flow| match event {
         event::Event::WindowEvent { event, .. } => match event {
@@ -57,7 +68,7 @@ fn main() -> Result<(), Error> {
             } => match virtual_code {
                 event::VirtualKeyCode::Left => controls.direction = Direction::Left,
                 event::VirtualKeyCode::Right => controls.direction = Direction::Right,
-                event::VirtualKeyCode::Space => controls.fire = true,
+                event::VirtualKeyCode::Space => button_state = true,
                 _ => (),
             },
 
@@ -72,7 +83,7 @@ fn main() -> Result<(), Error> {
             } => match virtual_code {
                 event::VirtualKeyCode::Left => controls.direction = Direction::Still,
                 event::VirtualKeyCode::Right => controls.direction = Direction::Still,
-                event::VirtualKeyCode::Space => controls.fire = false,
+                event::VirtualKeyCode::Space => button_state = false,
                 _ => (),
             },
 
@@ -86,6 +97,13 @@ fn main() -> Result<(), Error> {
             let now = Instant::now();
             let dt = now.duration_since(last);
             last = now;
+
+            // Compute rising edge based on current and last button states
+            rising_edge = button_state && !last_state;
+            last_state = button_state;
+
+            // Fire button only uses rising edge
+            controls.fire = rising_edge;
 
             // Update the game logic and request redraw
             invaders.update(&dt, &controls);
