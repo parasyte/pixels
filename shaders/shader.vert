@@ -1,3 +1,6 @@
+// IMPORTANT: This shader needs to be compiled out-of-band to SPIR-V
+// See: https://github.com/parasyte/pixels/issues/9
+
 #version 450
 
 out gl_PerVertex {

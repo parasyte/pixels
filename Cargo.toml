@@ -11,7 +11,7 @@ categories = ["graphics", "rendering"]
 license = "MIT"
 
 [dependencies]
-vk-shader-macros = "0.2"
+byteorder = "1.3"
 wgpu = { git = "https://github.com/gfx-rs/wgpu-rs", rev = "697393df4793e1a58578209885036114adfb9213" }
 
 [dev-dependencies]
