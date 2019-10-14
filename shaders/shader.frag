@@ -1,3 +1,6 @@
+// IMPORTANT: This shader needs to be compiled out-of-band to SPIR-V
+// See: https://github.com/parasyte/pixels/issues/9
+
 #version 450
 
 layout(location = 0) in vec2 v_TexCoord;
