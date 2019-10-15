@@ -16,7 +16,7 @@ fn main() -> Result<(), Error> {
         .parse()
         .unwrap_or(false);
 
-    let (window, surface, width, height) = {
+    let (window, surface, width, height, mut hidpi_factor) = {
         let scale = 3.0;
         let width = SCREEN_WIDTH as f64 * scale;
         let height = SCREEN_HEIGHT as f64 * scale;
@@ -27,9 +27,16 @@ fn main() -> Result<(), Error> {
             .build(&event_loop)
             .unwrap();
         let surface = pixels::wgpu::Surface::create(&window);
-        let size = window.inner_size().to_physical(window.hidpi_factor());
+        let hidpi_factor = window.hidpi_factor();
+        let size = window.inner_size().to_physical(hidpi_factor);
 
-        (window, surface, size.width as u32, size.height as u32)
+        (
+            window,
+            surface,
+            size.width.round() as u32,
+            size.height.round() as u32,
+            hidpi_factor,
+        )
     };
 
     let surface_texture = SurfaceTexture::new(width, height, surface);
@@ -87,11 +94,14 @@ fn main() -> Result<(), Error> {
                 _ => (),
             },
 
+            // Adjust high DPI factor
+            event::WindowEvent::HiDpiFactorChanged(factor) => hidpi_factor = factor,
+
             // Resize the window
             event::WindowEvent::Resized(size) => {
-                let size = size.to_physical(window.hidpi_factor());
-                let width = size.width as u32;
-                let height = size.height as u32;
+                let size = size.to_physical(hidpi_factor);
+                let width = size.width.round() as u32;
+                let height = size.height.round() as u32;
 
                 fb.resize(width, height);
             }
