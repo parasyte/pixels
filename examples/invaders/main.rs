@@ -26,13 +26,13 @@ fn main() -> Result<(), Error> {
             .with_title("pixel invaders")
             .build(&event_loop)
             .unwrap();
-        let surface = wgpu::Surface::create(&window);
+        let surface = pixels::wgpu::Surface::create(&window);
         let size = window.inner_size().to_physical(window.hidpi_factor());
 
         (window, surface, size.width as u32, size.height as u32)
     };
 
-    let surface_texture = SurfaceTexture::new(width, height, &surface);
+    let surface_texture = SurfaceTexture::new(width, height, surface);
     let mut fb = Pixels::new(224, 256, surface_texture)?;
     let mut invaders = World::new(debug);
     let mut last = Instant::now();
@@ -86,6 +86,15 @@ fn main() -> Result<(), Error> {
                 event::VirtualKeyCode::Space => button_state = false,
                 _ => (),
             },
+
+            // Resize the window
+            event::WindowEvent::Resized(size) => {
+                let size = size.to_physical(window.hidpi_factor());
+                let width = size.width as u32;
+                let height = size.height as u32;
+
+                fb.resize(width, height);
+            }
 
             // Redraw the screen
             event::WindowEvent::RedrawRequested => fb.render(invaders.draw()),

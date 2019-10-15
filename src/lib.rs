@@ -29,8 +29,8 @@ type RenderPassFactory = Box<dyn Fn(Device, Queue, &TextureView) -> BoxedRenderP
 
 /// A logical texture for a window surface.
 #[derive(Debug)]
-pub struct SurfaceTexture<'a> {
-    surface: &'a wgpu::Surface,
+pub struct SurfaceTexture {
+    surface: wgpu::Surface,
     width: u32,
     height: u32,
 }
@@ -44,6 +44,7 @@ pub struct Pixels {
     device: Rc<wgpu::Device>,
     queue: Rc<RefCell<wgpu::Queue>>,
     swap_chain: wgpu::SwapChain,
+    surface_texture: SurfaceTexture,
 
     // List of render passes
     renderers: Vec<BoxedRenderPass>,
@@ -55,13 +56,13 @@ pub struct Pixels {
 }
 
 /// A builder to help create customized pixel buffers.
-pub struct PixelsBuilder<'a> {
+pub struct PixelsBuilder {
     request_adapter_options: wgpu::RequestAdapterOptions,
     device_descriptor: wgpu::DeviceDescriptor,
     width: u32,
     height: u32,
     pixel_aspect_ratio: f64,
-    surface_texture: SurfaceTexture<'a>,
+    surface_texture: SurfaceTexture,
     texture_format: wgpu::TextureFormat,
     renderer_factories: Vec<RenderPassFactory>,
 }
@@ -73,7 +74,7 @@ pub enum Error {
     AdapterNotFound,
 }
 
-impl<'a> SurfaceTexture<'a> {
+impl SurfaceTexture {
     /// Create a logical texture for a window surface.
     ///
     /// It is recommended (but not required) that the `width` and `height` are equivalent to the
@@ -95,14 +96,14 @@ impl<'a> SurfaceTexture<'a> {
     /// let width = size.width as u32;
     /// let height = size.height as u32;
     ///
-    /// let surface_texture = SurfaceTexture::new(width, height, &surface);
+    /// let surface_texture = SurfaceTexture::new(width, height, surface);
     /// # Ok::<(), pixels::Error>(())
     /// ```
     ///
     /// # Panics
     ///
     /// Panics when `width` or `height` are 0.
-    pub fn new(width: u32, height: u32, surface: &'a wgpu::Surface) -> SurfaceTexture<'a> {
+    pub fn new(width: u32, height: u32, surface: wgpu::Surface) -> SurfaceTexture {
         assert!(width > 0);
         assert!(height > 0);
 
@@ -122,7 +123,7 @@ impl Pixels {
     /// ```no_run
     /// # use pixels::Pixels;
     /// # let surface = wgpu::Surface::create(&pixels_mocks::RWH);
-    /// # let surface_texture = pixels::SurfaceTexture::new(1024, 768, &surface);
+    /// # let surface_texture = pixels::SurfaceTexture::new(1024, 768, surface);
     /// let fb = Pixels::new(320, 240, surface_texture)?;
     /// # Ok::<(), pixels::Error>(())
     /// ```
@@ -138,7 +139,32 @@ impl Pixels {
         PixelsBuilder::new(width, height, surface_texture).build()
     }
 
-    // TODO: Support resize
+    /// Resize the surface upon which the pixel buffer is rendered.
+    ///
+    /// This does not resize the pixel buffer. The pixel buffer will be fit onto the surface as
+    /// best as possible by scaling to the nearest integer, e.g. 2x, 3x, 4x, etc.
+    ///
+    /// Call this method in response to a resize event from your window manager. The size expected
+    /// is in physical pixel units.
+    pub fn resize(&mut self, width: u32, height: u32) {
+        // TODO: Scaling with a uniform transformation matrix
+
+        // Update SurfaceTexture dimensions
+        self.surface_texture.width = width;
+        self.surface_texture.height = height;
+
+        // Recreate the swap chain
+        self.swap_chain = self.device.create_swap_chain(
+            &self.surface_texture.surface,
+            &wgpu::SwapChainDescriptor {
+                usage: wgpu::TextureUsage::OUTPUT_ATTACHMENT,
+                format: wgpu::TextureFormat::Bgra8UnormSrgb,
+                width: self.surface_texture.width,
+                height: self.surface_texture.height,
+                present_mode: wgpu::PresentMode::Vsync,
+            },
+        );
+    }
 
     /// Draw this pixel buffer to the configured [`SurfaceTexture`].
     ///
@@ -190,7 +216,7 @@ impl Pixels {
     }
 }
 
-impl<'a> PixelsBuilder<'a> {
+impl PixelsBuilder {
     /// Create a builder that can be finalized into a [`Pixels`] pixel buffer.
     ///
     /// # Examples
@@ -198,7 +224,7 @@ impl<'a> PixelsBuilder<'a> {
     /// ```no_run
     /// # use pixels::PixelsBuilder;
     /// # let surface = wgpu::Surface::create(&pixels_mocks::RWH);
-    /// # let surface_texture = pixels::SurfaceTexture::new(1024, 768, &surface);
+    /// # let surface_texture = pixels::SurfaceTexture::new(1024, 768, surface);
     /// struct MyRenderPass {
     ///     // ...
     /// };
@@ -224,7 +250,7 @@ impl<'a> PixelsBuilder<'a> {
     /// # Panics
     ///
     /// Panics when `width` or `height` are 0.
-    pub fn new(width: u32, height: u32, surface_texture: SurfaceTexture<'a>) -> PixelsBuilder<'a> {
+    pub fn new(width: u32, height: u32, surface_texture: SurfaceTexture) -> PixelsBuilder {
         assert!(width > 0);
         assert!(height > 0);
 
@@ -244,7 +270,7 @@ impl<'a> PixelsBuilder<'a> {
     pub const fn request_adapter_options(
         mut self,
         request_adapter_options: wgpu::RequestAdapterOptions,
-    ) -> PixelsBuilder<'a> {
+    ) -> PixelsBuilder {
         self.request_adapter_options = request_adapter_options;
         self
     }
@@ -253,7 +279,7 @@ impl<'a> PixelsBuilder<'a> {
     pub const fn device_descriptor(
         mut self,
         device_descriptor: wgpu::DeviceDescriptor,
-    ) -> PixelsBuilder<'a> {
+    ) -> PixelsBuilder {
         self.device_descriptor = device_descriptor;
         self
     }
@@ -264,7 +290,7 @@ impl<'a> PixelsBuilder<'a> {
     /// factor.
     ///
     /// E.g. set this to `8.0 / 7.0` for an 8:7 pixel aspect ratio.
-    pub const fn pixel_aspect_ratio(mut self, pixel_aspect_ratio: f64) -> PixelsBuilder<'a> {
+    pub const fn pixel_aspect_ratio(mut self, pixel_aspect_ratio: f64) -> PixelsBuilder {
         self.pixel_aspect_ratio = pixel_aspect_ratio;
         self
     }
@@ -274,10 +300,7 @@ impl<'a> PixelsBuilder<'a> {
     /// The default value is [`wgpu::TextureFormat::Rgba8UnormSrgb`], which is 4 unsigned bytes in
     /// `RGBA` order using the SRGB color space. This is typically what you want when you are
     /// working with color values from popular image editing tools or web apps.
-    pub const fn texture_format(
-        mut self,
-        texture_format: wgpu::TextureFormat,
-    ) -> PixelsBuilder<'a> {
+    pub const fn texture_format(mut self, texture_format: wgpu::TextureFormat) -> PixelsBuilder {
         self.texture_format = texture_format;
         self
     }
@@ -318,7 +341,7 @@ impl<'a> PixelsBuilder<'a> {
     /// }
     ///
     /// # let surface = wgpu::Surface::create(&pixels_mocks::RWH);
-    /// # let surface_texture = pixels::SurfaceTexture::new(1024, 768, &surface);
+    /// # let surface_texture = pixels::SurfaceTexture::new(1024, 768, surface);
     /// let builder = PixelsBuilder::new(320, 240, surface_texture)
     ///     .add_render_pass(MyRenderPass::factory)
     ///     .build()?;
@@ -327,7 +350,7 @@ impl<'a> PixelsBuilder<'a> {
     pub fn add_render_pass(
         mut self,
         factory: impl Fn(Device, Queue, &TextureView) -> BoxedRenderPass + 'static,
-    ) -> PixelsBuilder<'a> {
+    ) -> PixelsBuilder {
         self.renderer_factories.push(Box::new(factory));
         self
     }
@@ -369,13 +392,14 @@ impl<'a> PixelsBuilder<'a> {
         let texture_format_size = get_texture_format_size(self.texture_format);
 
         // Create swap chain
+        let surface_texture = self.surface_texture;
         let swap_chain = device.create_swap_chain(
-            self.surface_texture.surface,
+            &surface_texture.surface,
             &wgpu::SwapChainDescriptor {
                 usage: wgpu::TextureUsage::OUTPUT_ATTACHMENT,
                 format: wgpu::TextureFormat::Bgra8UnormSrgb,
-                width: self.surface_texture.width,
-                height: self.surface_texture.height,
+                width: surface_texture.width,
+                height: surface_texture.height,
                 present_mode: wgpu::PresentMode::Vsync,
             },
         );
@@ -398,6 +422,7 @@ impl<'a> PixelsBuilder<'a> {
             queue,
             swap_chain,
             renderers,
+            surface_texture,
             texture,
             texture_extent,
             texture_format_size,
