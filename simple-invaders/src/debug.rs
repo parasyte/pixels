@@ -10,7 +10,12 @@ const BLUE: [u8; 4] = [0, 0, 255, 255];
 const YELLOW: [u8; 4] = [255, 255, 0, 255];
 
 /// Draw bounding boxes for the invader fleet and each invader.
-pub(crate) fn draw_invaders(screen: &mut [u8], invaders: &Invaders, collision: &Collision) {
+pub(crate) fn draw_invaders(screen: &mut [u8], invaders: &Option<Invaders>, collision: &Collision) {
+    if invaders.is_none() {
+        return;
+    }
+    let invaders = invaders.as_ref().unwrap();
+
     // Draw invaders bounding box
     {
         let (top, right, bottom, left) = invaders.get_bounds();
@@ -69,7 +74,12 @@ pub(crate) fn draw_lasers(screen: &mut [u8], lasers: &[Laser]) {
 }
 
 /// Draw bounding box for player.
-pub(crate) fn draw_player(screen: &mut [u8], player: &Player, collision: &Collision) {
+pub(crate) fn draw_player(screen: &mut [u8], player: &Option<Player>, collision: &Collision) {
+    if player.is_none() {
+        return;
+    }
+    let player = player.as_ref().unwrap();
+
     let p1 = player.pos;
     let p2 = p1 + Point::new(player.sprite.width(), player.sprite.height());
 

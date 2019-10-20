@@ -4,20 +4,23 @@
 //! this in practice. That said, the game is fully functional, and it should not be too difficult
 //! to understand the code.
 
+use arrayvec::ArrayVec;
 use rand_core::{OsRng, RngCore};
 use std::time::Duration;
 
+use crate::collision::Collision;
 pub use crate::controls::{Controls, Direction};
 use crate::geo::Point;
 use crate::loader::{load_assets, Assets};
-use crate::sprites::{blit, Animation, Drawable, Frame, Sprite, SpriteRef};
-use collision::Collision;
+use crate::particles::Particle;
+use crate::sprites::{blit, line, Animation, Drawable, Frame, Sprite, SpriteRef};
 
 mod collision;
 mod controls;
 mod debug;
 mod geo;
 mod loader;
+mod particles;
 mod sprites;
 
 /// The screen width is constant (units are in pixels)
@@ -40,18 +43,19 @@ const BULLET_OFFSET: Point = Point::new(7, 0);
 
 #[derive(Debug)]
 pub struct World {
-    invaders: Invaders,
+    invaders: Option<Invaders>,
     lasers: Vec<Laser>,
     shields: Vec<Shield>,
-    player: Player,
+    player: Option<Player>,
     bullet: Option<Bullet>,
+    particles: Vec<Particle>,
     collision: Collision,
     score: u32,
     assets: Assets,
     screen: Vec<u8>,
     dt: Duration,
     gameover: bool,
-    random: OsRng,
+    prng: OsRng,
     debug: bool,
 }
 
@@ -126,36 +130,46 @@ impl World {
         let assets = load_assets();
 
         // TODO: Create invaders one-at-a-time
-        let invaders = Invaders {
-            grid: make_invader_grid(&assets),
-            stepper: Point::new(COLS - 1, 0),
-            direction: Direction::Right,
-            descend: false,
-            bounds: Bounds::default(),
-        };
-        let lasers = Vec::new();
+        // let invaders = Some(Invaders {
+        //     grid: make_invader_grid(&assets),
+        //     stepper: Point::new(COLS - 1, 0),
+        //     direction: Direction::Right,
+        //     descend: false,
+        //     bounds: Bounds::default(),
+        // });
+        let invaders = None; // DEBUG
+
+        let lasers = Vec::with_capacity(3);
         let shields = (0..4)
             .map(|i| Shield {
                 sprite: Sprite::new(&assets, Shield1),
                 pos: Point::new(i * 45 + 32, 192),
             })
             .collect();
-        let player = Player {
-            sprite: SpriteRef::new(&assets, Player1, Duration::from_millis(100)),
-            pos: PLAYER_START,
-            dt: 0,
-        };
+
+        // let player = Some(Player {
+        //     sprite: SpriteRef::new(&assets, Player1, Duration::from_millis(100)),
+        //     pos: PLAYER_START,
+        //     dt: 0,
+        // });
+        let player = None; // DEBUG
+
         let bullet = None;
-        let collision = Collision::default();
+        let particles = Vec::with_capacity(1024);
+        let mut collision = Collision::default();
+        collision.pixel_mask = Vec::with_capacity(SCREEN_WIDTH * SCREEN_HEIGHT * 4);
+        collision
+            .pixel_mask
+            .resize_with(SCREEN_WIDTH * SCREEN_HEIGHT * 4, Default::default);
         let score = 0;
 
         // Create a screen with the correct size
-        let mut screen = Vec::new();
+        let mut screen = Vec::with_capacity(SCREEN_WIDTH * SCREEN_HEIGHT * 4);
         screen.resize_with(SCREEN_WIDTH * SCREEN_HEIGHT * 4, Default::default);
 
         let dt = Duration::default();
         let gameover = false;
-        let random = OsRng;
+        let prng = OsRng;
 
         World {
             invaders,
@@ -163,13 +177,14 @@ impl World {
             shields,
             player,
             bullet,
+            particles,
             collision,
             score,
             assets,
             screen,
             dt,
             gameover,
-            random,
+            prng,
             debug,
         }
     }
@@ -181,11 +196,6 @@ impl World {
     /// * `dt`: The time delta since last update.
     /// * `controls`: The player inputs.
     pub fn update(&mut self, dt: &Duration, controls: &Controls) {
-        if self.gameover {
-            // TODO: Add a game over screen
-            return;
-        }
-
         let one_frame = Duration::new(0, 16_666_667);
 
         // Advance the timer by the delta time
@@ -194,14 +204,54 @@ impl World {
         // Clear the collision details
         self.collision.clear();
 
-        // Step the invaders one by one
-        while self.dt >= one_frame {
-            self.dt -= one_frame;
-            self.step_invaders();
+        // Simulate particles
+        let destroy = particles::update(&mut self.particles, dt, &self.collision);
+        for &i in destroy.iter().rev() {
+            self.particles.remove(i);
         }
 
-        // Handle player movement and animation
-        self.step_player(controls, dt);
+        // DEBUG
+        if controls.fire {
+            // Create some particles
+            let particles = {
+                let pos = Point::new(SCREEN_WIDTH / 2 - 5, SCREEN_HEIGHT / 2 - 4);
+                let drawable = SpriteRef::new(&self.assets, Frame::Blipjoy1, Duration::default());
+                let rect = geo::Rect::new(
+                    Point::new(0, 0),
+                    Point::new(drawable.width(), drawable.height()),
+                );
+                let force = 4.0;
+                let center = geo::Vec2D::new(5.5, 6.5);
+                &mut particles::drawable_to_particles(
+                    &mut self.prng,
+                    &pos,
+                    &drawable,
+                    &rect,
+                    force,
+                    &center,
+                )
+            };
+
+            // Add them to the world
+            for particle in particles.drain(..) {
+                self.particles.push(particle);
+            }
+        }
+
+        if !self.gameover {
+            // Step the invaders one by one
+            if self.invaders.is_some() {
+                while self.dt >= one_frame {
+                    self.dt -= one_frame;
+                    self.step_invaders();
+                }
+            }
+
+            // Handle player movement and animation
+            if self.player.is_some() {
+                self.step_player(controls, dt);
+            }
+        }
 
         if let Some(bullet) = &mut self.bullet {
             // Handle bullet movement
@@ -212,12 +262,16 @@ impl World {
                 bullet.sprite.animate(&self.assets, dt);
 
                 // Handle collisions
-                if self
-                    .collision
-                    .bullet_to_invader(&mut self.bullet, &mut self.invaders)
+                if self.invaders.is_some()
+                    && self
+                        .collision
+                        .bullet_to_invader(&mut self.bullet, &mut self.invaders.as_mut().unwrap())
                 {
                     // One of the end scenarios
-                    self.gameover = self.invaders.shrink_bounds();
+                    if self.invaders.as_mut().unwrap().shrink_bounds() {
+                        self.gameover = true;
+                        self.invaders = None;
+                    }
                 } else {
                     self.collision
                         .bullet_to_shield(&mut self.bullet, &mut self.shields);
@@ -228,18 +282,23 @@ impl World {
         }
 
         // Handle laser movement
-        let mut destroy = Vec::new();
+        let mut destroy = ArrayVec::<[_; 3]>::new();
         for (i, laser) in self.lasers.iter_mut().enumerate() {
             let velocity = update_dt(&mut laser.dt, dt) * 2;
 
-            if laser.pos.y < self.player.pos.y {
+            if laser.pos.y < PLAYER_START.y {
                 laser.pos.y += velocity;
                 laser.sprite.animate(&self.assets, dt);
 
                 // Handle collisions
-                if self.collision.laser_to_player(laser, &self.player) {
+                if self.player.is_some()
+                    && self
+                        .collision
+                        .laser_to_player(laser, &self.player.as_ref().unwrap())
+                {
                     // One of the end scenarios
                     self.gameover = true;
+                    self.player = None;
 
                     destroy.push(i);
                 } else if self.collision.laser_to_bullet(laser, &mut self.bullet)
@@ -265,11 +324,22 @@ impl World {
         // Clear the screen
         self.clear();
 
+        // Draw the ground
+        {
+            // TODO: Draw cracks where lasers hit
+            let p1 = Point::new(0, PLAYER_START.y + 17);
+            let p2 = Point::new(SCREEN_WIDTH, PLAYER_START.y + 17);
+
+            line(&mut self.screen, &p1, &p2, [255, 255, 255, 255]);
+        }
+
         // Draw the invaders
-        for row in &self.invaders.grid {
-            for col in row {
-                if let Some(invader) = col {
-                    blit(&mut self.screen, &invader.pos, &invader.sprite);
+        if self.invaders.is_some() {
+            for row in &self.invaders.as_ref().unwrap().grid {
+                for col in row {
+                    if let Some(invader) = col {
+                        blit(&mut self.screen, &invader.pos, &invader.sprite);
+                    }
                 }
             }
         }
@@ -280,7 +350,10 @@ impl World {
         }
 
         // Draw the player
-        blit(&mut self.screen, &self.player.pos, &self.player.sprite);
+        if self.player.is_some() {
+            let player = self.player.as_ref().unwrap();
+            blit(&mut self.screen, &player.pos, &player.sprite);
+        }
 
         // Draw the bullet
         if let Some(bullet) = &self.bullet {
@@ -291,6 +364,12 @@ impl World {
         for laser in self.lasers.iter() {
             blit(&mut self.screen, &laser.pos, &laser.sprite);
         }
+
+        // Copy screen to the backbuffer for particle simulation
+        self.collision.pixel_mask.copy_from_slice(&self.screen);
+
+        // Draw particles
+        particles::draw(&mut self.screen, &self.particles);
 
         // Draw debug information
         if self.debug {
@@ -305,35 +384,35 @@ impl World {
     }
 
     fn step_invaders(&mut self) {
-        let (_, right, _, left) = self.invaders.get_bounds();
-        let (invader, is_leader) =
-            next_invader(&mut self.invaders.grid, &mut self.invaders.stepper);
+        let invaders = self.invaders.as_mut().unwrap();
+        let (_, right, _, left) = invaders.get_bounds();
+        let (invader, is_leader) = next_invader(&mut invaders.grid, &mut invaders.stepper);
 
         // The leader controls the fleet
         if is_leader {
             // The leader first commands the fleet to stop descending
-            self.invaders.descend = false;
+            invaders.descend = false;
 
             // Then the leader redirects the fleet when they reach the boundaries
-            match self.invaders.direction {
+            match invaders.direction {
                 Direction::Left => {
                     if left < 2 {
-                        self.invaders.bounds.pos.x += 2;
-                        self.invaders.bounds.pos.y += 8;
-                        self.invaders.descend = true;
-                        self.invaders.direction = Direction::Right;
+                        invaders.bounds.pos.x += 2;
+                        invaders.bounds.pos.y += 8;
+                        invaders.descend = true;
+                        invaders.direction = Direction::Right;
                     } else {
-                        self.invaders.bounds.pos.x -= 2;
+                        invaders.bounds.pos.x -= 2;
                     }
                 }
                 Direction::Right => {
                     if right > SCREEN_WIDTH - 2 {
-                        self.invaders.bounds.pos.x -= 2;
-                        self.invaders.bounds.pos.y += 8;
-                        self.invaders.descend = true;
-                        self.invaders.direction = Direction::Left;
+                        invaders.bounds.pos.x -= 2;
+                        invaders.bounds.pos.y += 8;
+                        invaders.descend = true;
+                        invaders.direction = Direction::Left;
                     } else {
-                        self.invaders.bounds.pos.x += 2;
+                        invaders.bounds.pos.x += 2;
                     }
                 }
                 _ => unreachable!(),
@@ -341,19 +420,22 @@ impl World {
         }
 
         // Every invader in the fleet moves 2px per frame
-        match self.invaders.direction {
+        match invaders.direction {
             Direction::Left => invader.pos.x -= 2,
             Direction::Right => invader.pos.x += 2,
             _ => unreachable!(),
         }
 
         // And they descend 8px on command
-        if self.invaders.descend {
+        if invaders.descend {
             invader.pos.y += 8;
 
             // One of the end scenarios
-            if invader.pos.y + 8 >= self.player.pos.y {
+            if self.player.is_some() && invader.pos.y + 8 >= self.player.as_ref().unwrap().pos.y {
                 self.gameover = true;
+                self.player = None;
+
+                // TODO: Explosion!
             }
         }
 
@@ -361,12 +443,12 @@ impl World {
         invader.sprite.step_frame(&self.assets);
 
         // They also shoot lasers at random with a 1:50 chance
-        let r = self.random.next_u32() as usize;
+        let r = self.prng.next_u32() as usize;
         let chance = r % 50;
         if self.lasers.len() < 3 && chance == 0 {
             // Pick a random column to begin searching for an invader that can fire a laser
             let col = r / 50 % COLS;
-            let invader = self.invaders.get_closest_invader(col);
+            let invader = invaders.get_closest_invader(col);
 
             let laser = Laser {
                 sprite: SpriteRef::new(&self.assets, Frame::Laser1, Duration::from_millis(16)),
@@ -378,21 +460,22 @@ impl World {
     }
 
     fn step_player(&mut self, controls: &Controls, dt: &Duration) {
-        let frames = update_dt(&mut self.player.dt, dt);
-        let width = self.player.sprite.width();
+        let player = self.player.as_mut().unwrap();
+        let frames = update_dt(&mut player.dt, dt);
+        let width = player.sprite.width();
 
         match controls.direction {
             Direction::Left => {
-                if self.player.pos.x > width {
-                    self.player.pos.x -= frames;
-                    self.player.sprite.animate(&self.assets, dt);
+                if player.pos.x > width {
+                    player.pos.x -= frames;
+                    player.sprite.animate(&self.assets, dt);
                 }
             }
 
             Direction::Right => {
-                if self.player.pos.x < SCREEN_WIDTH - width * 2 {
-                    self.player.pos.x += frames;
-                    self.player.sprite.animate(&self.assets, dt);
+                if player.pos.x < SCREEN_WIDTH - width * 2 {
+                    player.pos.x += frames;
+                    player.sprite.animate(&self.assets, dt);
                 }
             }
             _ => (),
@@ -401,7 +484,7 @@ impl World {
         if controls.fire && self.bullet.is_none() {
             self.bullet = Some(Bullet {
                 sprite: SpriteRef::new(&self.assets, Frame::Bullet1, Duration::from_millis(32)),
-                pos: self.player.pos + BULLET_OFFSET,
+                pos: player.pos + BULLET_OFFSET,
                 dt: 0,
             });
         }
