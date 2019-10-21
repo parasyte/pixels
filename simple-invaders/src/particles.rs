@@ -66,7 +66,9 @@ pub(crate) fn update(
         {
             // Apply collision detection and update particle state
             // TODO: Apply collision detection multiple times until the particle stops bouncing
-            if let Some((pos, velocity)) = collision.trace(particle.pos, prediction, particle.velocity) {
+            if let Some((pos, velocity)) =
+                collision.trace(particle.pos, prediction, particle.velocity)
+            {
                 // TODO
                 particle.pos = pos;
                 particle.velocity = velocity;

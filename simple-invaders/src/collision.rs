@@ -188,7 +188,12 @@ impl Collision {
     /// velocity vector representing how the ray will proceed after bounding.
     ///
     /// In the case of no hits, returns `None`.
-    pub(crate) fn trace(&self, start: Vec2D, end: Vec2D, velocity: Vec2D) -> Option<(Vec2D, Vec2D)> {
+    pub(crate) fn trace(
+        &self,
+        start: Vec2D,
+        end: Vec2D,
+        velocity: Vec2D,
+    ) -> Option<(Vec2D, Vec2D)> {
         let p1 = (start.x.round() as i32, start.y.round() as i32);
         let p2 = (end.x.round() as i32, end.y.round() as i32);
         let stride = SCREEN_WIDTH * 4;
@@ -199,14 +204,14 @@ impl Collision {
         for (x, y) in Bresenham::new(p1, p2) {
             let x = x as usize;
             let y = y as usize;
-            let i = x * 4 + y * stride;
+            let index = x * 4 + y * stride;
 
             // Only checking the red channel, that's all we really need
             if x > 0
                 && y > 0
                 && x < SCREEN_WIDTH - 1
                 && y < SCREEN_HEIGHT - 1
-                && self.pixel_mask[i] > 0
+                && self.pixel_mask[index] > 0
             {
                 // A 3x3 pixel grid with four points surrounding each pixel center needs 24 points max.
                 let mut points = ArrayVec::<[_; 24]>::new();
@@ -214,10 +219,10 @@ impl Collision {
                 // Create a list of vertices representing neighboring pixels.
                 for v in y - 1..=y + 1 {
                     for u in x - 1..=x + 1 {
-                        let i = u * 4 + v * stride;
+                        let index = u * 4 + v * stride;
 
                         // Only checking the red channel, again
-                        if self.pixel_mask[i] > 0 {
+                        if self.pixel_mask[index] > 0 {
                             let s = u as f32;
                             let t = v as f32;
 
@@ -227,11 +232,11 @@ impl Collision {
 
                             // Inspect neighrboring pixels to determine whether we need to also add the
                             // bottom and right sides of the pixel. This de-dupes overlapping points.
-                            if u == x + 1 || self.pixel_mask[i + 4] == 0 {
+                            if u == x + 1 || self.pixel_mask[index + 4] == 0 {
                                 // Right side
                                 points.push(Vec2D::new(s + 0.5, t));
                             }
-                            if v == y + 1 || self.pixel_mask[i + stride] == 0 {
+                            if v == y + 1 || self.pixel_mask[index + stride] == 0 {
                                 // Bottom side
                                 points.push(Vec2D::new(s, t + 0.5));
                             }
