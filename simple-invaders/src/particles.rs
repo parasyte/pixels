@@ -1,12 +1,13 @@
 //! Particle simulation primitives.
 
+use std::time::Duration;
+
 use crate::collision::Collision;
 use crate::geo::{Point, Rect, Vec2D};
 use crate::sprites::Drawable;
 use crate::{SCREEN_HEIGHT, SCREEN_WIDTH};
 use arrayvec::ArrayVec;
 use rand_core::RngCore;
-use std::time::Duration;
 
 /// Particles a 1x1 pixels that fly around all crazy like.
 #[derive(Debug)]
@@ -31,15 +32,15 @@ pub(crate) struct Particle {
 /// Run particle simulation.
 pub(crate) fn update(
     particles: &mut [Particle],
-    dt: &Duration,
+    _dt: &Duration,
     collision: &Collision,
 ) -> ArrayVec<[usize; 1024]> {
     // TODO:
     // - [x] Move particles.
     // - [x] Apply gravity.
     // - [x] Apply friction.
-    // - [ ] Detect collisions.
-    // - [ ] Apply collision reaction.
+    // - [x] Detect collisions.
+    // - [x] Apply collision reaction.
     // - [ ] Particle decay.
     // - [ ] Particle fade.
     // - [ ] Particle death.
@@ -52,17 +53,17 @@ pub(crate) fn update(
         particle.velocity.y += 0.20;
 
         // Apply damping / friction
-        particle.velocity.x *= 0.985;
-        particle.velocity.y *= 0.985;
+        particle.velocity = particle.velocity.scale(0.985);
 
         // Apply velocity
         let prediction = particle.pos + particle.velocity;
 
         // Ensure the position is within view. Destroys particles that are on the screen's border.
-        if prediction.x >= 1.0
-            && prediction.x < (SCREEN_WIDTH - 1) as f32
-            && prediction.y >= 1.0
-            && prediction.y < (SCREEN_HEIGHT - 1) as f32
+        // This prevents the 5x5 pixel "collision slope" check from wrapping around the screen.
+        if prediction.x >= 2.0
+            && prediction.x < (SCREEN_WIDTH - 2) as f32
+            && prediction.y >= 2.0
+            && prediction.y < (SCREEN_HEIGHT - 2) as f32
         {
             // Apply collision detection and update particle state
             // TODO: Apply collision detection multiple times until the particle stops bouncing
@@ -135,11 +136,11 @@ pub(crate) fn draw(screen: &mut [u8], particles: &[Particle]) {
 /// It also asserts that the `src` rectangle is fully contained within the `drawable`.
 pub(crate) fn drawable_to_particles<D, R>(
     prng: &mut R,
-    pos: &Point,
+    pos: Point,
     drawable: &D,
-    src: &Rect,
+    src: Rect,
     force: f32,
-    center: &Vec2D,
+    center: Vec2D,
 ) -> ArrayVec<[Particle; 1024]>
 where
     D: Drawable,
@@ -168,17 +169,16 @@ where
             // Only checking the red channel, that's all we really need
             if pixels[i] > 0 {
                 // Initialize velocity using force and center of mass
-                let mut velocity = Vec2D::new(x as f32, y as f32) - *center;
+                let velocity = Vec2D::new(x as f32, y as f32) - center;
                 let scale = (extreme - velocity.len()) / extreme;
-                velocity.normalize();
-                velocity.scale(scale * force);
+                let mut velocity = velocity.normalize().scale(scale * force);
 
                 // Add some random variance [-0.5, 0.5) to the velocity
                 let rx = prng.next_u32() as f32 / std::u32::MAX as f32 - 0.5;
                 let ry = prng.next_u32() as f32 / std::u32::MAX as f32 - 0.5;
                 velocity += Vec2D::new(rx, ry);
 
-                let abs_pos = *pos + Point::new(x, y);
+                let abs_pos = pos + Point::new(x, y);
 
                 particles.push(Particle {
                     pos: Vec2D::from(abs_pos),

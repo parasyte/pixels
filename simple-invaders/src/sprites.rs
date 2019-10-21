@@ -2,7 +2,7 @@ use std::cmp::min;
 use std::rc::Rc;
 use std::time::Duration;
 
-use crate::geo::Point;
+use crate::geo::{Point, Rect};
 use crate::loader::Assets;
 use crate::{SCREEN_HEIGHT, SCREEN_WIDTH};
 use line_drawing::Bresenham;
@@ -71,6 +71,7 @@ pub(crate) struct SpriteRef {
 pub(crate) trait Drawable {
     fn width(&self) -> usize;
     fn height(&self) -> usize;
+    fn rect(&self) -> Rect;
     fn pixels(&self) -> &[u8];
 }
 
@@ -153,6 +154,10 @@ impl Drawable for Sprite {
         self.height
     }
 
+    fn rect(&self) -> Rect {
+        Rect::new(Point::default(), Point::new(self.width, self.height))
+    }
+
     fn pixels(&self) -> &[u8] {
         &self.pixels
     }
@@ -165,6 +170,10 @@ impl Drawable for SpriteRef {
 
     fn height(&self) -> usize {
         self.height
+    }
+
+    fn rect(&self) -> Rect {
+        Rect::new(Point::default(), Point::new(self.width, self.height))
     }
 
     fn pixels(&self) -> &[u8] {

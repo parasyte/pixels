@@ -1,11 +1,16 @@
 //! Collision detection primitives.
 
+use std::collections::HashSet;
+
 use crate::geo::{convex_hull, Point, Rect, Vec2D};
-use crate::{Bullet, Invaders, Laser, Player, Shield, COLS, GRID, ROWS};
-use crate::{SCREEN_HEIGHT, SCREEN_WIDTH};
+use crate::particles::{drawable_to_particles, Particle};
+use crate::sprites::Drawable;
+use crate::{
+    Bullet, Invaders, Laser, Player, Shield, COLS, GRID, ROWS, SCREEN_HEIGHT, SCREEN_WIDTH,
+};
 use arrayvec::ArrayVec;
 use line_drawing::Bresenham;
-use std::collections::HashSet;
+use rand_core::RngCore;
 
 /// Store information about collisions (for debug mode).
 #[derive(Debug, Default)]
@@ -43,11 +48,15 @@ impl Collision {
     }
 
     /// Handle collisions between bullets and invaders.
-    pub(crate) fn bullet_to_invader(
+    pub(crate) fn bullet_to_invader<R>(
         &mut self,
         bullet: &mut Option<Bullet>,
         invaders: &mut Invaders,
-    ) -> bool {
+        prng: &mut R,
+    ) -> Option<ArrayVec<[Particle; 1024]>>
+    where
+        R: RngCore,
+    {
         // Broad phase collision detection
         let (top, right, bottom, left) = invaders.get_bounds();
         let invaders_rect = Rect::new(Point::new(left, top), Point::new(right, bottom));
@@ -80,19 +89,55 @@ impl Collision {
                     let invader = invaders.grid[y][x].as_ref().unwrap();
                     let invader_rect = Rect::from_drawable(invader.pos, &invader.sprite);
                     if bullet_rect.intersects(invader_rect) {
-                        // TODO: Explosion! Score!
+                        // TODO: Score!
+
+                        // Create a spectacular explosion!
+                        let mut particles = {
+                            let bullet = bullet.as_ref().unwrap();
+                            let force = 4.0;
+                            let center = Vec2D::from(bullet.pos) - Vec2D::from(invader.pos)
+                                + Vec2D::new(0.9, 1.9);
+
+                            drawable_to_particles(
+                                prng,
+                                invader.pos,
+                                &invader.sprite,
+                                invader.sprite.rect(),
+                                force,
+                                center,
+                            )
+                        };
+                        let mut bullet_particles = {
+                            let bullet = bullet.as_ref().unwrap();
+                            let force = 4.0;
+                            let center = Vec2D::new(0.9, 4.1);
+
+                            drawable_to_particles(
+                                prng,
+                                bullet.pos,
+                                &bullet.sprite,
+                                bullet.sprite.rect(),
+                                force,
+                                center,
+                            )
+                        };
+                        for particle in bullet_particles.drain(..) {
+                            particles.push(particle);
+                        }
+
+                        // Destroy invader
                         invaders.grid[y][x] = None;
 
                         // Destroy bullet
                         *bullet = None;
 
-                        return true;
+                        return Some(particles);
                     }
                 }
             }
         }
 
-        false
+        None
     }
 
     /// Handle collisions between bullets and shields.
@@ -122,14 +167,55 @@ impl Collision {
     }
 
     /// Handle collisions between lasers and the player.
-    pub(crate) fn laser_to_player(&mut self, laser: &Laser, player: &Player) -> bool {
+    pub(crate) fn laser_to_player<R>(
+        &mut self,
+        laser: &Laser,
+        player: &Player,
+        prng: &mut R,
+    ) -> Option<ArrayVec<[Particle; 1024]>>
+    where
+        R: RngCore,
+    {
         let laser_rect = Rect::from_drawable(laser.pos, &laser.sprite);
         let player_rect = Rect::from_drawable(player.pos, &player.sprite);
         if laser_rect.intersects(player_rect) {
             self.laser_details.insert(LaserDetail::Player);
-            true
+
+            // Create a spectacular explosion!
+            let mut particles = {
+                let force = 8.0;
+                let center =
+                    Vec2D::from(laser.pos) - Vec2D::from(player.pos) + Vec2D::new(2.5, 3.5);
+
+                drawable_to_particles(
+                    prng,
+                    player.pos,
+                    &player.sprite,
+                    player.sprite.rect(),
+                    force,
+                    center,
+                )
+            };
+            let mut bullet_particles = {
+                let force = 8.0;
+                let center = Vec2D::new(2.5, -0.5);
+
+                drawable_to_particles(
+                    prng,
+                    laser.pos,
+                    &laser.sprite,
+                    laser.sprite.rect(),
+                    force,
+                    center,
+                )
+            };
+            for particle in bullet_particles.drain(..) {
+                particles.push(particle);
+            }
+
+            Some(particles)
         } else {
-            false
+            None
         }
     }
 
@@ -188,6 +274,12 @@ impl Collision {
     /// velocity vector representing how the ray will proceed after bounding.
     ///
     /// In the case of no hits, returns `None`.
+    ///
+    /// # Arguments
+    ///
+    /// * `start` - Particle's current position.
+    /// * `end` - Particle's predicted position (must be `start + velocity`)
+    /// * `velocity` - Particle's vector of motion.
     pub(crate) fn trace(
         &self,
         start: Vec2D,
@@ -200,7 +292,7 @@ impl Collision {
 
         let mut hit = start;
 
-        // Trace the particle's trajectory, checking each pixel in the collision mask along the way.
+        // Trace the particle's trajectory, checking each pixel in the collision mask along the way
         for (x, y) in Bresenham::new(p1, p2) {
             let x = x as usize;
             let y = y as usize;
@@ -213,12 +305,14 @@ impl Collision {
                 && y < SCREEN_HEIGHT - 1
                 && self.pixel_mask[index] > 0
             {
-                // A 3x3 pixel grid with four points surrounding each pixel center needs 24 points max.
-                let mut points = ArrayVec::<[_; 24]>::new();
+                // TODO: Split this into its own function!
+
+                // A 5x5 grid with four points surrounding each pixel center needs 60 points max
+                let mut points = ArrayVec::<[_; 64]>::new();
 
                 // Create a list of vertices representing neighboring pixels.
-                for v in y - 1..=y + 1 {
-                    for u in x - 1..=x + 1 {
+                for v in y - 2..=y + 2 {
+                    for u in x - 2..=x + 2 {
                         let index = u * 4 + v * stride;
 
                         // Only checking the red channel, again
@@ -230,13 +324,14 @@ impl Collision {
                             points.push(Vec2D::new(s, t - 0.5));
                             points.push(Vec2D::new(s - 0.5, t));
 
-                            // Inspect neighrboring pixels to determine whether we need to also add the
-                            // bottom and right sides of the pixel. This de-dupes overlapping points.
-                            if u == x + 1 || self.pixel_mask[index + 4] == 0 {
+                            // Inspect neighboring pixels to determine whether we need to also add
+                            // the bottom and right sides of the pixel. This de-dupes overlapping
+                            // points.
+                            if u == x + 2 || self.pixel_mask[index + 4] == 0 {
                                 // Right side
                                 points.push(Vec2D::new(s + 0.5, t));
                             }
-                            if v == y + 1 || self.pixel_mask[index + stride] == 0 {
+                            if v == y + 2 || self.pixel_mask[index + stride] == 0 {
                                 // Bottom side
                                 points.push(Vec2D::new(s, t + 0.5));
                             }
@@ -247,21 +342,63 @@ impl Collision {
                 // Compute the convex hull of the set of points.
                 let hull = convex_hull(&points);
 
-                // TODO: For each line segment in the convex hull, compute the intersection between the
+                // For each line segment in the convex hull, compute the intersection between the
                 // line segment and the particle trajectory, keeping only the line segment that
-                // intersects closest to the particle's current position. In other words, find which
-                // slope the particle collides with.
-                // dbg!(x, y, hull);
+                // intersects closest to the particle's current position. In other words, find
+                // which slope the particle collides with.
+                let mut closest = end;
+                let mut slope = Vec2D::default();
+                for (&p1, &p2) in hull.iter().zip(hull.iter().skip(1)) {
+                    // The cross product between two line segments can tell use whether they
+                    // intersect and where. This is adapted from "Intersection of two lines in
+                    // three-space" by Ronald Goldman, published in Graphics Gems, page 304.
 
-                // TODO: Return updated velocity
-                // HAXX: For now, just invert the vector and dampen it.
-                let velocity = Vec2D::new(-velocity.x, -velocity.y) * Vec2D::new(0.8, 0.8);
+                    // First we take the cross product between the velocity vector and the
+                    // difference between the two points on the hull.
+                    let magnitude = p2 - p1;
+                    let cross = velocity.cross(magnitude);
+
+                    if cross.abs() < std::f32::EPSILON {
+                        // Line segments are colinear or parallel
+                        continue;
+                    }
+
+                    // Interpolate the velocity vector toward the intersection
+                    let t = (p1 - start).cross(magnitude) / cross;
+                    let candidate = velocity.scale(t);
+
+                    // Record the closest intersecting line segment
+                    if candidate.len_sq() < closest.len_sq() {
+                        closest = candidate;
+                        slope = magnitude;
+                    }
+                }
+
+                // We now have a slope along the particle's trajectory. All that is left to do is
+                // reflecting the velocity around the slope's angle.
+
+                // Compute the angles of the velocity and slope vectors.
+                let theta = velocity.y.atan2(velocity.x);
+                let alpha = slope.y.atan2(slope.x);
+
+                // Reflect theta around alpha.
+                // https://en.wikipedia.org/wiki/List_of_trigonometric_identities#Reflections
+                let theta_prime = alpha * 2.0 - theta;
+
+                // Update velocity and apply friction.
+                let magnitude = velocity.len();
+                let velocity =
+                    Vec2D::new(theta_prime.cos() * magnitude, theta_prime.sin() * magnitude);
+                let velocity = velocity * Vec2D::new(0.8, 0.8);
 
                 return Some((hit, velocity));
             }
 
             // Defer the hit location by 1 pixel. A fudge factor to prevent particles from getting
             // stuck inside solids.
+            // TODO: I would like to instead walk the ray from the hit point through the updated
+            // velocity until the particle stops colliding. This will prevent "unpredictable"
+            // movements in the collision mask from capturing particles.
             hit.x = x as f32;
             hit.y = y as f32;
         }

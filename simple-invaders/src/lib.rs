@@ -4,8 +4,8 @@
 //! this in practice. That said, the game is fully functional, and it should not be too difficult
 //! to understand the code.
 
-use arrayvec::ArrayVec;
-use rand_core::{OsRng, RngCore};
+#![deny(clippy::all)]
+
 use std::time::Duration;
 
 use crate::collision::Collision;
@@ -14,6 +14,8 @@ use crate::geo::Point;
 use crate::loader::{load_assets, Assets};
 use crate::particles::Particle;
 use crate::sprites::{blit, line, Animation, Drawable, Frame, Sprite, SpriteRef};
+use arrayvec::ArrayVec;
+use rand_core::{OsRng, RngCore};
 
 mod collision;
 mod controls;
@@ -130,14 +132,13 @@ impl World {
         let assets = load_assets();
 
         // TODO: Create invaders one-at-a-time
-        // let invaders = Some(Invaders {
-        //     grid: make_invader_grid(&assets),
-        //     stepper: Point::new(COLS - 1, 0),
-        //     direction: Direction::Right,
-        //     descend: false,
-        //     bounds: Bounds::default(),
-        // });
-        let invaders = None; // DEBUG
+        let invaders = Some(Invaders {
+            grid: make_invader_grid(&assets),
+            stepper: Point::new(COLS - 1, 0),
+            direction: Direction::Right,
+            descend: false,
+            bounds: Bounds::default(),
+        });
 
         let lasers = Vec::with_capacity(3);
         let shields = (0..4)
@@ -147,12 +148,11 @@ impl World {
             })
             .collect();
 
-        // let player = Some(Player {
-        //     sprite: SpriteRef::new(&assets, Player1, Duration::from_millis(100)),
-        //     pos: PLAYER_START,
-        //     dt: 0,
-        // });
-        let player = None; // DEBUG
+        let player = Some(Player {
+            sprite: SpriteRef::new(&assets, Player1, Duration::from_millis(100)),
+            pos: PLAYER_START,
+            dt: 0,
+        });
 
         let bullet = None;
         let particles = Vec::with_capacity(1024);
@@ -210,34 +210,6 @@ impl World {
             self.particles.remove(i);
         }
 
-        // DEBUG
-        if controls.fire {
-            // Create some particles
-            let particles = {
-                let pos = Point::new(SCREEN_WIDTH / 2 - 5, SCREEN_HEIGHT / 2 - 4);
-                let drawable = SpriteRef::new(&self.assets, Frame::Blipjoy1, Duration::default());
-                let rect = geo::Rect::new(
-                    Point::new(0, 0),
-                    Point::new(drawable.width(), drawable.height()),
-                );
-                let force = 4.0;
-                let center = geo::Vec2D::new(5.5, 6.5);
-                &mut particles::drawable_to_particles(
-                    &mut self.prng,
-                    &pos,
-                    &drawable,
-                    &rect,
-                    force,
-                    &center,
-                )
-            };
-
-            // Add them to the world
-            for particle in particles.drain(..) {
-                self.particles.push(particle);
-            }
-        }
-
         if !self.gameover {
             // Step the invaders one by one
             if self.invaders.is_some() {
@@ -262,17 +234,25 @@ impl World {
                 bullet.sprite.animate(&self.assets, dt);
 
                 // Handle collisions
-                if self.invaders.is_some()
-                    && self
-                        .collision
-                        .bullet_to_invader(&mut self.bullet, &mut self.invaders.as_mut().unwrap())
-                {
-                    // One of the end scenarios
-                    if self.invaders.as_mut().unwrap().shrink_bounds() {
-                        self.gameover = true;
-                        self.invaders = None;
+                if self.invaders.is_some() {
+                    if let Some(mut particles) = self.collision.bullet_to_invader(
+                        &mut self.bullet,
+                        &mut self.invaders.as_mut().unwrap(),
+                        &mut self.prng,
+                    ) {
+                        // Add particles to the world
+                        for particle in particles.drain(..) {
+                            self.particles.push(particle);
+                        }
+
+                        // One of the end scenarios
+                        if self.invaders.as_mut().unwrap().shrink_bounds() {
+                            self.gameover = true;
+                            self.invaders = None;
+                        }
                     }
-                } else {
+                }
+                if self.bullet.is_some() {
                     self.collision
                         .bullet_to_shield(&mut self.bullet, &mut self.shields);
                 }
@@ -291,17 +271,25 @@ impl World {
                 laser.sprite.animate(&self.assets, dt);
 
                 // Handle collisions
-                if self.player.is_some()
-                    && self
-                        .collision
-                        .laser_to_player(laser, &self.player.as_ref().unwrap())
-                {
-                    // One of the end scenarios
-                    self.gameover = true;
-                    self.player = None;
+                if self.player.is_some() {
+                    if let Some(mut particles) = self.collision.laser_to_player(
+                        laser,
+                        &self.player.as_ref().unwrap(),
+                        &mut self.prng,
+                    ) {
+                        // Add particles to the world
+                        for particle in particles.drain(..) {
+                            self.particles.push(particle);
+                        }
 
-                    destroy.push(i);
-                } else if self.collision.laser_to_bullet(laser, &mut self.bullet)
+                        // One of the end scenarios
+                        self.gameover = true;
+                        self.player = None;
+
+                        destroy.push(i);
+                    }
+                }
+                if self.collision.laser_to_bullet(laser, &mut self.bullet)
                     || self.collision.laser_to_shield(laser, &mut self.shields)
                 {
                     destroy.push(i);

@@ -104,19 +104,21 @@ impl Vec2D {
     }
 
     /// Compute the squared length.
-    pub(crate) fn len_sq(&self) -> f32 {
+    pub(crate) fn len_sq(self) -> f32 {
         self.x.powi(2) + self.y.powi(2)
     }
 
     /// Compute the length.
-    pub(crate) fn len(&self) -> f32 {
+    pub(crate) fn len(self) -> f32 {
         self.len_sq().sqrt()
     }
 
-    /// Scale by a scalar.
-    pub(crate) fn scale(&mut self, scale: f32) {
-        self.x *= scale;
-        self.y *= scale;
+    /// Scale `self` by a scalar.
+    pub(crate) fn scale(self, scale: f32) -> Vec2D {
+        Vec2D {
+            x: self.x * scale,
+            y: self.y * scale,
+        }
     }
 
     /// Normalize to a unit vector.
@@ -124,12 +126,19 @@ impl Vec2D {
     /// # Panics
     ///
     /// Asserts that length of `self != 0.0`
-    pub(crate) fn normalize(&mut self) {
+    pub(crate) fn normalize(self) -> Vec2D {
         let l = self.len();
         assert!(l.abs() > std::f32::EPSILON);
 
-        self.x /= l;
-        self.y /= l;
+        Vec2D {
+            x: self.x / l,
+            y: self.y / l,
+        }
+    }
+
+    /// Compute the cross product between `self` and `other`.
+    pub(crate) fn cross(self, other: Vec2D) -> f32 {
+        (self.x * other.y) - (self.y * other.x)
     }
 }
 
@@ -195,7 +204,7 @@ impl LineSegment {
         let v = self.q - self.p;
         let w = other.q - other.p;
 
-        (v.x * w.y) - (v.y * w.x)
+        v.cross(w)
     }
 }
 
