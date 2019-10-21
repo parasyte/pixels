@@ -12,14 +12,14 @@ license = "MIT"
 
 [dependencies]
 byteorder = "1.3"
-wgpu = { git = "https://github.com/gfx-rs/wgpu-rs", rev = "697393df4793e1a58578209885036114adfb9213" }
+wgpu = { git = "https://github.com/gfx-rs/wgpu-rs", rev = "012d08d64de924da93289c2b51fb06b22d7348cf" }
 
 [dev-dependencies]
 env_logger = "0.7"
 log = { version = "0.4", features = ["release_max_level_warn"] }
 pixels-mocks = { path = "pixels-mocks" }
 simple-invaders = { path = "simple-invaders" }
-winit = "0.20.0-alpha3"
+winit = "0.20.0-alpha4"
 
 [workspace]
 members = [

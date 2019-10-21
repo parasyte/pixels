@@ -13,7 +13,9 @@ unsafe impl raw_window_handle::HasRawWindowHandle for RWH {
             target_os = "netbsd",
             target_os = "openbsd",
         ))]
-        return raw_window_handle::RawWindowHandle::X11(raw_window_handle::unix::X11Handle::empty());
+        return raw_window_handle::RawWindowHandle::Wayland(
+            raw_window_handle::unix::WaylandHandle::empty(),
+        );
         #[cfg(target_os = "windows")]
         return raw_window_handle::RawWindowHandle::Windows(
             raw_window_handle::windows::WindowsHandle::empty(),
