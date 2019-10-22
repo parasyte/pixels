@@ -42,7 +42,7 @@ fn main() -> Result<(), Error> {
     };
 
     let surface_texture = SurfaceTexture::new(width, height, surface);
-    let mut pixels = Pixels::new(224, 256, surface_texture)?;
+    let mut pixels = Pixels::new(SCREEN_WIDTH as u32, SCREEN_HEIGHT as u32, surface_texture)?;
     let mut invaders = World::new(debug);
     let mut time = Instant::now();
     let mut controls = Controls::default();
@@ -54,7 +54,8 @@ fn main() -> Result<(), Error> {
                 event: WindowEvent::RedrawRequested,
                 ..
             } => {
-                pixels.render(invaders.draw());
+                invaders.draw(pixels.get_frame());
+                pixels.render();
             }
             _ => (),
         }
