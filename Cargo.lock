@@ -709,6 +709,7 @@ dependencies = [
  "simple-invaders 0.1.0",
  "wgpu 0.3.0 (git+https://github.com/gfx-rs/wgpu-rs?rev=012d08d64de924da93289c2b51fb06b22d7348cf)",
  "winit 0.20.0-alpha4 (registry+https://github.com/rust-lang/crates.io-index)",
+ "winit_input_helper 0.4.0-alpha4 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
@@ -1274,6 +1275,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "winit_input_helper"
+version = "0.4.0-alpha4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+dependencies = [
+ "winit 0.20.0-alpha4 (registry+https://github.com/rust-lang/crates.io-index)",
+]
+
+[[package]]
 name = "wio"
 version = "0.2.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1484,6 +1493,7 @@ dependencies = [
 "checksum winapi-x86_64-pc-windows-gnu 0.4.0 (registry+https://github.com/rust-lang/crates.io-index)" = "712e227841d057c1ee1cd2fb22fa7e5a5461ae8e48fa2ca79ec42cfc1931183f"
 "checksum wincolor 1.0.2 (registry+https://github.com/rust-lang/crates.io-index)" = "96f5016b18804d24db43cebf3c77269e7569b8954a8464501c216cc5e070eaa9"
 "checksum winit 0.20.0-alpha4 (registry+https://github.com/rust-lang/crates.io-index)" = "56c565622ccb05351d92445415952ca09dade6a53e75dd9e75d9bd35d4e99333"
+"checksum winit_input_helper 0.4.0-alpha4 (registry+https://github.com/rust-lang/crates.io-index)" = "48df19ac64492fa604aeb2269afb41f21c19a2bdc552134bec1c3751d6c0919d"
 "checksum wio 0.2.2 (registry+https://github.com/rust-lang/crates.io-index)" = "5d129932f4644ac2396cb456385cbf9e63b5b30c6e8dc4820bdca4eb082037a5"
 "checksum ws2_32-sys 0.2.1 (registry+https://github.com/rust-lang/crates.io-index)" = "d59cefebd0c892fa2dd6de581e937301d8552cb44489cdff035c6187cb63fa5e"
 "checksum x11 2.18.1 (registry+https://github.com/rust-lang/crates.io-index)" = "39697e3123f715483d311b5826e254b6f3cfebdd83cf7ef3358f579c3d68e235"

@@ -20,6 +20,7 @@ log = { version = "0.4", features = ["release_max_level_warn"] }
 pixels-mocks = { path = "pixels-mocks" }
 simple-invaders = { path = "simple-invaders" }
 winit = "0.20.0-alpha4"
+winit_input_helper = "0.4.0-alpha4"
 
 [workspace]
 members = [
