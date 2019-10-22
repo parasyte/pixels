@@ -3,7 +3,7 @@ use std::time::Instant;
 
 use pixels::{Error, Pixels, SurfaceTexture};
 use simple_invaders::{Controls, Direction, World, SCREEN_HEIGHT, SCREEN_WIDTH};
-use winit::event::{VirtualKeyCode, WindowEvent};
+use winit::event::{Event, VirtualKeyCode, WindowEvent};
 use winit::event_loop::{ControlFlow, EventLoop};
 use winit_input_helper::WinitInputHelper;
 
@@ -42,20 +42,19 @@ fn main() -> Result<(), Error> {
     };
 
     let surface_texture = SurfaceTexture::new(width, height, surface);
-    let mut fb = Pixels::new(224, 256, surface_texture)?;
+    let mut pixels = Pixels::new(224, 256, surface_texture)?;
     let mut invaders = World::new(debug);
-    let mut last = Instant::now();
-
+    let mut time = Instant::now();
     let mut controls = Controls::default();
 
     event_loop.run(move |event, _, control_flow| {
         // The one and only event that winit_input_helper doesn't have for us...
         match event {
-            winit::event::Event::WindowEvent {
+            Event::WindowEvent {
                 event: WindowEvent::RedrawRequested,
                 ..
             } => {
-                fb.render(invaders.draw());
+                pixels.render(invaders.draw());
             }
             _ => (),
         }
@@ -90,13 +89,13 @@ fn main() -> Result<(), Error> {
                 let width = size.width.round() as u32;
                 let height = size.height.round() as u32;
 
-                fb.resize(width, height);
+                pixels.resize(width, height);
             }
 
             // Get a new delta time.
             let now = Instant::now();
-            let dt = now.duration_since(last);
-            last = now;
+            let dt = now.duration_since(time);
+            time = now;
 
             // Update the game logic and request redraw
             invaders.update(&dt, &controls);
