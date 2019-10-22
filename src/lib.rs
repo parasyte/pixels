@@ -53,6 +53,7 @@ pub struct Pixels {
     texture: wgpu::Texture,
     texture_extent: wgpu::Extent3d,
     texture_format_size: u32,
+    pixels: Vec<u8>,
 }
 
 /// A builder to help create customized pixel buffers.
@@ -124,7 +125,7 @@ impl Pixels {
     /// # use pixels::Pixels;
     /// # let surface = wgpu::Surface::create(&pixels_mocks::RWH);
     /// # let surface_texture = pixels::SurfaceTexture::new(1024, 768, surface);
-    /// let fb = Pixels::new(320, 240, surface_texture)?;
+    /// let mut pixels = Pixels::new(320, 240, surface_texture)?;
     /// # Ok::<(), pixels::Error>(())
     /// ```
     ///
@@ -169,12 +170,7 @@ impl Pixels {
     /// Draw this pixel buffer to the configured [`SurfaceTexture`].
     ///
     /// This executes all render passes in sequence. See [`RenderPass`].
-    ///
-    /// # Arguments
-    ///
-    /// * `texels` - Byte slice of texture pixels (AKA texels) to draw. The texture format can be
-    /// configured with [`PixelsBuilder`].
-    pub fn render(&mut self, texels: &[u8]) {
+    pub fn render(&mut self) {
         // TODO: Center frame buffer in surface
         let frame = self.swap_chain.get_next_texture();
         let mut encoder = self
@@ -184,8 +180,8 @@ impl Pixels {
         // Update the pixel buffer texture view
         let buffer = self
             .device
-            .create_buffer_mapped(texels.len(), wgpu::BufferUsage::COPY_SRC)
-            .fill_from_slice(texels);
+            .create_buffer_mapped(self.pixels.len(), wgpu::BufferUsage::COPY_SRC)
+            .fill_from_slice(&self.pixels);
         encoder.copy_buffer_to_texture(
             wgpu::BufferCopyView {
                 buffer: &buffer,
@@ -214,6 +210,26 @@ impl Pixels {
 
         self.queue.borrow_mut().submit(&[encoder.finish()]);
     }
+
+    /// Get a mutable byte slice for the pixel buffer. The buffer is _not_ cleared for you; it will
+    /// retain the previous frame's contents until you clear it yourself.
+    ///
+    /// # Example
+    ///
+    /// ```no_run
+    /// # use pixels::Pixels;
+    /// # let surface = wgpu::Surface::create(&pixels_mocks::RWH);
+    /// # let surface_texture = pixels::SurfaceTexture::new(1024, 768, surface);
+    /// let mut pixels = Pixels::new(320, 240, surface_texture)?;
+    /// let frame = pixels.get_frame();
+    /// for pixel in frame {
+    ///     *pixel = 0;
+    /// }
+    /// # Ok::<(), pixels::Error>(())
+    /// ```
+    pub fn get_frame(&mut self) -> &mut [u8] {
+        &mut self.pixels
+    }
 }
 
 impl PixelsBuilder {
@@ -235,7 +251,7 @@ impl PixelsBuilder {
     /// # fn render_pass(&self, _: &mut wgpu::CommandEncoder, _: &wgpu::TextureView) {}
     /// }
     ///
-    /// let fb = PixelsBuilder::new(256, 240, surface_texture)
+    /// let mut pixels = PixelsBuilder::new(256, 240, surface_texture)
     ///     .pixel_aspect_ratio(8.0 / 7.0)
     ///     .add_render_pass(|device, queue, texture| {
     ///         // Create reources for MyRenderPass here
@@ -391,6 +407,11 @@ impl PixelsBuilder {
         let texture_view = texture.create_default_view();
         let texture_format_size = get_texture_format_size(self.texture_format);
 
+        // Create the pixel buffer
+        let capacity = (width * height * texture_format_size) as usize;
+        let mut pixels = Vec::with_capacity(capacity);
+        pixels.resize_with(capacity, Default::default);
+
         // Create swap chain
         let surface_texture = self.surface_texture;
         let swap_chain = device.create_swap_chain(
@@ -426,6 +447,7 @@ impl PixelsBuilder {
             texture,
             texture_extent,
             texture_format_size,
+            pixels,
         })
     }
 }
