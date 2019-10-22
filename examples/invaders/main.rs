@@ -3,12 +3,14 @@ use std::time::Instant;
 
 use pixels::{Error, Pixels, SurfaceTexture};
 use simple_invaders::{Controls, Direction, World, SCREEN_HEIGHT, SCREEN_WIDTH};
-use winit::event;
+use winit::event::{Event, VirtualKeyCode, WindowEvent};
 use winit::event_loop::{ControlFlow, EventLoop};
+use winit_input_helper::WinitInputHelper;
 
 fn main() -> Result<(), Error> {
     env_logger::init();
     let event_loop = EventLoop::new();
+    let mut input = WinitInputHelper::new();
 
     // Enable debug mode with `DEBUG=true` environment variable
     let debug = env::var("DEBUG")
@@ -40,94 +42,64 @@ fn main() -> Result<(), Error> {
     };
 
     let surface_texture = SurfaceTexture::new(width, height, surface);
-    let mut fb = Pixels::new(224, 256, surface_texture)?;
+    let mut pixels = Pixels::new(224, 256, surface_texture)?;
     let mut invaders = World::new(debug);
-    let mut last = Instant::now();
-
+    let mut time = Instant::now();
     let mut controls = Controls::default();
-    let mut last_state = false;
-    let mut button_state = false;
-    let mut rising_edge = false;
 
-    event_loop.run(move |event, _, control_flow| match event {
-        event::Event::WindowEvent { event, .. } => match event {
-            // Close events
-            event::WindowEvent::KeyboardInput {
-                input:
-                    event::KeyboardInput {
-                        virtual_keycode: Some(event::VirtualKeyCode::Escape),
-                        state: event::ElementState::Pressed,
-                        ..
-                    },
+    event_loop.run(move |event, _, control_flow| {
+        // The one and only event that winit_input_helper doesn't have for us...
+        match event {
+            Event::WindowEvent {
+                event: WindowEvent::RedrawRequested,
                 ..
+            } => {
+                pixels.render(invaders.draw());
             }
-            | event::WindowEvent::CloseRequested => *control_flow = ControlFlow::Exit,
+            _ => (),
+        }
+
+        // For everything else, for let winit_input_helper collect events to build its state.
+        // It returns `true` when it is time to update our game state and request a redraw.
+        if input.update(event) {
+            // Close events
+            if input.key_pressed(VirtualKeyCode::Escape) || input.quit() {
+                *control_flow = ControlFlow::Exit;
+                return;
+            }
 
             // Keyboard controls
-            event::WindowEvent::KeyboardInput {
-                input:
-                    event::KeyboardInput {
-                        virtual_keycode: Some(virtual_code),
-                        state: event::ElementState::Pressed,
-                        ..
-                    },
-                ..
-            } => match virtual_code {
-                event::VirtualKeyCode::Left => controls.direction = Direction::Left,
-                event::VirtualKeyCode::Right => controls.direction = Direction::Right,
-                event::VirtualKeyCode::Space => button_state = true,
-                _ => (),
-            },
-
-            event::WindowEvent::KeyboardInput {
-                input:
-                    event::KeyboardInput {
-                        virtual_keycode: Some(virtual_code),
-                        state: event::ElementState::Released,
-                        ..
-                    },
-                ..
-            } => match virtual_code {
-                event::VirtualKeyCode::Left => controls.direction = Direction::Still,
-                event::VirtualKeyCode::Right => controls.direction = Direction::Still,
-                event::VirtualKeyCode::Space => button_state = false,
-                _ => (),
-            },
+            controls.direction = if input.key_held(VirtualKeyCode::Left) {
+                Direction::Left
+            } else if input.key_held(VirtualKeyCode::Right) {
+                Direction::Right
+            } else {
+                Direction::Still
+            };
+            controls.fire = input.key_pressed(VirtualKeyCode::Space);
 
             // Adjust high DPI factor
-            event::WindowEvent::HiDpiFactorChanged(factor) => hidpi_factor = factor,
+            if let Some(factor) = input.hidpi_changed() {
+                hidpi_factor = factor;
+            }
 
             // Resize the window
-            event::WindowEvent::Resized(size) => {
+            if let Some(size) = input.window_resized() {
                 let size = size.to_physical(hidpi_factor);
                 let width = size.width.round() as u32;
                 let height = size.height.round() as u32;
 
-                fb.resize(width, height);
+                pixels.resize(width, height);
             }
 
-            // Redraw the screen
-            event::WindowEvent::RedrawRequested => fb.render(invaders.draw()),
-
-            _ => (),
-        },
-        event::Event::EventsCleared => {
             // Get a new delta time.
             let now = Instant::now();
-            let dt = now.duration_since(last);
-            last = now;
-
-            // Compute rising edge based on current and last button states
-            rising_edge = button_state && !last_state;
-            last_state = button_state;
-
-            // Fire button only uses rising edge
-            controls.fire = rising_edge;
+            let dt = now.duration_since(time);
+            time = now;
 
             // Update the game logic and request redraw
             invaders.update(&dt, &controls);
             window.request_redraw();
         }
-        _ => (),
     });
 }
