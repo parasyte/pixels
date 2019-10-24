@@ -49,15 +49,13 @@ fn main() -> Result<(), Error> {
 
     event_loop.run(move |event, _, control_flow| {
         // The one and only event that winit_input_helper doesn't have for us...
-        match event {
-            Event::WindowEvent {
-                event: WindowEvent::RedrawRequested,
-                ..
-            } => {
-                invaders.draw(pixels.get_frame());
-                pixels.render();
-            }
-            _ => (),
+        if let Event::WindowEvent {
+            event: WindowEvent::RedrawRequested,
+            ..
+        } = event
+        {
+            invaders.draw(pixels.get_frame());
+            pixels.render();
         }
 
         // For everything else, for let winit_input_helper collect events to build its state.
