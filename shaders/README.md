@@ -10,4 +10,4 @@ Compile shaders with `glslangValidator`:
 glslangValidator -V shader.frag && glslangValidator -V shader.vert
 ```
 
-For mor information, see https://github.com/parasyte/pixels/issues/9
+For more information, see https://github.com/parasyte/pixels/issues/9
