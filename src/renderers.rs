@@ -1,7 +1,7 @@
 use byteorder::{ByteOrder, LittleEndian};
 use std::fmt;
 use std::rc::Rc;
-use wgpu::{self, TextureView};
+use wgpu::{self, Extent3d, TextureView};
 
 use crate::render_pass::{BoxedRenderPass, Device, Queue, RenderPass};
 
@@ -9,8 +9,11 @@ use crate::render_pass::{BoxedRenderPass, Device, Queue, RenderPass};
 #[derive(Debug)]
 pub(crate) struct Renderer {
     device: Rc<wgpu::Device>,
+    uniform_buffer: wgpu::Buffer,
     bind_group: wgpu::BindGroup,
     render_pipeline: wgpu::RenderPipeline,
+    width: f32,
+    height: f32,
 }
 
 impl Renderer {
@@ -19,6 +22,7 @@ impl Renderer {
         device: Device,
         _queue: Queue,
         texture_view: &TextureView,
+        texture_size: &Extent3d,
     ) -> BoxedRenderPass {
         let vert_spv = include_bytes!("../shaders/vert.spv");
         let mut vert = Vec::new();
@@ -52,6 +56,18 @@ impl Renderer {
             compare_function: wgpu::CompareFunction::Always,
         });
 
+        // Create uniform buffer
+        #[rustfmt::skip]
+        let transform: [f32; 16] = [
+            1.0, 0.0, 0.0, 0.0,
+            0.0, 1.0, 0.0, 0.0,
+            0.0, 0.0, 1.0, 0.0,
+            0.0, 0.0, 0.0, 1.0,
+        ];
+        let uniform_buffer = device
+            .create_buffer_mapped(16, wgpu::BufferUsage::UNIFORM | wgpu::BufferUsage::COPY_DST)
+            .fill_from_slice(&transform);
+
         // Create bind group
         let bind_group_layout = device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
             bindings: &[
@@ -68,6 +84,11 @@ impl Renderer {
                     visibility: wgpu::ShaderStage::FRAGMENT,
                     ty: wgpu::BindingType::Sampler,
                 },
+                wgpu::BindGroupLayoutBinding {
+                    binding: 2,
+                    visibility: wgpu::ShaderStage::VERTEX,
+                    ty: wgpu::BindingType::UniformBuffer { dynamic: false },
+                },
             ],
         });
         let bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
@@ -80,6 +101,13 @@ impl Renderer {
                 wgpu::Binding {
                     binding: 1,
                     resource: wgpu::BindingResource::Sampler(&sampler),
+                },
+                wgpu::Binding {
+                    binding: 2,
+                    resource: wgpu::BindingResource::Buffer {
+                        buffer: &uniform_buffer,
+                        range: 0..64,
+                    },
                 },
             ],
         });
@@ -122,16 +150,17 @@ impl Renderer {
 
         Box::new(Renderer {
             device,
+            uniform_buffer,
             bind_group,
             render_pipeline,
+            width: texture_size.width as f32,
+            height: texture_size.height as f32,
         })
     }
 }
 
 impl RenderPass for Renderer {
-    fn update_bindings(&mut self, _input_texture: &TextureView) {}
-
-    fn render_pass(&self, encoder: &mut wgpu::CommandEncoder, render_target: &TextureView) {
+    fn render(&self, encoder: &mut wgpu::CommandEncoder, render_target: &TextureView) {
         // Draw the updated texture to the render target
         let mut rpass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
             color_attachments: &[wgpu::RenderPassColorAttachmentDescriptor {
@@ -147,6 +176,38 @@ impl RenderPass for Renderer {
         rpass.set_bind_group(0, &self.bind_group, &[]);
         rpass.draw(0..6, 0..1);
     }
+
+    fn resize(&mut self, encoder: &mut wgpu::CommandEncoder, width: u32, height: u32) {
+        let width = width as f32;
+        let height = height as f32;
+
+        // Get smallest scale size
+        let scale = (width / self.width)
+            .min(height / self.height)
+            .max(1.0)
+            .floor();
+
+        // Update transformation matrix
+        let sw = self.width * scale / width;
+        let sh = self.height * scale / height;
+        #[rustfmt::skip]
+        let transform: [f32; 16] = [
+            sw, 0.0, 0.0, 0.0,
+            0.0, sh, 0.0, 0.0,
+            0.0, 0.0, 1.0, 0.0,
+            0.0, 0.0, 0.0, 1.0,
+        ];
+
+        let temp_buf = self
+            .device
+            .create_buffer_mapped(16, wgpu::BufferUsage::COPY_SRC)
+            .fill_from_slice(&transform);
+        encoder.copy_buffer_to_buffer(&temp_buf, 0, &self.uniform_buffer, 0, 64);
+    }
+
+    // We don't actually have to rebind the TextureView here.
+    // It's guaranteed that the initial texture never changes.
+    fn update_bindings(&mut self, _input_texture: &TextureView, _input_texture_size: &Extent3d) {}
 
     fn debug(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{:?}", self)
