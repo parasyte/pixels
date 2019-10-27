@@ -306,7 +306,13 @@ impl PixelsBuilder {
     /// factor.
     ///
     /// E.g. set this to `8.0 / 7.0` for an 8:7 pixel aspect ratio.
-    pub const fn pixel_aspect_ratio(mut self, pixel_aspect_ratio: f64) -> PixelsBuilder {
+    ///
+    /// # Panics
+    ///
+    /// The aspect ratio must be > 0.
+    pub fn pixel_aspect_ratio(mut self, pixel_aspect_ratio: f64) -> PixelsBuilder {
+        assert!(pixel_aspect_ratio > 0.0);
+
         self.pixel_aspect_ratio = pixel_aspect_ratio;
         self
     }
