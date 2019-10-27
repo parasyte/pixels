@@ -9,6 +9,10 @@ out gl_PerVertex {
 
 layout(location = 0) out vec2 v_TexCoord;
 
+layout(set = 0, binding = 2) uniform Locals {
+    mat4 u_Transform;
+};
+
 const vec2 positions[6] = vec2[6](
     // Upper left triangle
     vec2(-1.0, -1.0),
@@ -35,5 +39,5 @@ const vec2 uv[6] = vec2[6](
 
 void main() {
     v_TexCoord = uv[gl_VertexIndex];
-    gl_Position = vec4(positions[gl_VertexIndex], 0.0, 1.0);
+    gl_Position = u_Transform * vec4(positions[gl_VertexIndex], 0.0, 1.0);
 }
