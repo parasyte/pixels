@@ -45,7 +45,6 @@ fn main() -> Result<(), Error> {
     let mut pixels = Pixels::new(SCREEN_WIDTH as u32, SCREEN_HEIGHT as u32, surface_texture)?;
     let mut invaders = World::new(debug);
     let mut time = Instant::now();
-    let mut controls = Controls::default();
 
     event_loop.run(move |event, _, control_flow| {
         // The one and only event that winit_input_helper doesn't have for us...
@@ -68,14 +67,16 @@ fn main() -> Result<(), Error> {
             }
 
             // Keyboard controls
-            controls.direction = if input.key_held(VirtualKeyCode::Left) {
-                Direction::Left
-            } else if input.key_held(VirtualKeyCode::Right) {
-                Direction::Right
-            } else {
-                Direction::Still
+            let controls = Controls {
+                direction: if input.key_held(VirtualKeyCode::Left) {
+                    Direction::Left
+                } else if input.key_held(VirtualKeyCode::Right) {
+                    Direction::Right
+                } else {
+                    Direction::Still
+                },
+                fire: input.key_pressed(VirtualKeyCode::Space),
             };
-            controls.fire = input.key_pressed(VirtualKeyCode::Space);
 
             // Adjust high DPI factor
             if let Some(factor) = input.hidpi_changed() {
