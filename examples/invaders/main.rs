@@ -3,6 +3,7 @@ use std::time::Instant;
 
 use pixels::{Error, Pixels, SurfaceTexture};
 use simple_invaders::{Controls, Direction, World, SCREEN_HEIGHT, SCREEN_WIDTH};
+use winit::dpi::{LogicalPosition, LogicalSize, PhysicalSize};
 use winit::event::{Event, VirtualKeyCode, WindowEvent};
 use winit::event_loop::{ControlFlow, EventLoop};
 use winit_input_helper::WinitInputHelper;
@@ -18,29 +19,8 @@ fn main() -> Result<(), Error> {
         .parse()
         .unwrap_or(false);
 
-    let (window, surface, width, height, mut hidpi_factor) = {
-        let scale = 3.0;
-        let width = SCREEN_WIDTH as f64 * scale;
-        let height = SCREEN_HEIGHT as f64 * scale;
-
-        let window = winit::window::WindowBuilder::new()
-            .with_inner_size(winit::dpi::LogicalSize::new(width, height))
-            .with_title("pixel invaders")
-            .build(&event_loop)
-            .unwrap();
-        let surface = pixels::wgpu::Surface::create(&window);
-        let hidpi_factor = window.hidpi_factor();
-        let size = window.inner_size().to_physical(hidpi_factor);
-
-        (
-            window,
-            surface,
-            size.width.round() as u32,
-            size.height.round() as u32,
-            hidpi_factor,
-        )
-    };
-
+    let (window, surface, width, height, mut hidpi_factor) =
+        create_window("pixel invaders", &event_loop);
     let surface_texture = SurfaceTexture::new(width, height, surface);
     let mut pixels = Pixels::new(SCREEN_WIDTH as u32, SCREEN_HEIGHT as u32, surface_texture)?;
     let mut invaders = World::new(debug);
@@ -102,4 +82,57 @@ fn main() -> Result<(), Error> {
             window.request_redraw();
         }
     });
+}
+
+/// Create a window for the game.
+///
+/// Automatically scales the window to cover about 2/3 of the monitor height.
+///
+/// # Returns
+///
+/// Tuple of `(window, surface, width, height, hidpi_factor)`
+/// `width` and `height` are in `LogicalSize` units.
+fn create_window(
+    title: &str,
+    event_loop: &EventLoop<()>,
+) -> (winit::window::Window, wgpu::Surface, u32, u32, f64) {
+    // Create a hidden window so we can estimate a good default window size
+    let window = winit::window::WindowBuilder::new()
+        .with_visible(false)
+        .with_title(title)
+        .build(&event_loop)
+        .unwrap();
+    let hidpi_factor = window.hidpi_factor();
+
+    // Get dimensions
+    let width = SCREEN_WIDTH as f64;
+    let height = SCREEN_HEIGHT as f64;
+    let (monitor_width, monitor_height) = {
+        let size = window.current_monitor().size();
+        (size.width / hidpi_factor, size.height / hidpi_factor)
+    };
+    let scale = (monitor_height / height * 2.0 / 3.0).round();
+
+    // Resize, center, and display the window
+    let min_size = PhysicalSize::new(width, height).to_logical(hidpi_factor);
+    let default_size = LogicalSize::new(width * scale, height * scale);
+    let center = LogicalPosition::new(
+        (monitor_width - width * scale) / 2.0,
+        (monitor_height - height * scale) / 2.0,
+    );
+    window.set_inner_size(default_size);
+    window.set_min_inner_size(Some(min_size));
+    window.set_outer_position(center);
+    window.set_visible(true);
+
+    let surface = pixels::wgpu::Surface::create(&window);
+    let size = default_size.to_physical(hidpi_factor);
+
+    (
+        window,
+        surface,
+        size.width.round() as u32,
+        size.height.round() as u32,
+        hidpi_factor,
+    )
 }
