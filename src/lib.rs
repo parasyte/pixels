@@ -1,4 +1,4 @@
-//! A tiny library providing a GPU-powered pixel pixel buffer.
+//! A tiny library providing a GPU-powered pixel buffer.
 //!
 //! [`Pixels`] represents a 2D pixel buffer with an explicit image resolution, making it ideal for
 //! prototyping simple pixel-based games, animations, and emulators. The pixel buffer is rendered
