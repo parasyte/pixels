@@ -95,7 +95,7 @@ fn main() -> Result<(), Error> {
 fn create_window(
     title: &str,
     event_loop: &EventLoop<()>,
-) -> (winit::window::Window, wgpu::Surface, u32, u32, f64) {
+) -> (winit::window::Window, pixels::wgpu::Surface, u32, u32, f64) {
     // Create a hidden window so we can estimate a good default window size
     let window = winit::window::WindowBuilder::new()
         .with_visible(false)
