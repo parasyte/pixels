@@ -85,8 +85,7 @@ impl SurfaceTexture {
     /// # Examples
     ///
     /// ```no_run
-    /// use pixels::SurfaceTexture;
-    /// use wgpu::Surface;
+    /// use pixels::{wgpu::Surface, SurfaceTexture};
     /// use winit::event_loop::EventLoop;
     /// use winit::window::Window;
     ///
@@ -354,7 +353,7 @@ impl PixelsBuilder {
     ///
     /// ```no_run
     /// use pixels::{BoxedRenderPass, Device, PixelsBuilder, Queue, RenderPass};
-    /// use wgpu::{Extent3d, TextureView};
+    /// use pixels::wgpu::{Extent3d, TextureView};
     ///
     /// struct MyRenderPass {
     ///     device: Device,
