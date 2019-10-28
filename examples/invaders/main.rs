@@ -1,6 +1,8 @@
 use std::env;
 use std::time::Instant;
 
+use gilrs::{Button, Gilrs};
+use log::debug;
 use pixels::{Error, Pixels, SurfaceTexture};
 use simple_invaders::{Controls, Direction, World, SCREEN_HEIGHT, SCREEN_WIDTH};
 use winit::dpi::{LogicalPosition, LogicalSize, PhysicalSize};
@@ -12,6 +14,7 @@ fn main() -> Result<(), Error> {
     env_logger::init();
     let event_loop = EventLoop::new();
     let mut input = WinitInputHelper::new();
+    let mut gilrs = Gilrs::new().unwrap();
 
     // Enable debug mode with `DEBUG=true` environment variable
     let debug = env::var("DEBUG")
@@ -25,6 +28,7 @@ fn main() -> Result<(), Error> {
     let mut pixels = Pixels::new(SCREEN_WIDTH as u32, SCREEN_HEIGHT as u32, surface_texture)?;
     let mut invaders = World::new(debug);
     let mut time = Instant::now();
+    let mut gamepad = None;
 
     event_loop.run(move |event, _, control_flow| {
         // The one and only event that winit_input_helper doesn't have for us...
@@ -37,6 +41,18 @@ fn main() -> Result<(), Error> {
             pixels.render();
         }
 
+        // Pump the gilrs event loop and find an active gamepad
+        while let Some(gilrs::Event { id, event, .. }) = gilrs.next_event() {
+            let pad = gilrs.gamepad(id);
+            if gamepad.is_none() {
+                debug!("Gamepad with id {} is connected: {}", id, pad.name());
+                gamepad = Some(id);
+            } else if event == gilrs::ev::EventType::Disconnected {
+                debug!("Gamepad with id {} is disconnected: {}", id, pad.name());
+                gamepad = None;
+            }
+        }
+
         // For everything else, for let winit_input_helper collect events to build its state.
         // It returns `true` when it is time to update our game state and request a redraw.
         if input.update(event) {
@@ -46,16 +62,33 @@ fn main() -> Result<(), Error> {
                 return;
             }
 
-            // Keyboard controls
-            let controls = Controls {
-                direction: if input.key_held(VirtualKeyCode::Left) {
+            let controls = {
+                // Keyboard controls
+                let mut left = input.key_held(VirtualKeyCode::Left);
+                let mut right = input.key_held(VirtualKeyCode::Right);
+                let mut fire = input.key_pressed(VirtualKeyCode::Space);
+
+                // Gamepad controls
+                if let Some(id) = gamepad {
+                    let gamepad = gilrs.gamepad(id);
+
+                    left = left || gamepad.is_pressed(Button::DPadLeft);
+                    right = right || gamepad.is_pressed(Button::DPadRight);
+                    fire = fire
+                        || gamepad.button_data(Button::South).map_or(false, |button| {
+                            button.is_pressed() && button.counter() == gilrs.counter()
+                        });
+                }
+
+                let direction = if left {
                     Direction::Left
-                } else if input.key_held(VirtualKeyCode::Right) {
+                } else if right {
                     Direction::Right
                 } else {
                     Direction::Still
-                },
-                fire: input.key_pressed(VirtualKeyCode::Space),
+                };
+
+                Controls { direction, fire }
             };
 
             // Adjust high DPI factor

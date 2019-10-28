@@ -15,6 +15,7 @@ wgpu = { git = "https://github.com/gfx-rs/wgpu-rs", rev = "012d08d64de924da93289
 
 [dev-dependencies]
 env_logger = "0.7"
+gilrs = "0.7"
 log = { version = "0.4", features = ["release_max_level_warn"] }
 pixels-mocks = { path = "pixels-mocks" }
 simple-invaders = { path = "simple-invaders" }
