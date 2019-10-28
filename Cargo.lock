@@ -702,7 +702,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 name = "pixels"
 version = "0.0.1"
 dependencies = [
- "byteorder 1.3.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "env_logger 0.7.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "log 0.4.8 (registry+https://github.com/rust-lang/crates.io-index)",
  "pixels-mocks 0.1.0",

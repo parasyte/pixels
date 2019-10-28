@@ -16,14 +16,15 @@ use std::error::Error as StdError;
 use std::fmt;
 use std::rc::Rc;
 
+pub use crate::macros::*;
+pub use crate::render_pass::{BoxedRenderPass, Device, Queue, RenderPass};
+use crate::renderers::Renderer;
 pub use wgpu;
 use wgpu::{Extent3d, TextureView};
 
+mod macros;
 mod render_pass;
-pub use render_pass::{BoxedRenderPass, Device, Queue, RenderPass};
-
 mod renderers;
-use renderers::Renderer;
 
 type RenderPassFactory = Box<dyn Fn(Device, Queue, &TextureView, &Extent3d) -> BoxedRenderPass>;
 

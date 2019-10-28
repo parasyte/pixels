@@ -1,8 +1,8 @@
-use byteorder::{ByteOrder, LittleEndian};
 use std::fmt;
 use std::rc::Rc;
 use wgpu::{self, Extent3d, TextureView};
 
+use crate::include_spv;
 use crate::render_pass::{BoxedRenderPass, Device, Queue, RenderPass};
 
 /// Renderer implements [`RenderPass`].
@@ -24,24 +24,8 @@ impl Renderer {
         texture_view: &TextureView,
         texture_size: &Extent3d,
     ) -> BoxedRenderPass {
-        let vert_spv = include_bytes!("../shaders/vert.spv");
-        let mut vert = Vec::new();
-        vert.resize_with(
-            vert_spv.len() / std::mem::size_of::<u32>(),
-            Default::default,
-        );
-        LittleEndian::read_u32_into(vert_spv, &mut vert);
-
-        let frag_spv = include_bytes!("../shaders/frag.spv");
-        let mut frag = Vec::new();
-        frag.resize_with(
-            frag_spv.len() / std::mem::size_of::<u32>(),
-            Default::default,
-        );
-        LittleEndian::read_u32_into(frag_spv, &mut frag);
-
-        let vs_module = device.create_shader_module(&vert);
-        let fs_module = device.create_shader_module(&frag);
+        let vs_module = device.create_shader_module(include_spv!("../shaders/vert.spv"));
+        let fs_module = device.create_shader_module(include_spv!("../shaders/frag.spv"));
 
         // Create a texture sampler with nearest neighbor
         let sampler = device.create_sampler(&wgpu::SamplerDescriptor {
