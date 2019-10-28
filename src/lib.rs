@@ -94,8 +94,8 @@ impl SurfaceTexture {
     /// let surface = Surface::create(&window);
     /// let size = window.inner_size().to_physical(window.hidpi_factor());
     ///
-    /// let width = size.width as u32;
-    /// let height = size.height as u32;
+    /// let width = size.width.round() as u32;
+    /// let height = size.height.round() as u32;
     ///
     /// let surface_texture = SurfaceTexture::new(width, height, surface);
     /// # Ok::<(), pixels::Error>(())
