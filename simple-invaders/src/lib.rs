@@ -54,7 +54,6 @@ pub struct World {
     collision: Collision,
     score: u32,
     assets: Assets,
-    screen: Vec<u8>,
     dt: Duration,
     gameover: bool,
     prng: OsRng,
@@ -163,10 +162,6 @@ impl World {
             .resize_with(SCREEN_WIDTH * SCREEN_HEIGHT * 4, Default::default);
         let score = 0;
 
-        // Create a screen with the correct size
-        let mut screen = Vec::with_capacity(SCREEN_WIDTH * SCREEN_HEIGHT * 4);
-        screen.resize_with(SCREEN_WIDTH * SCREEN_HEIGHT * 4, Default::default);
-
         let dt = Duration::default();
         let gameover = false;
         let prng = OsRng;
@@ -181,7 +176,6 @@ impl World {
             collision,
             score,
             assets,
-            screen,
             dt,
             gameover,
             prng,
@@ -308,9 +302,9 @@ impl World {
     /// Draw the internal state to the screen.
     ///
     /// Calling this method more than once without an `update` call between is a no-op.
-    pub fn draw(&mut self) -> &[u8] {
+    pub fn draw(&mut self, screen: &mut [u8]) {
         // Clear the screen
-        self.clear();
+        clear(screen);
 
         // Draw the ground
         {
@@ -318,7 +312,7 @@ impl World {
             let p1 = Point::new(0, PLAYER_START.y + 17);
             let p2 = Point::new(SCREEN_WIDTH, PLAYER_START.y + 17);
 
-            line(&mut self.screen, &p1, &p2, [255, 255, 255, 255]);
+            line(screen, &p1, &p2, [255, 255, 255, 255]);
         }
 
         // Draw the invaders
@@ -326,7 +320,7 @@ impl World {
             for row in &self.invaders.as_ref().unwrap().grid {
                 for col in row {
                     if let Some(invader) = col {
-                        blit(&mut self.screen, &invader.pos, &invader.sprite);
+                        blit(screen, &invader.pos, &invader.sprite);
                     }
                 }
             }
@@ -334,41 +328,39 @@ impl World {
 
         // Draw the shields
         for shield in &self.shields {
-            blit(&mut self.screen, &shield.pos, &shield.sprite);
+            blit(screen, &shield.pos, &shield.sprite);
         }
 
         // Draw the player
         if self.player.is_some() {
             let player = self.player.as_ref().unwrap();
-            blit(&mut self.screen, &player.pos, &player.sprite);
+            blit(screen, &player.pos, &player.sprite);
         }
 
         // Draw the bullet
         if let Some(bullet) = &self.bullet {
-            blit(&mut self.screen, &bullet.pos, &bullet.sprite);
+            blit(screen, &bullet.pos, &bullet.sprite);
         }
 
         // Draw lasers
         for laser in self.lasers.iter() {
-            blit(&mut self.screen, &laser.pos, &laser.sprite);
+            blit(screen, &laser.pos, &laser.sprite);
         }
 
         // Copy screen to the backbuffer for particle simulation
-        self.collision.pixel_mask.copy_from_slice(&self.screen);
+        self.collision.pixel_mask.copy_from_slice(screen);
 
         // Draw particles
-        particles::draw(&mut self.screen, &self.particles);
+        particles::draw(screen, &self.particles);
 
         // Draw debug information
         if self.debug {
-            debug::draw_invaders(&mut self.screen, &self.invaders, &self.collision);
-            debug::draw_bullet(&mut self.screen, self.bullet.as_ref());
-            debug::draw_lasers(&mut self.screen, &self.lasers);
-            debug::draw_player(&mut self.screen, &self.player, &self.collision);
-            debug::draw_shields(&mut self.screen, &self.shields, &self.collision);
+            debug::draw_invaders(screen, &self.invaders, &self.collision);
+            debug::draw_bullet(screen, self.bullet.as_ref());
+            debug::draw_lasers(screen, &self.lasers);
+            debug::draw_player(screen, &self.player, &self.collision);
+            debug::draw_shields(screen, &self.shields, &self.collision);
         }
-
-        &self.screen
     }
 
     fn step_invaders(&mut self) {
@@ -477,13 +469,6 @@ impl World {
             });
         }
     }
-
-    /// Clear the screen
-    fn clear(&mut self) {
-        for (i, byte) in self.screen.iter_mut().enumerate() {
-            *byte = if i % 4 == 3 { 255 } else { 0 };
-        }
-    }
 }
 
 impl Default for World {
@@ -590,6 +575,13 @@ impl Default for Bounds {
             top_row: 0,
             bottom_row: ROWS - 1,
         }
+    }
+}
+
+/// Clear the screen
+fn clear(screen: &mut [u8]) {
+    for (i, byte) in screen.iter_mut().enumerate() {
+        *byte = if i % 4 == 3 { 255 } else { 0 };
     }
 }
 

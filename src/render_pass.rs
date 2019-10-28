@@ -1,7 +1,7 @@
 use std::cell::RefCell;
 use std::fmt;
 use std::rc::Rc;
-use wgpu::TextureView;
+use wgpu::{Extent3d, TextureView};
 
 /// A reference-counted [`wgpu::Device`]
 pub type Device = Rc<wgpu::Device>;
@@ -29,17 +29,6 @@ pub type BoxedRenderPass = Box<dyn RenderPass>;
 ///
 /// [`Pixels`]: ./struct.Pixels.html
 pub trait RenderPass {
-    /// This method will be called when the input [`wgpu::TextureView`] needs to be rebinded.
-    ///
-    /// A [`wgpu::TextureView`] is provided to the `RenderPass` factory as an input texture with
-    /// the original [`SurfaceTexture`] size. This method is called in response to resizing the
-    /// [`SurfaceTexture`], where your `RenderPass` impl can update its input texture for the new
-    /// size.
-    ///
-    /// [`Pixels`]: ./struct.Pixels.html
-    /// [`SurfaceTexture`]: ./struct.SurfaceTexture.html
-    fn update_bindings(&mut self, input_texture: &TextureView);
-
     /// Called when it is time to execute this render pass. Use the `encoder` to encode all
     /// commands related to this render pass. The result must be stored to the `render_target`.
     ///
@@ -47,7 +36,34 @@ pub trait RenderPass {
     /// * `encoder` - Command encoder for the render pass
     /// * `render_target` - A reference to the output texture
     /// * `texels` - The byte slice passed to `Pixels::render`
-    fn render_pass(&self, encoder: &mut wgpu::CommandEncoder, render_target: &TextureView);
+    fn render(&self, encoder: &mut wgpu::CommandEncoder, render_target: &TextureView);
+
+    /// This method will be called when the input [`wgpu::TextureView`] needs to be rebinded.
+    ///
+    /// A [`wgpu::TextureView`] is provided to the `RenderPass` factory as an input texture with
+    /// the original [`SurfaceTexture`] size. This method is called in response to resizing the
+    /// [`SurfaceTexture`], where your `RenderPass` impl can update its input texture for the new
+    /// size.
+    ///
+    /// # Arguments
+    /// * `input_texture` - A reference to the `TextureView` for this render pass's input
+    /// * `input_texture_size` - The `input_texture` size
+    ///
+    /// [`Pixels`]: ./struct.Pixels.html
+    /// [`SurfaceTexture`]: ./struct.SurfaceTexture.html
+    fn update_bindings(&mut self, input_texture: &TextureView, input_texture_size: &Extent3d);
+
+    /// When the window is resized, this method will be called, allowing the render pass to
+    /// customize itself to the display size.
+    ///
+    /// The default implementation is a no-op.
+    ///
+    /// # Arguments
+    /// * `encoder` - Command encoder for the render pass
+    /// * `width` - Render target width in physical pixel units
+    /// * `height` - Render target height in physical pixel units
+    #[allow(unused_variables)]
+    fn resize(&mut self, encoder: &mut wgpu::CommandEncoder, width: u32, height: u32) {}
 
     /// This function implements [`Debug`](fmt::Debug) for trait objects.
     ///
