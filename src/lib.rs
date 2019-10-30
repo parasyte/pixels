@@ -80,7 +80,7 @@ impl SurfaceTexture {
     /// Create a logical texture for a window surface.
     ///
     /// It is recommended (but not required) that the `width` and `height` are equivalent to the
-    /// physical dimentions of the `surface`. E.g. scaled by the HiDPI factor.
+    /// physical dimensions of the `surface`. E.g. scaled by the HiDPI factor.
     ///
     /// # Examples
     ///
