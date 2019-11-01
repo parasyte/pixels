@@ -281,12 +281,22 @@ impl World {
                         self.player = None;
 
                         destroy.push(i);
+                    } else if let Some(mut particles) =
+                        self.collision
+                            .laser_to_bullet(laser, &mut self.bullet, &mut self.prng)
+                    {
+                        // Laser and bullet obliterate each other
+
+                        // Add particles to the world
+                        for particle in particles.drain(..) {
+                            self.particles.push(particle);
+                        }
+
+                        destroy.push(i);
+                    } else if self.collision.laser_to_shield(laser, &mut self.shields) {
+                        // TODO
+                        destroy.push(i);
                     }
-                }
-                if self.collision.laser_to_bullet(laser, &mut self.bullet)
-                    || self.collision.laser_to_shield(laser, &mut self.shields)
-                {
-                    destroy.push(i);
                 }
             } else {
                 destroy.push(i);

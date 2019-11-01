@@ -196,7 +196,7 @@ impl Collision {
                     center,
                 )
             };
-            let mut bullet_particles = {
+            let mut laser_particles = {
                 let force = 8.0;
                 let center = Vec2D::new(2.5, -0.5);
 
@@ -209,7 +209,7 @@ impl Collision {
                     center,
                 )
             };
-            for particle in bullet_particles.drain(..) {
+            for particle in laser_particles.drain(..) {
                 particles.push(particle);
             }
 
@@ -220,29 +220,69 @@ impl Collision {
     }
 
     /// Handle collisions between lasers and bullets.
-    pub(crate) fn laser_to_bullet(&mut self, laser: &Laser, bullet: &mut Option<Bullet>) -> bool {
-        let mut destroy = false;
-        if bullet.is_some() {
+    pub(crate) fn laser_to_bullet<R>(
+        &mut self,
+        laser: &Laser,
+        bullet: &mut Option<Bullet>,
+        prng: &mut R,
+    ) -> Option<ArrayVec<[Particle; 1024]>>
+    where
+        R: RngCore,
+    {
+        let particles = if let Some(bullet) = bullet {
             let laser_rect = Rect::from_drawable(laser.pos, &laser.sprite);
+            let bullet_rect = Rect::from_drawable(bullet.pos, &bullet.sprite);
 
-            if let Some(bullet) = &bullet {
-                let bullet_rect = Rect::from_drawable(bullet.pos, &bullet.sprite);
-                if bullet_rect.intersects(laser_rect) {
-                    // TODO: Explosion!
-                    let detail = BulletDetail::Laser;
-                    self.bullet_details.insert(detail);
+            if bullet_rect.intersects(laser_rect) {
+                let detail = BulletDetail::Laser;
+                self.bullet_details.insert(detail);
 
-                    // Destroy laser and bullet
-                    destroy = true;
+                // Create a spectacular explosion!
+                let mut particles = {
+                    let force = 4.0;
+                    let center =
+                        Vec2D::from(bullet.pos) - Vec2D::from(laser.pos) + Vec2D::new(0.9, 1.9);
+
+                    drawable_to_particles(
+                        prng,
+                        laser.pos,
+                        &laser.sprite,
+                        laser.sprite.rect(),
+                        force,
+                        center,
+                    )
+                };
+                let mut bullet_particles = {
+                    let force = 4.0;
+                    let center =
+                        Vec2D::from(laser.pos) - Vec2D::from(bullet.pos) + Vec2D::new(2.5, 3.5);
+
+                    drawable_to_particles(
+                        prng,
+                        bullet.pos,
+                        &bullet.sprite,
+                        bullet.sprite.rect(),
+                        force,
+                        center,
+                    )
+                };
+                for particle in bullet_particles.drain(..) {
+                    particles.push(particle);
                 }
-            }
 
-            if destroy {
-                *bullet = None;
+                Some(particles)
+            } else {
+                None
             }
+        } else {
+            None
+        };
+
+        if particles.is_some() {
+            *bullet = None;
         }
 
-        destroy
+        particles
     }
 
     /// Handle collisions between lasers and shields.
