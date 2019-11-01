@@ -80,7 +80,7 @@ impl SurfaceTexture {
     /// Create a logical texture for a window surface.
     ///
     /// It is recommended (but not required) that the `width` and `height` are equivalent to the
-    /// physical dimentions of the `surface`. E.g. scaled by the HiDPI factor.
+    /// physical dimensions of the `surface`. E.g. scaled by the HiDPI factor.
     ///
     /// # Examples
     ///
@@ -227,10 +227,15 @@ impl Pixels {
     /// # Example
     ///
     /// ```no_run
-    /// # use pixels::Pixels;
+    /// use pixels::PixelsBuilder;
+    /// use pixels::wgpu::TextureFormat;
+    ///
     /// # let surface = wgpu::Surface::create(&pixels_mocks::RWH);
     /// # let surface_texture = pixels::SurfaceTexture::new(1024, 768, surface);
-    /// let mut pixels = Pixels::new(320, 240, surface_texture)?;
+    /// let mut pixels = PixelsBuilder::new(320, 240, surface_texture)
+    ///     .texture_format(TextureFormat::R8Unorm)
+    ///     .build()?;
+    ///
     /// let frame = pixels.get_frame();
     /// for pixel in frame {
     ///     *pixel = 0;
