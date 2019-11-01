@@ -227,10 +227,15 @@ impl Pixels {
     /// # Example
     ///
     /// ```no_run
-    /// # use pixels::Pixels;
+    /// use pixels::PixelsBuilder;
+    /// use pixels::wgpu::TextureFormat;
+    ///
     /// # let surface = wgpu::Surface::create(&pixels_mocks::RWH);
     /// # let surface_texture = pixels::SurfaceTexture::new(1024, 768, surface);
-    /// let mut pixels = Pixels::new(320, 240, surface_texture)?;
+    /// let mut pixels = PixelsBuilder::new(320, 240, surface_texture)
+    ///     .texture_format(TextureFormat::R8Unorm)
+    ///     .build()?;
+    ///
     /// let frame = pixels.get_frame();
     /// for pixel in frame {
     ///     *pixel = 0;
