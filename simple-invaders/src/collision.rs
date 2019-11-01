@@ -240,8 +240,7 @@ impl Collision {
                 // Create a spectacular explosion!
                 let mut particles = {
                     let force = 4.0;
-                    let center =
-                        Vec2D::from(bullet.pos) - Vec2D::from(laser.pos) + Vec2D::new(0.9, 1.9);
+                    let center = Vec2D::new(bullet.pos.x as f32 - laser.pos.x as f32 + 2.5, -0.5);
 
                     drawable_to_particles(
                         prng,
@@ -254,8 +253,7 @@ impl Collision {
                 };
                 let mut bullet_particles = {
                     let force = 4.0;
-                    let center =
-                        Vec2D::from(laser.pos) - Vec2D::from(bullet.pos) + Vec2D::new(2.5, 3.5);
+                    let center = Vec2D::new(laser.pos.x as f32 - bullet.pos.x as f32 + 0.9, 4.5);
 
                     drawable_to_particles(
                         prng,
