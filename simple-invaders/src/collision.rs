@@ -10,7 +10,7 @@ use crate::{
 };
 use arrayvec::ArrayVec;
 use line_drawing::Bresenham;
-use rand_core::RngCore;
+use randomize::PCG32;
 
 /// Store information about collisions (for debug mode).
 #[derive(Debug, Default)]
@@ -48,15 +48,12 @@ impl Collision {
     }
 
     /// Handle collisions between bullets and invaders.
-    pub(crate) fn bullet_to_invader<R>(
+    pub(crate) fn bullet_to_invader(
         &mut self,
         bullet: &mut Option<Bullet>,
         invaders: &mut Invaders,
-        prng: &mut R,
-    ) -> Option<ArrayVec<[Particle; 1024]>>
-    where
-        R: RngCore,
-    {
+        prng: &mut PCG32,
+    ) -> Option<ArrayVec<[Particle; 1024]>> {
         // Broad phase collision detection
         let (top, right, bottom, left) = invaders.get_bounds();
         let invaders_rect = Rect::new(Point::new(left, top), Point::new(right, bottom));
@@ -167,15 +164,12 @@ impl Collision {
     }
 
     /// Handle collisions between lasers and the player.
-    pub(crate) fn laser_to_player<R>(
+    pub(crate) fn laser_to_player(
         &mut self,
         laser: &Laser,
         player: &Player,
-        prng: &mut R,
-    ) -> Option<ArrayVec<[Particle; 1024]>>
-    where
-        R: RngCore,
-    {
+        prng: &mut PCG32,
+    ) -> Option<ArrayVec<[Particle; 1024]>> {
         let laser_rect = Rect::from_drawable(laser.pos, &laser.sprite);
         let player_rect = Rect::from_drawable(player.pos, &player.sprite);
         if laser_rect.intersects(player_rect) {
@@ -220,15 +214,12 @@ impl Collision {
     }
 
     /// Handle collisions between lasers and bullets.
-    pub(crate) fn laser_to_bullet<R>(
+    pub(crate) fn laser_to_bullet(
         &mut self,
         laser: &Laser,
         bullet: &mut Option<Bullet>,
-        prng: &mut R,
-    ) -> Option<ArrayVec<[Particle; 1024]>>
-    where
-        R: RngCore,
-    {
+        prng: &mut PCG32,
+    ) -> Option<ArrayVec<[Particle; 1024]>> {
         let particles = if let Some(bullet) = bullet {
             let laser_rect = Rect::from_drawable(laser.pos, &laser.sprite);
             let bullet_rect = Rect::from_drawable(bullet.pos, &bullet.sprite);

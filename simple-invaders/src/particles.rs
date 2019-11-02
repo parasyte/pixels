@@ -7,7 +7,7 @@ use crate::geo::{Point, Rect, Vec2D};
 use crate::sprites::Drawable;
 use crate::{SCREEN_HEIGHT, SCREEN_WIDTH};
 use arrayvec::ArrayVec;
-use rand_core::RngCore;
+use randomize::PCG32;
 
 /// Particles a 1x1 pixels that fly around all crazy like.
 #[derive(Debug)]
@@ -134,8 +134,8 @@ pub(crate) fn draw(screen: &mut [u8], particles: &[Particle]) {
 /// panics if `center.x.fract() == 0.0 || center.y.fract() == 0.0`.
 ///
 /// It also asserts that the `src` rectangle is fully contained within the `drawable`.
-pub(crate) fn drawable_to_particles<D, R>(
-    prng: &mut R,
+pub(crate) fn drawable_to_particles<D>(
+    prng: &mut PCG32,
     pos: Point,
     drawable: &D,
     src: Rect,
@@ -144,7 +144,6 @@ pub(crate) fn drawable_to_particles<D, R>(
 ) -> ArrayVec<[Particle; 1024]>
 where
     D: Drawable,
-    R: RngCore,
 {
     let width = drawable.width();
     let height = drawable.height();

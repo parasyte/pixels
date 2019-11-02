@@ -15,7 +15,7 @@ use crate::loader::{load_assets, Assets};
 use crate::particles::Particle;
 use crate::sprites::{blit, line, Animation, Drawable, Frame, Sprite, SpriteRef};
 use arrayvec::ArrayVec;
-use rand_core::{OsRng, RngCore};
+use randomize::PCG32;
 
 mod collision;
 mod controls;
@@ -56,7 +56,7 @@ pub struct World {
     assets: Assets,
     dt: Duration,
     gameover: bool,
-    prng: OsRng,
+    prng: PCG32,
     debug: bool,
 }
 
@@ -124,7 +124,30 @@ struct Bullet {
 
 impl World {
     /// Create a new simple-invaders `World`.
-    pub fn new(debug: bool) -> World {
+    ///
+    /// # Arguments
+    ///
+    /// * `debug` - Enable debug visualizations.
+    /// * `seed` - Inputs for the pseudorandom number generator.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use byteorder::{ByteOrder, NativeEndian};
+    /// use getrandom::getrandom;
+    /// use simple_invaders::World;
+    ///
+    /// // Create a seed for the PRNG
+    /// let mut seed = [0_u8; 16];
+    /// getrandom(&mut seed).expect("failed to getrandom");
+    /// let seed = (
+    ///     NativeEndian::read_u64(&seed[0..8]),
+    ///     NativeEndian::read_u64(&seed[8..16]),
+    /// );
+    ///
+    /// let world = World::new(seed, false);
+    /// ```
+    pub fn new(seed: (u64, u64), debug: bool) -> World {
         use Frame::*;
 
         // Load assets first
@@ -164,7 +187,7 @@ impl World {
 
         let dt = Duration::default();
         let gameover = false;
-        let prng = OsRng;
+        let prng = PCG32::seed(seed.0, seed.1);
 
         World {
             invaders,
@@ -481,9 +504,12 @@ impl World {
     }
 }
 
+/// Create a default `World` with a static PRNG seed.
 impl Default for World {
     fn default() -> Self {
-        World::new(false)
+        let seed = (6_364_136_223_846_793_005, 1);
+
+        World::new(seed, false)
     }
 }
 
