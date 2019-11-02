@@ -26,7 +26,7 @@ fn main() -> Result<(), Error> {
         create_window("pixel invaders", &event_loop);
     let surface_texture = SurfaceTexture::new(width, height, surface);
     let mut pixels = Pixels::new(SCREEN_WIDTH as u32, SCREEN_HEIGHT as u32, surface_texture)?;
-    let mut invaders = World::new(debug);
+    let mut invaders = World::new(generate_seed(), debug);
     let mut time = Instant::now();
     let mut gamepad = None;
 
@@ -167,5 +167,20 @@ fn create_window(
         size.width.round() as u32,
         size.height.round() as u32,
         hidpi_factor,
+    )
+}
+
+/// Generate a pseudorandom seed for the game's PRNG.
+fn generate_seed() -> (u64, u64) {
+    use byteorder::{ByteOrder, NativeEndian};
+    use getrandom::getrandom;
+
+    let mut seed = [0_u8; 16];
+
+    getrandom(&mut seed).expect("failed to getrandom");
+
+    (
+        NativeEndian::read_u64(&seed[0..8]),
+        NativeEndian::read_u64(&seed[8..16]),
     )
 }

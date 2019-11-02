@@ -4,14 +4,14 @@
 //! this in practice. That said, the game is fully functional, and it should not be too difficult
 //! to understand the code.
 
-use rand_core::{OsRng, RngCore};
 use std::time::Duration;
 
+use crate::collision::Collision;
 pub use crate::controls::{Controls, Direction};
 use crate::geo::Point;
 use crate::loader::{load_assets, Assets};
 use crate::sprites::{blit, Animation, Drawable, Frame, Sprite, SpriteRef};
-use collision::Collision;
+use randomize::PCG32;
 
 mod collision;
 mod controls;
@@ -50,7 +50,7 @@ pub struct World {
     assets: Assets,
     dt: Duration,
     gameover: bool,
-    random: OsRng,
+    prng: PCG32,
     debug: bool,
 }
 
@@ -118,7 +118,30 @@ struct Bullet {
 
 impl World {
     /// Create a new simple-invaders `World`.
-    pub fn new(debug: bool) -> World {
+    ///
+    /// # Arguments
+    ///
+    /// * `debug` - Enable debug visualizations.
+    /// * `seed` - Inputs for the pseudorandom number generator.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use byteorder::{ByteOrder, NativeEndian};
+    /// use getrandom::getrandom;
+    /// use simple_invaders::World;
+    ///
+    /// // Create a seed for the PRNG
+    /// let mut seed = [0_u8; 16];
+    /// getrandom(&mut seed).expect("failed to getrandom");
+    /// let seed = (
+    ///     NativeEndian::read_u64(&seed[0..8]),
+    ///     NativeEndian::read_u64(&seed[8..16]),
+    /// );
+    ///
+    /// let world = World::new(seed, false);
+    /// ```
+    pub fn new(seed: (u64, u64), debug: bool) -> World {
         use Frame::*;
 
         // Load assets first
@@ -150,7 +173,7 @@ impl World {
 
         let dt = Duration::default();
         let gameover = false;
-        let random = OsRng;
+        let prng = PCG32::seed(seed.0, seed.1);
 
         World {
             invaders,
@@ -163,7 +186,7 @@ impl World {
             assets,
             dt,
             gameover,
-            random,
+            prng,
             debug,
         }
     }
@@ -353,7 +376,7 @@ impl World {
         invader.sprite.step_frame(&self.assets);
 
         // They also shoot lasers at random with a 1:50 chance
-        let r = self.random.next_u32() as usize;
+        let r = self.prng.next_u32() as usize;
         let chance = r % 50;
         if self.lasers.len() < 3 && chance == 0 {
             // Pick a random column to begin searching for an invader that can fire a laser
@@ -400,9 +423,12 @@ impl World {
     }
 }
 
+/// Create a default `World` with a static PRNG seed.
 impl Default for World {
     fn default() -> Self {
-        World::new(false)
+        let seed = (6_364_136_223_846_793_005, 1);
+
+        World::new(seed, false)
     }
 }
 
