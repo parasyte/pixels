@@ -95,8 +95,8 @@ pub(crate) fn update(
 /// Asserts that the particle's absolute position is within the screen.
 pub(crate) fn draw(screen: &mut [u8], particles: &[Particle]) {
     for particle in particles {
-        assert!(particle.abs_pos.x <= SCREEN_WIDTH);
-        assert!(particle.abs_pos.y <= SCREEN_HEIGHT);
+        assert!(particle.abs_pos.x < SCREEN_WIDTH);
+        assert!(particle.abs_pos.y < SCREEN_HEIGHT);
 
         // Generate a shade of gray based on the particle lifetime and fade
         let shade = if particle.alive > Duration::new(0, 0) {
