@@ -11,7 +11,7 @@ categories = ["graphics", "rendering"]
 license = "MIT"
 
 [dependencies]
-wgpu = { git = "https://github.com/gfx-rs/wgpu-rs", rev = "012d08d64de924da93289c2b51fb06b22d7348cf" }
+wgpu = { git = "https://github.com/gfx-rs/wgpu-rs", rev = "ccc958e741a3cb9a5264a392dd58226909a53bb5" }
 
 [dev-dependencies]
 env_logger = "0.7"
