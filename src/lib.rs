@@ -236,10 +236,14 @@ impl Pixels {
     ///     .texture_format(TextureFormat::R8Unorm)
     ///     .build()?;
     ///
+    /// // Clear the pixel buffer
     /// let frame = pixels.get_frame();
     /// for pixel in frame {
     ///     *pixel = 0;
     /// }
+    ///
+    /// // Draw it to the `SurfaceTexture`
+    /// pixels.render();
     /// # Ok::<(), pixels::Error>(())
     /// ```
     pub fn get_frame(&mut self) -> &mut [u8] {
