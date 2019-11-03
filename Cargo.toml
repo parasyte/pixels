@@ -9,6 +9,14 @@ readme = "README.md"
 keywords = ["pixels", "2D", "GPU", "framebuffer"]
 categories = ["graphics", "rendering"]
 license = "MIT"
+include = [
+    "/Cargo.*",
+    "/LICENSE",
+    "/README.md",
+    "/img/pixels.png",
+    "/shaders/*.spv",
+    "/src/**/*",
+]
 
 [dependencies]
 wgpu = { git = "https://github.com/gfx-rs/wgpu-rs", rev = "012d08d64de924da93289c2b51fb06b22d7348cf" }
