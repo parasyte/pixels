@@ -81,11 +81,10 @@ fn load_pcx(pcx: &[u8]) -> CachedSprite {
         // Copy to result with an alpha component
         let pixels = buffer
             .into_iter()
-            .map(|pal| {
+            .flat_map(|pal| {
                 let i = pal as usize * 3;
                 &palette[i..i + 3]
             })
-            .flatten()
             .cloned()
             .collect::<Vec<u8>>();
         result.extend_from_slice(&pixels);
@@ -99,12 +98,11 @@ fn load_pcx(pcx: &[u8]) -> CachedSprite {
             // Copy to result with an alpha component
             let pixels = buffer
                 .chunks(3)
-                .map(|rgb| {
+                .flat_map(|rgb| {
                     let mut rgb = rgb.to_vec();
                     rgb.push(255);
                     rgb
                 })
-                .flatten()
                 .collect::<Vec<u8>>();
             result.extend_from_slice(&pixels);
         }
