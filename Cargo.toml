@@ -20,7 +20,7 @@ include = [
 
 [badges]
 travis-ci = { repository = "parasyte/pixels" }
-maintenance = { status = "actively-maintained" }
+maintenance = { status = "actively-developed" }
 
 [dependencies]
 wgpu = "0.4"
