@@ -227,19 +227,18 @@ impl Pixels {
     /// # Example
     ///
     /// ```no_run
-    /// use pixels::PixelsBuilder;
-    /// use pixels::wgpu::TextureFormat;
-    ///
+    /// # use pixels::Pixels;
     /// # let surface = wgpu::Surface::create(&pixels_mocks::RWH);
     /// # let surface_texture = pixels::SurfaceTexture::new(1024, 768, surface);
-    /// let mut pixels = PixelsBuilder::new(320, 240, surface_texture)
-    ///     .texture_format(TextureFormat::R8Unorm)
-    ///     .build()?;
+    /// let mut pixels = Pixels::new(320, 240, surface_texture)?;
     ///
     /// // Clear the pixel buffer
     /// let frame = pixels.get_frame();
-    /// for pixel in frame {
-    ///     *pixel = 0;
+    /// for pixel in frame.chunks_exact_mut(4) {
+    ///     pixel[0] = 0x00; // R
+    ///     pixel[1] = 0x00; // G
+    ///     pixel[2] = 0x00; // B
+    ///     pixel[3] = 0xff; // A
     /// }
     ///
     /// // Draw it to the `SurfaceTexture`
