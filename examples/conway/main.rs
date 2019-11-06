@@ -283,27 +283,28 @@ impl ConwayGrid {
             c.cool_off(0.4);
         }
     }
-
-    fn count_neibs(&self, x: usize, y: usize) -> usize {
-        let mut count = 0;
-        let wi = self.width as isize;
-        let hi = self.height as isize;
-        for j in -1isize..=1 {
-            for i in -1isize..=1 {
-                if i == 0 && j == 0 {
-                    continue;
-                }
-                // wrap around
-                let xx = (x as isize + i + wi) % wi;
-                let yy = (y as isize + j + hi) % hi;
-                assert!(xx >= 0 && yy >= 0 && xx < wi && yy < hi);
-                let i = self.grid_idx(xx, yy).expect("wrap-around bug?");
-                if self.cells[i].alive {
-                    count += 1;
-                }
-            }
+    #[inline]
+    fn cell_alive(&self, x: usize, y: usize) -> bool {
+        if x < self.width && y < self.height {
+            self.cells[x + y * self.width].alive
+        } else {
+            false
         }
-        count
+    }
+    #[inline(never)]
+    fn count_neibs(&self, x: usize, y: usize) -> usize {
+        let xm1 = x.wrapping_sub(1);
+        let ym1 = y.wrapping_sub(1);
+        let xp1 = x + 1;
+        let yp1 = y + 1;
+        (self.cell_alive(xm1, ym1) as usize
+            + self.cell_alive(x, ym1) as usize
+            + self.cell_alive(xp1, ym1) as usize
+            + self.cell_alive(xm1, y) as usize
+            + self.cell_alive(xp1, y) as usize
+            + self.cell_alive(xm1, yp1) as usize
+            + self.cell_alive(x, yp1) as usize
+            + self.cell_alive(xp1, yp1) as usize)
     }
 
     fn update(&mut self) {
