@@ -347,14 +347,13 @@ impl ConwayGrid {
         // end pos takes us out of bounds.
         let x0 = x0.max(0).min(self.width as isize);
         let y0 = y0.max(0).min(self.height as isize);
-        bresenham(x0, y0, x1, y1, |x, y| {
+        for (x, y) in line_drawing::Bresenham::new((x0, y0), (x1, y1)) {
             if let Some(i) = self.grid_idx(x, y) {
                 self.cells[i].set_alive(alive);
-                true
             } else {
-                false
+                break;
             }
-        });
+        }
     }
 
     fn grid_idx<I: std::convert::TryInto<usize>>(&self, x: I, y: I) -> Option<usize> {
@@ -362,30 +361,6 @@ impl ConwayGrid {
             Some(x + y * self.width)
         } else {
             None
-        }
-    }
-}
-
-fn bresenham(x0: isize, y0: isize, x1: isize, y1: isize, mut cb: impl FnMut(isize, isize) -> bool) {
-    let dx = (x1 - x0).abs();
-    let dy = (y1 - y0).abs();
-    // note: not quite signum, as signum(0) == 0
-    let sx = if x0 < x1 { 1 } else { -1 };
-    let sy = if y0 < y1 { 1 } else { -1 };
-    let mut err = dx - dy;
-    let mut x = x0;
-    let mut y = y0;
-    // bail out if cb returns false, otherwise keep going until x and y reach
-    // the destination
-    while cb(x, y) && (x != x1 || y != y1) {
-        let e2 = err * 2;
-        if e2 > -dy {
-            err -= dy;
-            x += sx;
-        }
-        if e2 < dx {
-            err += dx;
-            y += sy;
         }
     }
 }

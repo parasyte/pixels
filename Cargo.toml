@@ -36,6 +36,7 @@ simple-invaders = { path = "simple-invaders" }
 winit = "0.20.0-alpha4"
 winit_input_helper = "0.4.0-alpha4"
 randomize = "3.0"
+line_drawing = "0.8"
 
 [workspace]
 members = [

@@ -773,6 +773,7 @@ dependencies = [
  "env_logger 0.7.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "getrandom 0.1.13 (registry+https://github.com/rust-lang/crates.io-index)",
  "gilrs 0.7.2 (registry+https://github.com/rust-lang/crates.io-index)",
+ "line_drawing 0.8.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "log 0.4.8 (registry+https://github.com/rust-lang/crates.io-index)",
  "pixels-mocks 0.1.0",
  "randomize 3.0.1 (registry+https://github.com/rust-lang/crates.io-index)",
