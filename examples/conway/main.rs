@@ -291,7 +291,7 @@ impl ConwayGrid {
             false
         }
     }
-    #[inline(never)]
+
     fn count_neibs(&self, x: usize, y: usize) -> usize {
         let xm1 = x.wrapping_sub(1);
         let ym1 = y.wrapping_sub(1);
