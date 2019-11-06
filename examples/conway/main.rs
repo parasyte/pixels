@@ -54,20 +54,21 @@ fn main() -> Result<(), Error> {
             }
             // Handle mouse. This is a bit involved since support some simple
             // line drawing (mostly because it makes nice looking patterns).
-            let (mouse_cell, mouse_prev_cell) = input.mouse().map(|(mx, my)| {
-                let (dx, dy) = input.mouse_diff();
-                let prev_x = mx - dx;
-                let prev_y = my - dy;
-                // let (w, h) = input.resolution()?;
-                let dpx = hidpi_factor as f32;
-                // let (w, h) = (w as f32 * dpx, h as f32 * dpx);
-                let (w, h) = (p_width as f32 / dpx, p_height as f32 / dpx);
-                let mx_i = ((mx / w) * (SCREEN_WIDTH as f32)).round() as isize;
-                let my_i = ((my / h) * (SCREEN_HEIGHT as f32)).round() as isize;
-                let px_i = ((prev_x / w) * (SCREEN_WIDTH as f32)).round() as isize;
-                let py_i = ((prev_y / h) * (SCREEN_HEIGHT as f32)).round() as isize;
-                ((mx_i, my_i), (px_i, py_i))
-            }).unwrap_or_default();
+            let (mouse_cell, mouse_prev_cell) = input
+                .mouse()
+                .map(|(mx, my)| {
+                    let (dx, dy) = input.mouse_diff();
+                    let prev_x = mx - dx;
+                    let prev_y = my - dy;
+                    let dpx = hidpi_factor as f32;
+                    let (w, h) = (p_width as f32 / dpx, p_height as f32 / dpx);
+                    let mx_i = ((mx / w) * (SCREEN_WIDTH as f32)).round() as isize;
+                    let my_i = ((my / h) * (SCREEN_HEIGHT as f32)).round() as isize;
+                    let px_i = ((prev_x / w) * (SCREEN_WIDTH as f32)).round() as isize;
+                    let py_i = ((prev_y / h) * (SCREEN_HEIGHT as f32)).round() as isize;
+                    ((mx_i, my_i), (px_i, py_i))
+                })
+                .unwrap_or_default();
 
             if input.mouse_pressed(0) {
                 debug!("Mouse click at {:?}", mouse_cell);
@@ -322,7 +323,7 @@ impl ConwayGrid {
     }
 
     fn toggle(&mut self, x: isize, y: isize) -> bool {
-            if let Some(i) = self.grid_idx(x, y) {
+        if let Some(i) = self.grid_idx(x, y) {
             let was_alive = self.cells[i].alive;
             self.cells[i].set_alive(!was_alive);
             !was_alive
