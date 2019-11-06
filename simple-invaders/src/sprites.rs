@@ -2,8 +2,9 @@ use std::cmp::min;
 use std::rc::Rc;
 use std::time::Duration;
 
+use crate::geo::{Point, Rect};
 use crate::loader::Assets;
-use crate::{Point, SCREEN_HEIGHT, SCREEN_WIDTH};
+use crate::{SCREEN_HEIGHT, SCREEN_WIDTH};
 use line_drawing::Bresenham;
 
 // This is the type stored in the `Assets` hash map
@@ -70,6 +71,7 @@ pub(crate) struct SpriteRef {
 pub(crate) trait Drawable {
     fn width(&self) -> usize;
     fn height(&self) -> usize;
+    fn rect(&self) -> Rect;
     fn pixels(&self) -> &[u8];
 }
 
@@ -152,6 +154,10 @@ impl Drawable for Sprite {
         self.height
     }
 
+    fn rect(&self) -> Rect {
+        Rect::new(Point::default(), Point::new(self.width, self.height))
+    }
+
     fn pixels(&self) -> &[u8] {
         &self.pixels
     }
@@ -164,6 +170,10 @@ impl Drawable for SpriteRef {
 
     fn height(&self) -> usize {
         self.height
+    }
+
+    fn rect(&self) -> Rect {
+        Rect::new(Point::default(), Point::new(self.width, self.height))
     }
 
     fn pixels(&self) -> &[u8] {
@@ -187,6 +197,10 @@ impl Animation for SpriteRef {
 }
 
 /// Blit a drawable to the pixel buffer.
+///
+/// # Panics
+///
+/// Asserts that the drawable is fully contained within the screen.
 pub(crate) fn blit<S>(screen: &mut [u8], dest: &Point, sprite: &S)
 where
     S: Drawable,
@@ -215,8 +229,8 @@ where
 
 /// Draw a line to the pixel buffer using Bresenham's algorithm.
 pub(crate) fn line(screen: &mut [u8], p1: &Point, p2: &Point, color: [u8; 4]) {
-    let p1 = (p1.x as i64, p1.y as i64);
-    let p2 = (p2.x as i64, p2.y as i64);
+    let p1 = (p1.x as i32, p1.y as i32);
+    let p2 = (p2.x as i32, p2.y as i32);
 
     for (x, y) in Bresenham::new(p1, p2) {
         let x = min(x as usize, SCREEN_WIDTH - 1);
