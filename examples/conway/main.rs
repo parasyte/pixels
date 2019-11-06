@@ -103,12 +103,9 @@ fn main() -> Result<(), Error> {
             // Resize the window
             if let Some(size) = input.window_resized() {
                 let size = size.to_physical(hidpi_factor);
-                let width = size.width.round() as u32;
-                let height = size.height.round() as u32;
                 p_width = size.width.round() as u32;
                 p_height = size.height.round() as u32;
-
-                pixels.resize(width, height);
+                pixels.resize(p_width, p_height);
             }
             if !paused || input.key_pressed(VirtualKeyCode::Space) {
                 life.update();
