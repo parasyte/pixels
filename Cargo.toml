@@ -35,6 +35,7 @@ pixels-mocks = { path = "pixels-mocks" }
 simple-invaders = { path = "simple-invaders" }
 winit = "0.20.0-alpha4"
 winit_input_helper = "0.4.0-alpha4"
+randomize = "3.0"
 
 [workspace]
 members = [
