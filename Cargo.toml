@@ -30,13 +30,13 @@ byteorder = "1.3"
 env_logger = "0.7"
 getrandom = "0.1"
 gilrs = "0.7"
+line_drawing = "0.8"
 log = { version = "0.4", features = ["release_max_level_warn"] }
 pixels-mocks = { path = "pixels-mocks" }
+randomize = "3.0"
 simple-invaders = { path = "simple-invaders" }
 winit = "0.20.0-alpha4"
 winit_input_helper = "0.4.0-alpha4"
-randomize = "3.0"
-line_drawing = "0.8"
 
 [workspace]
 members = [

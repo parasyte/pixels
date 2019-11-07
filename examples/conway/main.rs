@@ -1,3 +1,6 @@
+#![deny(clippy::all)]
+#![forbid(unsafe_code)]
+
 use log::debug;
 use pixels::{Error, Pixels, SurfaceTexture};
 use winit::dpi::{LogicalPosition, LogicalSize, PhysicalSize};

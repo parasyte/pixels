@@ -4,6 +4,9 @@
 //! this in practice. That said, the game is fully functional, and it should not be too difficult
 //! to understand the code.
 
+#![deny(clippy::all)]
+#![forbid(unsafe_code)]
+
 use std::time::Duration;
 
 use crate::collision::Collision;
