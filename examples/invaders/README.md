@@ -4,6 +4,12 @@
 
 The pixels have invaded!
 
+## Running
+
+```bash
+cargo run --release --example invaders
+```
+
 ## Controls
 
 <kbd>Left</kbd> <kbd>Right</kbd> Move tank

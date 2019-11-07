@@ -2,6 +2,11 @@
 
 ![Conway's Game of Life](../../img/conway.png)
 
+## Running
+
+```bash
+cargo run --release --example conway
+```
 
 ## Controls
 
