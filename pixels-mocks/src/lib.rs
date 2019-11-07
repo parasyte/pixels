@@ -1,3 +1,5 @@
+#![deny(clippy::all)]
+
 pub struct RWH;
 
 unsafe impl raw_window_handle::HasRawWindowHandle for RWH {
