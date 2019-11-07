@@ -127,7 +127,7 @@ fn main() -> Result<(), Error> {
 /// # Returns
 ///
 /// Tuple of `(window, surface, width, height, hidpi_factor)`
-/// `width` and `height` are in `LogicalSize` units.
+/// `width` and `height` are in `PhysicalSize` units.
 fn create_window(
     title: &str,
     event_loop: &EventLoop<()>,
