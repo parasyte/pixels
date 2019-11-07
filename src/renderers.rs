@@ -27,8 +27,8 @@ impl Renderer {
         let vs = include_spv!("../shaders/vert.spv");
         let fs = include_spv!("../shaders/frag.spv");
         
-        let vs_module = device.create_shader_module(&vs);
-        let fs_module = device.create_shader_module(&fs);
+        let vs_module = device.create_shader_module(&vs.deref());
+        let fs_module = device.create_shader_module(&fs.deref());
 
         // Create a texture sampler with nearest neighbor
         let sampler = device.create_sampler(&wgpu::SamplerDescriptor {

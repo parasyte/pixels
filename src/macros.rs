@@ -27,15 +27,14 @@ macro_rules! include_spv {
 /// The definition of this type is unstable.
 pub type Spirv = Align4<[u8]>;
 
-impl std::ops::Deref for Spirv {
-    type Target = Vec<u32>;
-    fn deref(&self) -> Vec<u32> {
+impl Spirv {
+    pub fn deref(&self) -> Vec<u32> {
         let mut out = Vec::with_capacity(self.0.len() / 4);
         for i in 0..self.0.len() / 4 {
             let mut tmp: u32 = 0;
-            tmp += (self.0[i] << 24) as u32;
-            tmp += (self.0[i + 1] << 16) as u32;
-            tmp += (self.0[i + 2] << 8) as u32;
+            tmp += (self.0[i] as u32) << 24;
+            tmp += (self.0[i + 1] as u32) << 16;
+            tmp += (self.0[i + 2] as u32) << 8;
             tmp += self.0[i + 3] as u32;
             out.push(tmp);
         }
