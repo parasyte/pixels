@@ -19,13 +19,8 @@ Rapidly prototype a simple 2D game, pixel-based animations, software renderers, 
 
 ## Examples
 
-To demonstrate `pixels`, I've written a Space Invaders clone. The game logic can be found in the `simple-invaders` crate. The included example uses `simple-invaders` to rasterize the image, and `pixels` to display it. `winit` provides the windowing and event handling.
-
-```bash
-cargo run --release --example invaders
-```
-
-See the [example's README](./examples/invaders) for more information.
+- [Pixel Invaders](./examples/invaders)
+- [Conway's Game of Life](./examples/conway)
 
 ## Comparison with `minifb`
 
