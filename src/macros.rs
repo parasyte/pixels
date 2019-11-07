@@ -30,10 +30,20 @@ pub type Spirv = Align4<[u8]>;
 impl std::ops::Deref for Spirv {
     type Target = [u32];
     fn deref(&self) -> &[u32] {
-        #[allow(clippy::cast_ptr_alignment)]
-        unsafe {
-            std::slice::from_raw_parts(self.0.as_ptr() as *const u32, self.0.len() / 4)
+        let mut out = Vec::with_capacity(self.0.len() / 4);
+        for i in 0..self.0.len() / 4 {
+            let mut tmp: u32 = 0;
+            tmp += (self.0[i] << 24) as u32;
+            tmp += (self.0[i + 1] << 16) as u32;
+            tmp += (self.0[i + 2] << 8) as u32;
+            tmp += self.0[i + 3] as u32;
+            out.push(tmp);
         }
+        //#[allow(clippy::cast_ptr_alignment)]
+        //unsafe {
+        //    std::slice::from_raw_parts(self.0.as_ptr() as *const u32, self.0.len() / 4)
+        //}
+        &out
     }
 }
 
