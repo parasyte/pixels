@@ -6,8 +6,6 @@ rust:
 # Stable release channel
 - stable
 
-cache: cargo
-
 matrix:
   fast_finish: true
 
