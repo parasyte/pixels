@@ -32,10 +32,10 @@ impl Spirv {
         let mut out = Vec::with_capacity(self.0.len() / 4);
         for i in 0..self.0.len() / 4 {
             let mut tmp: u32 = 0;
-            tmp += (self.0[i] as u32) << 24;
-            tmp += (self.0[i + 1] as u32) << 16;
-            tmp += (self.0[i + 2] as u32) << 8;
-            tmp += self.0[i + 3] as u32;
+            tmp += self.0[4 * i] as u32;
+            tmp += (self.0[4 * i + 1] as u32) << 8;
+            tmp += (self.0[4 * i + 2] as u32) << 16;
+            tmp += (self.0[4 * i + 3] as u32) << 24;
             out.push(tmp);
         }
         out

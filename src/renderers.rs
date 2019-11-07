@@ -26,7 +26,7 @@ impl Renderer {
     ) -> BoxedRenderPass {
         let vs = include_spv!("../shaders/vert.spv");
         let fs = include_spv!("../shaders/frag.spv");
-        
+
         let vs_module = device.create_shader_module(&vs.deref());
         let fs_module = device.create_shader_module(&fs.deref());
 
