@@ -19,8 +19,9 @@ Rapidly prototype a simple 2D game, pixel-based animations, software renderers, 
 
 ## Examples
 
-- [Pixel Invaders](./examples/invaders)
 - [Conway's Game of Life](./examples/conway)
+- [Minimal example with `winit`](./examples/minimal-winit)
+- [Pixel Invaders](./examples/invaders)
 
 ## Comparison with `minifb`
 
