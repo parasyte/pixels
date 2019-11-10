@@ -62,7 +62,7 @@ winit-deps = ["winit", "winit_input_helper"]
 
 conway = ["line_drawing", "log-deps", "random-deps", "winit-deps"]
 invaders = ["gilrs", "log-deps", "random-deps", "simple-invaders", "winit-deps"]
-minimal-winit = ["winit-deps"]
+minimal-winit = ["log-deps", "winit-deps"]
 
 [workspace]
 members = [
