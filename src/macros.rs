@@ -31,12 +31,12 @@ impl Spirv {
     pub fn deref(&self) -> Vec<u32> {
         let mut out = Vec::with_capacity(self.0.len() / 4);
         for i in 0..self.0.len() / 4 {
-            let mut tmp: u32 = 0;
-            tmp += u32::from(self.0[4 * i]);
-            tmp += u32::from(self.0[4 * i + 1]) << 8;
-            tmp += u32::from(self.0[4 * i + 2]) << 16;
-            tmp += u32::from(self.0[4 * i + 3]) << 24;
-            out.push(tmp);
+            out.push(u32::from_ne_bytes([
+                self.0[4 * i],
+                self.0[4 * i + 1],
+                self.0[4 * i + 2],
+                self.0[4 * i + 3],
+            ]));
         }
         out
     }
