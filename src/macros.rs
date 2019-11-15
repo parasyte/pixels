@@ -10,9 +10,8 @@
 
 #[macro_export]
 macro_rules! include_spv {
-    ($path:expr) => {{
-        let arr = include_bytes!($path).to_vec();
-        wgpu::read_spirv(std::io::Cursor::new(arr))
+    ($path:expr) => {
+        wgpu::read_spirv(std::io::Cursor::new(&include_bytes!($path)[..]))
             .expect(&format!("Invalid SPIR-V shader in file: {}", $path))
-    }};
+    };
 }
