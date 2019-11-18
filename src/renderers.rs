@@ -24,8 +24,8 @@ impl Renderer {
         texture_view: &TextureView,
         texture_size: &Extent3d,
     ) -> BoxedRenderPass {
-        let vs_module = device.create_shader_module(&include_spv!("../shaders/vert.spv"));
-        let fs_module = device.create_shader_module(&include_spv!("../shaders/frag.spv"));
+        let vs_module = device.create_shader_module(include_spv!("../shaders/vert.spv"));
+        let fs_module = device.create_shader_module(include_spv!("../shaders/frag.spv"));
 
         // Create a texture sampler with nearest neighbor
         let sampler = device.create_sampler(&wgpu::SamplerDescriptor {

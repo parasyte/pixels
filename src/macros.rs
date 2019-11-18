@@ -11,7 +11,7 @@
 #[macro_export]
 macro_rules! include_spv {
     ($path:expr) => {
-        wgpu::read_spirv(std::io::Cursor::new(&include_bytes!($path)[..]))
+        &wgpu::read_spirv(std::io::Cursor::new(&include_bytes!($path)[..]))
             .expect(&format!("Invalid SPIR-V shader in file: {}", $path))
     };
 }
