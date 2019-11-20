@@ -10,6 +10,7 @@
 //! [`winit`](https://crates.io/crates/winit) is a good place to start.
 
 #![deny(clippy::all)]
+#![forbid(unsafe_code)]
 
 use std::cell::RefCell;
 use std::error::Error as StdError;
