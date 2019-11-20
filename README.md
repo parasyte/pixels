@@ -21,6 +21,7 @@ Rapidly prototype a simple 2D game, pixel-based animations, software renderers, 
 ## Examples
 
 - [Conway's Game of Life](./examples/conway)
+- [Minimal example with SDL2](./examples/minimal-sdl2)
 - [Minimal example with `winit`](./examples/minimal-winit)
 - [Pixel Invaders](./examples/invaders)
 
