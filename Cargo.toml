@@ -1,7 +1,7 @@
 [package]
 name = "pixels"
 description = "A tiny library providing a GPU-powered pixel frame buffer."
-version = "0.0.2"
+version = "0.0.3"
 authors = ["Jay Oster <jay@kodewerx.org>"]
 edition = "2018"
 repository = "https://github.com/parasyte/pixels"
