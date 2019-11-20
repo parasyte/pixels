@@ -1,12 +1,9 @@
 #![deny(clippy::all)]
 #![forbid(unsafe_code)]
+#![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
-use pixels::{wgpu::Surface, Error, Pixels, SurfaceTexture};
-use winit::dpi::LogicalSize;
-use winit::event::{Event, VirtualKeyCode, WindowEvent};
-use winit::event_loop::{ControlFlow, EventLoop};
-use winit::window::WindowBuilder;
-use winit_input_helper::WinitInputHelper;
+use beryllium::*;
+use pixels::{wgpu::Surface, Pixels, SurfaceTexture};
 
 const WIDTH: u32 = 320;
 const HEIGHT: u32 = 240;
@@ -20,66 +17,58 @@ struct World {
     velocity_y: i16,
 }
 
-fn main() -> Result<(), Error> {
+fn main() -> Result<(), String> {
     env_logger::init();
-    let event_loop = EventLoop::new();
-    let mut input = WinitInputHelper::new();
-    let window = {
-        let size = LogicalSize::new(WIDTH as f64, HEIGHT as f64);
-        WindowBuilder::new()
-            .with_title("Hello Pixels")
-            .with_inner_size(size)
-            .with_min_inner_size(size)
-            .build(&event_loop)
-            .unwrap()
-    };
-    let mut hidpi_factor = window.hidpi_factor();
+    let sdl = beryllium::init()?;
+    let window = sdl.create_window(
+        "Hello Pixels",
+        WINDOW_POSITION_CENTERED,
+        WINDOW_POSITION_CENTERED,
+        WIDTH as i32,
+        HEIGHT as i32,
+        WindowFlags::default(),
+    )?;
+    window.set_minimum_size(WIDTH as i32, HEIGHT as i32);
+    window.set_resizable(true);
 
     let mut pixels = {
         let surface = Surface::create(&window);
         let surface_texture = SurfaceTexture::new(WIDTH, HEIGHT, surface);
-        Pixels::new(WIDTH, HEIGHT, surface_texture)?
+        Pixels::new(WIDTH, HEIGHT, surface_texture).map_err(|e| format!("{:?}", e))?
     };
     let mut world = World::new();
 
-    event_loop.run(move |event, _, control_flow| {
+    'game_loop: loop {
+        while let Some(event) = sdl.poll_event() {
+            match event {
+                // Close events
+                Event::Quit { .. } => break 'game_loop,
+                Event::Keyboard {
+                    key_info:
+                        KeyInfo {
+                            keycode: Some(key), ..
+                        },
+                    ..
+                } if key == Keycode::Escape => break 'game_loop,
+
+                // Resize the window
+                Event::WindowSizeChanged { width, height, .. } => {
+                    pixels.resize(width as u32, height as u32)
+                }
+
+                _ => (),
+            }
+        }
+
+        // Update internal state
+        world.update();
+
         // Draw the current frame
-        if let Event::WindowEvent {
-            event: WindowEvent::RedrawRequested,
-            ..
-        } = event
-        {
-            world.draw(pixels.get_frame());
-            pixels.render();
-        }
+        world.draw(pixels.get_frame());
+        pixels.render();
+    }
 
-        // Handle input events
-        if input.update(event) {
-            // Close events
-            if input.key_pressed(VirtualKeyCode::Escape) || input.quit() {
-                *control_flow = ControlFlow::Exit;
-                return;
-            }
-
-            // Adjust high DPI factor
-            if let Some(factor) = input.hidpi_changed() {
-                hidpi_factor = factor;
-            }
-
-            // Resize the window
-            if let Some(size) = input.window_resized() {
-                let size = size.to_physical(hidpi_factor);
-                let width = size.width.round() as u32;
-                let height = size.height.round() as u32;
-
-                pixels.resize(width, height);
-            }
-
-            // Update internal state and request a redraw
-            world.update();
-            window.request_redraw();
-        }
-    });
+    Ok(())
 }
 
 impl World {
