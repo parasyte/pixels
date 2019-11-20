@@ -27,6 +27,7 @@ wgpu = "0.4"
 
 # These are only used by the examples, and enabled with features
 # See: https://github.com/rust-lang/cargo/issues/1982
+beryllium = { version = " 0.1", optional = true }
 byteorder = { version = "1.3", optional = true }
 env_logger = { version = "0.7", optional = true }
 getrandom = { version = "0.1", optional = true }
@@ -51,6 +52,10 @@ name = "invaders"
 required-features = ["invaders"]
 
 [[example]]
+name = "minimal-sdl2"
+required-features = ["minimal-sdl2"]
+
+[[example]]
 name = "minimal-winit"
 required-features = ["minimal-winit"]
 
@@ -58,10 +63,12 @@ required-features = ["minimal-winit"]
 default = []
 log-deps = ["env_logger", "log"]
 random-deps = ["byteorder", "getrandom", "randomize"]
+sdl2-deps = ["beryllium"]
 winit-deps = ["winit", "winit_input_helper"]
 
 conway = ["line_drawing", "log-deps", "random-deps", "winit-deps"]
 invaders = ["gilrs", "log-deps", "random-deps", "simple-invaders", "winit-deps"]
+minimal-sdl2 = ["log-deps", "sdl2-deps"]
 minimal-winit = ["log-deps", "winit-deps"]
 
 [workspace]
