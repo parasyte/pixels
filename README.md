@@ -1,4 +1,5 @@
 [![Build Status](https://travis-ci.org/parasyte/pixels.svg?branch=master)](https://travis-ci.org/parasyte/pixels)
+[![unsafe forbidden](https://img.shields.io/badge/unsafe-forbidden-success.svg)](https://github.com/rust-secure-code/safety-dance/)
 
 ![Pixels Logo](img/pixels.png)
 
@@ -20,6 +21,7 @@ Rapidly prototype a simple 2D game, pixel-based animations, software renderers, 
 ## Examples
 
 - [Conway's Game of Life](./examples/conway)
+- [Minimal example with SDL2](./examples/minimal-sdl2)
 - [Minimal example with `winit`](./examples/minimal-winit)
 - [Pixel Invaders](./examples/invaders)
 
