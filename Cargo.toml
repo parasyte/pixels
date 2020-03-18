@@ -23,6 +23,7 @@ travis-ci = { repository = "parasyte/pixels" }
 maintenance = { status = "actively-developed" }
 
 [dependencies]
+thiserror = "1.0"
 wgpu = "0.4"
 
 # These are only used by the examples, and enabled with features
@@ -36,12 +37,12 @@ line_drawing = { version = "0.8", optional = true }
 log = { version = "0.4", features = ["release_max_level_warn"], optional = true }
 randomize = { version = "3.0", optional = true }
 simple-invaders = { path = "simple-invaders", optional = true }
-winit = { version = "0.20.0-alpha4", optional = true }
-winit_input_helper = { version = "0.4.0-alpha4", optional = true }
+winit = { version = "=0.20.0-alpha4", optional = true }
+winit_input_helper = { version = "=0.4.0-alpha4", optional = true }
 
 [dev-dependencies]
 pixels-mocks = { path = "pixels-mocks" }
-winit = "0.20.0-alpha4"
+winit = "=0.20.0-alpha4"
 
 [[example]]
 name = "conway"

@@ -13,13 +13,12 @@
 #![forbid(unsafe_code)]
 
 use std::cell::RefCell;
-use std::error::Error as StdError;
-use std::fmt;
 use std::rc::Rc;
 
 pub use crate::macros::*;
 pub use crate::render_pass::{BoxedRenderPass, Device, Queue, RenderPass};
 use crate::renderers::Renderer;
+use thiserror::Error;
 pub use wgpu;
 use wgpu::{Extent3d, TextureView};
 
@@ -71,9 +70,10 @@ pub struct PixelsBuilder {
 }
 
 /// All the ways in which creating a pixel buffer can fail.
-#[derive(Debug)]
+#[derive(Error, Debug)]
 pub enum Error {
     /// No suitable [`wgpu::Adapter`] found
+    #[error("No suitable `wgpu::Adapter` found")]
     AdapterNotFound,
 }
 
@@ -486,20 +486,6 @@ impl PixelsBuilder {
             texture_format_size,
             pixels,
         })
-    }
-}
-
-impl fmt::Display for Error {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{}", self.description())
-    }
-}
-
-impl StdError for Error {
-    fn description(&self) -> &str {
-        match self {
-            Error::AdapterNotFound => "No suitable Adapter found",
-        }
     }
 }
 
