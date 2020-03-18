@@ -23,6 +23,7 @@ travis-ci = { repository = "parasyte/pixels" }
 maintenance = { status = "actively-developed" }
 
 [dependencies]
+thiserror = "1.0"
 wgpu = "0.4"
 
 # These are only used by the examples, and enabled with features
