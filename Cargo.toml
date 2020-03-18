@@ -42,7 +42,7 @@ winit_input_helper = { version = "=0.4.0-alpha4", optional = true }
 
 [dev-dependencies]
 pixels-mocks = { path = "pixels-mocks" }
-winit = "0.20.0-alpha4"
+winit = "=0.20.0-alpha4"
 
 [[example]]
 name = "conway"
