@@ -58,8 +58,8 @@ pub struct Pixels {
 }
 
 /// A builder to help create customized pixel buffers.
-pub struct PixelsBuilder {
-    request_adapter_options: wgpu::RequestAdapterOptions,
+pub struct PixelsBuilder<'req> {
+    request_adapter_options: wgpu::RequestAdapterOptions<'req>,
     device_descriptor: wgpu::DeviceDescriptor,
     width: u32,
     height: u32,
@@ -75,6 +75,9 @@ pub enum Error {
     /// No suitable [`wgpu::Adapter`] found
     #[error("No suitable `wgpu::Adapter` found")]
     AdapterNotFound,
+    /// Equivalent to [`wgpu::TimeOut`]
+    #[error("The GPU timed out when attempting to acquire the next texture or if a previous output is still alive.")]
+    Timeout,
 }
 
 impl SurfaceTexture {
@@ -93,10 +96,10 @@ impl SurfaceTexture {
     /// let event_loop = EventLoop::new();
     /// let window = Window::new(&event_loop).unwrap();
     /// let surface = Surface::create(&window);
-    /// let size = window.inner_size().to_physical(window.hidpi_factor());
+    /// let size = window.inner_size();
     ///
-    /// let width = size.width.round() as u32;
-    /// let height = size.height.round() as u32;
+    /// let width = size.width;
+    /// let height = size.height;
     ///
     /// let surface_texture = SurfaceTexture::new(width, height, surface);
     /// # Ok::<(), pixels::Error>(())
@@ -163,14 +166,14 @@ impl Pixels {
                 format: wgpu::TextureFormat::Bgra8UnormSrgb,
                 width: self.surface_texture.width,
                 height: self.surface_texture.height,
-                present_mode: wgpu::PresentMode::Vsync,
+                present_mode: wgpu::PresentMode::Mailbox,
             },
         );
 
         // Update state for all render passes
         let mut encoder = self
             .device
-            .create_command_encoder(&wgpu::CommandEncoderDescriptor { todo: 0 });
+            .create_command_encoder(&wgpu::CommandEncoderDescriptor { label: None });
         for renderer in self.renderers.iter_mut() {
             renderer.resize(&mut encoder, width, height);
         }
@@ -181,34 +184,41 @@ impl Pixels {
     /// Draw this pixel buffer to the configured [`SurfaceTexture`].
     ///
     /// This executes all render passes in sequence. See [`RenderPass`].
-    pub fn render(&mut self) {
+    ///
+    /// # Errors
+    ///
+    /// Returns an error when [`wgpu::SwapChain::get_next_texture`] times out.
+    pub fn render(&mut self) -> Result<(), Error> {
         // TODO: Center frame buffer in surface
-        let frame = self.swap_chain.get_next_texture();
+        let frame = self
+            .swap_chain
+            .get_next_texture()
+            .map_err(|_| Error::Timeout)?;
         let mut encoder = self
             .device
-            .create_command_encoder(&wgpu::CommandEncoderDescriptor { todo: 0 });
+            .create_command_encoder(&wgpu::CommandEncoderDescriptor { label: None });
 
         // Update the pixel buffer texture view
-        let buffer = self
-            .device
-            .create_buffer_mapped(self.pixels.len(), wgpu::BufferUsage::COPY_SRC)
-            .fill_from_slice(&self.pixels);
+        let mapped = self.device.create_buffer_mapped(&wgpu::BufferDescriptor {
+            label: None,
+            size: self.pixels.len() as u64,
+            usage: wgpu::BufferUsage::COPY_SRC,
+        });
+        mapped.data.copy_from_slice(&self.pixels);
+        let buffer = mapped.finish();
+
         encoder.copy_buffer_to_texture(
             wgpu::BufferCopyView {
                 buffer: &buffer,
                 offset: 0,
-                row_pitch: self.texture_extent.width * self.texture_format_size,
-                image_height: self.texture_extent.height,
+                bytes_per_row: self.texture_extent.width * self.texture_format_size,
+                rows_per_image: self.texture_extent.height,
             },
             wgpu::TextureCopyView {
                 texture: &self.texture,
                 mip_level: 0,
                 array_layer: 0,
-                origin: wgpu::Origin3d {
-                    x: 0.0,
-                    y: 0.0,
-                    z: 0.0,
-                },
+                origin: wgpu::Origin3d { x: 0, y: 0, z: 0 },
             },
             self.texture_extent,
         );
@@ -220,6 +230,7 @@ impl Pixels {
         }
 
         self.queue.borrow_mut().submit(&[encoder.finish()]);
+        Ok(())
     }
 
     /// Get a mutable byte slice for the pixel buffer. The buffer is _not_ cleared for you; it will
@@ -251,7 +262,7 @@ impl Pixels {
     }
 }
 
-impl PixelsBuilder {
+impl<'req> PixelsBuilder<'req> {
     /// Create a builder that can be finalized into a [`Pixels`] pixel buffer.
     ///
     /// # Examples
@@ -285,12 +296,15 @@ impl PixelsBuilder {
     /// # Panics
     ///
     /// Panics when `width` or `height` are 0.
-    pub fn new(width: u32, height: u32, surface_texture: SurfaceTexture) -> PixelsBuilder {
+    pub fn new(width: u32, height: u32, surface_texture: SurfaceTexture) -> PixelsBuilder<'req> {
         assert!(width > 0);
         assert!(height > 0);
 
         PixelsBuilder {
-            request_adapter_options: wgpu::RequestAdapterOptions::default(),
+            request_adapter_options: wgpu::RequestAdapterOptions {
+                compatible_surface: None,
+                power_preference: wgpu::PowerPreference::Default,
+            },
             device_descriptor: wgpu::DeviceDescriptor::default(),
             width,
             height,
@@ -304,7 +318,7 @@ impl PixelsBuilder {
     /// Add options for requesting a [`wgpu::Adapter`].
     pub const fn request_adapter_options(
         mut self,
-        request_adapter_options: wgpu::RequestAdapterOptions,
+        request_adapter_options: wgpu::RequestAdapterOptions<'req>,
     ) -> PixelsBuilder {
         self.request_adapter_options = request_adapter_options;
         self
@@ -314,7 +328,7 @@ impl PixelsBuilder {
     pub const fn device_descriptor(
         mut self,
         device_descriptor: wgpu::DeviceDescriptor,
-    ) -> PixelsBuilder {
+    ) -> PixelsBuilder<'req> {
         self.device_descriptor = device_descriptor;
         self
     }
@@ -329,7 +343,7 @@ impl PixelsBuilder {
     /// # Panics
     ///
     /// The aspect ratio must be > 0.
-    pub fn pixel_aspect_ratio(mut self, pixel_aspect_ratio: f64) -> PixelsBuilder {
+    pub fn pixel_aspect_ratio(mut self, pixel_aspect_ratio: f64) -> PixelsBuilder<'req> {
         assert!(pixel_aspect_ratio > 0.0);
 
         self.pixel_aspect_ratio = pixel_aspect_ratio;
@@ -341,7 +355,10 @@ impl PixelsBuilder {
     /// The default value is [`wgpu::TextureFormat::Rgba8UnormSrgb`], which is 4 unsigned bytes in
     /// `RGBA` order using the SRGB color space. This is typically what you want when you are
     /// working with color values from popular image editing tools or web apps.
-    pub const fn texture_format(mut self, texture_format: wgpu::TextureFormat) -> PixelsBuilder {
+    pub const fn texture_format(
+        mut self,
+        texture_format: wgpu::TextureFormat,
+    ) -> PixelsBuilder<'req> {
         self.texture_format = texture_format;
         self
     }
@@ -397,7 +414,7 @@ impl PixelsBuilder {
     pub fn add_render_pass(
         mut self,
         factory: impl Fn(Device, Queue, &TextureView, &Extent3d) -> BoxedRenderPass + 'static,
-    ) -> PixelsBuilder {
+    ) -> PixelsBuilder<'req> {
         self.renderer_factories.push(Box::new(factory));
         self
     }
@@ -409,10 +426,13 @@ impl PixelsBuilder {
     /// Returns an error when a [`wgpu::Adapter`] cannot be found.
     pub fn build(self) -> Result<Pixels, Error> {
         // TODO: Use `options.pixel_aspect_ratio` to stretch the scaled texture
-
-        let adapter =
-            wgpu::Adapter::request(&self.request_adapter_options).ok_or(Error::AdapterNotFound)?;
-        let (device, queue) = adapter.request_device(&self.device_descriptor);
+        let adapter = futures::executor::block_on(wgpu::Adapter::request(
+            &self.request_adapter_options,
+            wgpu::BackendBit::PRIMARY,
+        ))
+        .ok_or(Error::AdapterNotFound)?;
+        let (device, queue) =
+            futures::executor::block_on(adapter.request_device(&self.device_descriptor));
         let device = Rc::new(device);
         let queue = Rc::new(RefCell::new(queue));
 
@@ -427,6 +447,7 @@ impl PixelsBuilder {
             depth: 1,
         };
         let texture = device.create_texture(&wgpu::TextureDescriptor {
+            label: None,
             size: texture_extent,
             array_layer_count: 1,
             mip_level_count: 1,
@@ -452,7 +473,7 @@ impl PixelsBuilder {
                 format: wgpu::TextureFormat::Bgra8UnormSrgb,
                 width: surface_texture.width,
                 height: surface_texture.height,
-                present_mode: wgpu::PresentMode::Vsync,
+                present_mode: wgpu::PresentMode::Mailbox,
             },
         );
 
@@ -498,9 +519,7 @@ fn get_texture_format_size(texture_format: wgpu::TextureFormat) -> u32 {
         | wgpu::TextureFormat::R8Sint => 1,
 
         // 16-bit formats
-        wgpu::TextureFormat::R16Unorm
-        | wgpu::TextureFormat::R16Snorm
-        | wgpu::TextureFormat::R16Uint
+        wgpu::TextureFormat::R16Uint
         | wgpu::TextureFormat::R16Sint
         | wgpu::TextureFormat::R16Float
         | wgpu::TextureFormat::Rg8Unorm
@@ -512,8 +531,6 @@ fn get_texture_format_size(texture_format: wgpu::TextureFormat) -> u32 {
         wgpu::TextureFormat::R32Uint
         | wgpu::TextureFormat::R32Sint
         | wgpu::TextureFormat::R32Float
-        | wgpu::TextureFormat::Rg16Unorm
-        | wgpu::TextureFormat::Rg16Snorm
         | wgpu::TextureFormat::Rg16Uint
         | wgpu::TextureFormat::Rg16Sint
         | wgpu::TextureFormat::Rg16Float
@@ -534,8 +551,6 @@ fn get_texture_format_size(texture_format: wgpu::TextureFormat) -> u32 {
         wgpu::TextureFormat::Rg32Uint
         | wgpu::TextureFormat::Rg32Sint
         | wgpu::TextureFormat::Rg32Float
-        | wgpu::TextureFormat::Rgba16Unorm
-        | wgpu::TextureFormat::Rgba16Snorm
         | wgpu::TextureFormat::Rgba16Uint
         | wgpu::TextureFormat::Rgba16Sint
         | wgpu::TextureFormat::Rgba16Float => 8,

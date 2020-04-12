@@ -9,7 +9,7 @@ use log::debug;
 use pixels::{Error, Pixels, SurfaceTexture};
 use simple_invaders::{Controls, Direction, World, SCREEN_HEIGHT, SCREEN_WIDTH};
 use winit::dpi::{LogicalPosition, LogicalSize, PhysicalSize};
-use winit::event::{Event, VirtualKeyCode, WindowEvent};
+use winit::event::{Event, VirtualKeyCode};
 use winit::event_loop::{ControlFlow, EventLoop};
 use winit_input_helper::WinitInputHelper;
 
@@ -35,13 +35,9 @@ fn main() -> Result<(), Error> {
 
     event_loop.run(move |event, _, control_flow| {
         // The one and only event that winit_input_helper doesn't have for us...
-        if let Event::WindowEvent {
-            event: WindowEvent::RedrawRequested,
-            ..
-        } = event
-        {
+        if let Event::RedrawRequested(_) = event {
             invaders.draw(pixels.get_frame());
-            pixels.render();
+            pixels.render().unwrap();
         }
 
         // Pump the gilrs event loop and find an active gamepad
@@ -95,17 +91,13 @@ fn main() -> Result<(), Error> {
             };
 
             // Adjust high DPI factor
-            if let Some(factor) = input.hidpi_changed() {
+            if let Some(factor) = input.scale_factor_changed() {
                 hidpi_factor = factor;
             }
 
             // Resize the window
             if let Some(size) = input.window_resized() {
-                let size = size.to_physical(hidpi_factor);
-                let width = size.width.round() as u32;
-                let height = size.height.round() as u32;
-
-                pixels.resize(width, height);
+                pixels.resize(size.width, size.height);
             }
 
             // Get a new delta time.
@@ -138,19 +130,22 @@ fn create_window(
         .with_title(title)
         .build(&event_loop)
         .unwrap();
-    let hidpi_factor = window.hidpi_factor();
+    let hidpi_factor = window.scale_factor();
 
     // Get dimensions
     let width = SCREEN_WIDTH as f64;
     let height = SCREEN_HEIGHT as f64;
     let (monitor_width, monitor_height) = {
         let size = window.current_monitor().size();
-        (size.width / hidpi_factor, size.height / hidpi_factor)
+        (
+            size.width as f64 / hidpi_factor,
+            size.height as f64 / hidpi_factor,
+        )
     };
     let scale = (monitor_height / height * 2.0 / 3.0).round();
 
     // Resize, center, and display the window
-    let min_size = PhysicalSize::new(width, height).to_logical(hidpi_factor);
+    let min_size = PhysicalSize::new(width, height).to_logical::<f64>(hidpi_factor);
     let default_size = LogicalSize::new(width * scale, height * scale);
     let center = LogicalPosition::new(
         (monitor_width - width * scale) / 2.0,
@@ -162,7 +157,7 @@ fn create_window(
     window.set_visible(true);
 
     let surface = pixels::wgpu::Surface::create(&window);
-    let size = default_size.to_physical(hidpi_factor);
+    let size = default_size.to_physical::<f64>(hidpi_factor);
 
     (
         window,

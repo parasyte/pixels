@@ -17,47 +17,35 @@ struct World {
     velocity_y: i16,
 }
 
-fn main() -> Result<(), String> {
+fn main() -> Result<(), Box<dyn std::error::Error>> {
     env_logger::init();
-    let sdl = beryllium::init()?;
-    let window = sdl.create_window(
-        "Hello Pixels",
-        WINDOW_POSITION_CENTERED,
-        WINDOW_POSITION_CENTERED,
-        WIDTH as i32,
-        HEIGHT as i32,
-        WindowFlags::default(),
-    )?;
-    window.set_minimum_size(WIDTH as i32, HEIGHT as i32);
-    window.set_resizable(true);
+    let sdl = SDL::init(InitFlags::default())?;
+    let window =
+        sdl.create_raw_window("Hello Pixels", WindowPosition::Centered, WIDTH, HEIGHT, 0)?;
 
     let mut pixels = {
         let surface = Surface::create(&window);
         let surface_texture = SurfaceTexture::new(WIDTH, HEIGHT, surface);
-        Pixels::new(WIDTH, HEIGHT, surface_texture).map_err(|e| format!("{:?}", e))?
+        Pixels::new(WIDTH, HEIGHT, surface_texture)?
     };
     let mut world = World::new();
 
     'game_loop: loop {
-        while let Some(event) = sdl.poll_event() {
-            match event {
-                // Close events
-                Event::Quit { .. } => break 'game_loop,
-                Event::Keyboard {
-                    key_info:
-                        KeyInfo {
-                            keycode: Some(key), ..
-                        },
-                    ..
-                } if key == Keycode::Escape => break 'game_loop,
+        match sdl.poll_events().and_then(Result::ok) {
+            // Close events
+            Some(Event::Quit { .. }) => break 'game_loop,
+            Some(Event::Keyboard(KeyboardEvent {
+                key: KeyInfo { keycode: key, .. },
+                ..
+            })) if key == Keycode::ESCAPE => break 'game_loop,
 
-                // Resize the window
-                Event::WindowSizeChanged { width, height, .. } => {
-                    pixels.resize(width as u32, height as u32)
-                }
+            // Resize the window
+            Some(Event::Window(WindowEvent {
+                event: WindowEventEnum::Resized { w, h },
+                ..
+            })) => pixels.resize(w as u32, h as u32),
 
-                _ => (),
-            }
+            _ => (),
         }
 
         // Update internal state
@@ -65,7 +53,7 @@ fn main() -> Result<(), String> {
 
         // Draw the current frame
         world.draw(pixels.get_frame());
-        pixels.render();
+        pixels.render()?;
     }
 
     Ok(())

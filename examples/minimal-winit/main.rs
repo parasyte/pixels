@@ -3,7 +3,7 @@
 
 use pixels::{wgpu::Surface, Error, Pixels, SurfaceTexture};
 use winit::dpi::LogicalSize;
-use winit::event::{Event, VirtualKeyCode, WindowEvent};
+use winit::event::{Event, VirtualKeyCode};
 use winit::event_loop::{ControlFlow, EventLoop};
 use winit::window::WindowBuilder;
 use winit_input_helper::WinitInputHelper;
@@ -33,7 +33,7 @@ fn main() -> Result<(), Error> {
             .build(&event_loop)
             .unwrap()
     };
-    let mut hidpi_factor = window.hidpi_factor();
+    let mut hidpi_factor = window.scale_factor();
 
     let mut pixels = {
         let surface = Surface::create(&window);
@@ -44,13 +44,9 @@ fn main() -> Result<(), Error> {
 
     event_loop.run(move |event, _, control_flow| {
         // Draw the current frame
-        if let Event::WindowEvent {
-            event: WindowEvent::RedrawRequested,
-            ..
-        } = event
-        {
+        if let Event::RedrawRequested(_) = event {
             world.draw(pixels.get_frame());
-            pixels.render();
+            pixels.render().unwrap();
         }
 
         // Handle input events
@@ -62,17 +58,13 @@ fn main() -> Result<(), Error> {
             }
 
             // Adjust high DPI factor
-            if let Some(factor) = input.hidpi_changed() {
+            if let Some(factor) = input.scale_factor_changed() {
                 hidpi_factor = factor;
             }
 
             // Resize the window
             if let Some(size) = input.window_resized() {
-                let size = size.to_physical(hidpi_factor);
-                let width = size.width.round() as u32;
-                let height = size.height.round() as u32;
-
-                pixels.resize(width, height);
+                pixels.resize(size.width, size.height);
             }
 
             // Update internal state and request a redraw
