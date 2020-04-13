@@ -1,4 +1,5 @@
 language: rust
+dist: bionic
 rust:
 # MSRV
 - 1.40.0
@@ -13,7 +14,7 @@ before_script:
 - rustup component add clippy
 - rustup component add rustfmt
 - sudo apt-get update
-- sudo apt-get -y install libudev-dev
+- sudo apt-get -y install libsdl2-dev
 
 script:
 - cargo clippy --all -- -D warnings

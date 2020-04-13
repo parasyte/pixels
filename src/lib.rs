@@ -487,7 +487,7 @@ impl<'req> PixelsBuilder<'req> {
 
         // Create all render passes
         renderers.extend(self.renderer_factories.iter().map(|f| {
-            // TODO: Create a texture chain so that each pass recieves the texture drawn by the previous
+            // TODO: Create a texture chain so that each pass receives the texture drawn by the previous
             f(
                 device.clone(),
                 queue.clone(),

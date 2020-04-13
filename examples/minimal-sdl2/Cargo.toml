@@ -1,0 +1,12 @@
+[package]
+name = "minimal-sdl2"
+version = "0.1.0"
+authors = ["Jay Oster <jay@kodewerx.org>"]
+edition = "2018"
+publish = false
+
+[dependencies]
+beryllium = { version = "0.2.1", features = [ "extern_crate_raw_window_handle" ] }
+env_logger = "0.7.1"
+log = { version = "0.4.8", features = [ "release_max_level_warn" ] }
+pixels = { path = "../.." }

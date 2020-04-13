@@ -7,7 +7,7 @@ Minimal example with `winit`.
 ## Running
 
 ```bash
-cargo run --release --example minimal-winit --features minimal-winit
+cargo run --release --package minimal-winit
 ```
 
 ## About

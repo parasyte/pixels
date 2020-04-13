@@ -87,10 +87,10 @@ impl World {
 
     /// Update the `World` internal state; bounce the box around the screen.
     fn update(&mut self) {
-        if self.box_x <= 0 || self.box_x + BOX_SIZE - 1 >= WIDTH as i16 {
+        if self.box_x <= 0 || self.box_x + BOX_SIZE > WIDTH as i16 {
             self.velocity_x *= -1;
         }
-        if self.box_y <= 0 || self.box_y + BOX_SIZE - 1 >= HEIGHT as i16 {
+        if self.box_y <= 0 || self.box_y + BOX_SIZE > HEIGHT as i16 {
             self.velocity_y *= -1;
         }
 
