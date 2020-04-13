@@ -1,5 +1,6 @@
 [![Documentation](https://docs.rs/pixels/badge.svg)](https://docs.rs/pixels)
 [![Build Status](https://travis-ci.org/parasyte/pixels.svg?branch=master)](https://travis-ci.org/parasyte/pixels)
+[![CI](https://github.com/parasyte/pixels/workflows/CI/badge.svg)](https://github.com/parasyte/pixels)
 [![unsafe forbidden](https://img.shields.io/badge/unsafe-forbidden-success.svg)](https://github.com/rust-secure-code/safety-dance/)
 
 ![Pixels Logo](img/pixels.png)
