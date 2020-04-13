@@ -1,7 +1,7 @@
 language: rust
 rust:
 # MSRV
-- 1.36.0
+- 1.40.0
 
 # Stable release channel
 - stable
