@@ -37,38 +37,49 @@ impl Renderer {
             mipmap_filter: wgpu::FilterMode::Nearest,
             lod_min_clamp: 0.0,
             lod_max_clamp: 1.0,
-            compare_function: wgpu::CompareFunction::Always,
+            compare: wgpu::CompareFunction::Always,
         });
 
         // Create uniform buffer
+        // TODO: Figure out how to store floats for this transform if necessary
         #[rustfmt::skip]
-        let transform: [f32; 16] = [
-            1.0, 0.0, 0.0, 0.0,
-            0.0, 1.0, 0.0, 0.0,
-            0.0, 0.0, 1.0, 0.0,
-            0.0, 0.0, 0.0, 1.0,
+        let mut transform: [u8; 16] = [
+            1, 0, 0, 0,
+            0, 1, 0, 0,
+            0, 0, 1, 0,
+            0, 0, 0, 1,
         ];
-        let uniform_buffer = device
-            .create_buffer_mapped(16, wgpu::BufferUsage::UNIFORM | wgpu::BufferUsage::COPY_DST)
-            .fill_from_slice(&transform);
+        let mut uniform_buffer = device.create_buffer_mapped(&wgpu::BufferDescriptor {
+            label: None,
+            size: 16,
+            usage: wgpu::BufferUsage::UNIFORM | wgpu::BufferUsage::COPY_DST,
+        });
+        uniform_buffer.data = &mut transform;
+        let uniform_buffer = uniform_buffer.finish();
 
         // Create bind group
         let bind_group_layout = device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
+            label: None,
             bindings: &[
-                wgpu::BindGroupLayoutBinding {
+                wgpu::BindGroupLayoutEntry {
                     binding: 0,
                     visibility: wgpu::ShaderStage::FRAGMENT,
                     ty: wgpu::BindingType::SampledTexture {
                         multisampled: false,
+                        // TODO: Make sure this is right component type
+                        component_type: wgpu::TextureComponentType::Uint,
                         dimension: wgpu::TextureViewDimension::D2,
                     },
                 },
-                wgpu::BindGroupLayoutBinding {
+                wgpu::BindGroupLayoutEntry {
                     binding: 1,
                     visibility: wgpu::ShaderStage::FRAGMENT,
-                    ty: wgpu::BindingType::Sampler,
+                    ty: wgpu::BindingType::Sampler {
+                        // TODO: Make sure this is the right value
+                        comparison: false,
+                    },
                 },
-                wgpu::BindGroupLayoutBinding {
+                wgpu::BindGroupLayoutEntry {
                     binding: 2,
                     visibility: wgpu::ShaderStage::VERTEX,
                     ty: wgpu::BindingType::UniformBuffer { dynamic: false },
@@ -76,6 +87,7 @@ impl Renderer {
             ],
         });
         let bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
+            label: None,
             layout: &bind_group_layout,
             bindings: &[
                 wgpu::Binding {
@@ -125,8 +137,10 @@ impl Renderer {
                 write_mask: wgpu::ColorWrite::ALL,
             }],
             depth_stencil_state: None,
-            index_format: wgpu::IndexFormat::Uint16,
-            vertex_buffers: &[],
+            vertex_state: wgpu::VertexStateDescriptor {
+                index_format: wgpu::IndexFormat::Uint16,
+                vertex_buffers: &[],
+            },
             sample_count: 1,
             sample_mask: !0,
             alpha_to_coverage_enabled: false,
@@ -174,18 +188,23 @@ impl RenderPass for Renderer {
         // Update transformation matrix
         let sw = self.width * scale / width;
         let sh = self.height * scale / height;
+        // TODO: Figure out how to encode floats in the transform buffer
         #[rustfmt::skip]
-        let transform: [f32; 16] = [
-            sw, 0.0, 0.0, 0.0,
-            0.0, sh, 0.0, 0.0,
-            0.0, 0.0, 1.0, 0.0,
-            0.0, 0.0, 0.0, 1.0,
+        let mut transform: [u8; 16] = [
+            sw as u8, 0, 0, 0,
+            0, sh as u8, 0, 0,
+            0, 0, 1, 0,
+            0, 0, 0, 1,
         ];
 
-        let temp_buf = self
-            .device
-            .create_buffer_mapped(16, wgpu::BufferUsage::COPY_SRC)
-            .fill_from_slice(&transform);
+        let mut temp_buf = self.device.create_buffer_mapped(&wgpu::BufferDescriptor {
+            label: None,
+            size: 16,
+            usage: wgpu::BufferUsage::COPY_SRC,
+        });
+
+        temp_buf.data = &mut transform;
+        let temp_buf = temp_buf.finish();
         encoder.copy_buffer_to_buffer(&temp_buf, 0, &self.uniform_buffer, 0, 64);
     }
 

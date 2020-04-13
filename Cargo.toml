@@ -24,7 +24,9 @@ maintenance = { status = "actively-developed" }
 
 [dependencies]
 thiserror = "1.0"
-wgpu = "0.4"
+wgpu = { version = "0.5" }
+# Minimal async executor for running wgpu's futures
+pollster = "0.2.0"
 
 # These are only used by the examples, and enabled with features
 # See: https://github.com/rust-lang/cargo/issues/1982
@@ -77,3 +79,22 @@ members = [
     "pixels-mocks",
     "simple-invaders",
 ]
+
+[profile.dev]
+debug = false
+
+[patch.crates-io]
+wgpu = { version = "0.5", path = "../wgpu-rs" }
+wgpu-types = { version = "0.5", path = "../wgpu/wgpu-types" }
+wgpu-core = { version = "0.5", path = "../wgpu/wgpu-core" }
+wgpu-native = { version = "0.5", path = "../wgpu/wgpu-native" }
+
+#[patch.crates-io]
+gfx-hal = { version = "0.5.0", path = "../gfx/src/hal" }
+gfx-backend-gl = { version = "0.5.0", path = "/home/zicklag/git/other/gfx/src/backend/gl" }
+gfx-backend-empty = { version = "0.5.0", path = "../gfx/src/backend/empty" }
+gfx-backend-vulkan = { version = "0.5.0", path = "../gfx/src/backend/vulkan" }
+gfx-backend-dx12 = { version = "0.5.0", path = "../gfx/src/backend/dx12" }
+gfx-backend-dx11 = { version = "0.5.0", path = "../gfx/src/backend/dx11" }
+gfx-descriptor = { version = "0.1.0", path = "../gfx-extras/gfx-descriptor" }
+gfx-memory = { version = "0.1.0", path = "../gfx-extras/gfx-memory" }
