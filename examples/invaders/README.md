@@ -7,7 +7,7 @@ The pixels have invaded!
 ## Running
 
 ```bash
-cargo run --release --example invaders --features invaders
+cargo run --release --package invaders
 ```
 
 ## Controls

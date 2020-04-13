@@ -5,7 +5,7 @@
 ## Running
 
 ```bash
-cargo run --release --example conway --features conway
+cargo run --release --package conway
 ```
 
 ## Controls

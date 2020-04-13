@@ -1,0 +1,17 @@
+[package]
+name = "conway"
+version = "0.1.0"
+authors = ["Jay Oster <jay@kodewerx.org>"]
+edition = "2018"
+publish = false
+
+[dependencies]
+byteorder = "1.3.4"
+env_logger = "0.7.1"
+getrandom = "0.1.14"
+line_drawing = "0.8.0"
+log = { version = "0.4.8", features = [ "release_max_level_warn" ] }
+pixels = { path = "../.." }
+randomize = "3.0.1"
+winit = "0.22.0"
+winit_input_helper = "0.6.0"
