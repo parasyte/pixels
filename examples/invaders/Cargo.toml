@@ -13,6 +13,6 @@ gilrs = "0.7.4"
 log = { version = "0.4.8", features = [ "release_max_level_warn" ] }
 pixels = { path = "../.." }
 randomize = "3.0.1"
-simple-invaders = { path = "../../simple-invaders" }
+simple-invaders = { path = "simple-invaders" }
 winit = "0.22.0"
 winit_input_helper = "0.6.0"

@@ -35,5 +35,4 @@ winit = "0.22.0"
 members = [
     "examples/*",
     "pixels-mocks",
-    "simple-invaders",
 ]
