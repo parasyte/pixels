@@ -1,4 +1,5 @@
 language: rust
+dist: bionic
 rust:
 # MSRV
 - 1.40.0
