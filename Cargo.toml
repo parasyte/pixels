@@ -29,7 +29,6 @@ futures = "0.3"
 
 [dev-dependencies]
 pixels-mocks = { path = "pixels-mocks" }
-winit = "0.22.0"
 
 [workspace]
 members = [
