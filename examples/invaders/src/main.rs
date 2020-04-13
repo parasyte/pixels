@@ -5,7 +5,7 @@ use std::env;
 use std::time::Instant;
 
 use gilrs::{Button, Gilrs};
-use log::debug;
+use log::{debug, error};
 use pixels::{Error, Pixels, SurfaceTexture};
 use simple_invaders::{Controls, Direction, World, SCREEN_HEIGHT, SCREEN_WIDTH};
 use winit::dpi::{LogicalPosition, LogicalSize, PhysicalSize};
@@ -37,7 +37,14 @@ fn main() -> Result<(), Error> {
         // The one and only event that winit_input_helper doesn't have for us...
         if let Event::RedrawRequested(_) = event {
             invaders.draw(pixels.get_frame());
-            pixels.render().unwrap();
+            if pixels
+                .render()
+                .map_err(|e| error!("pixels.render() failed: {}", e))
+                .is_err()
+            {
+                *control_flow = ControlFlow::Exit;
+                return;
+            }
         }
 
         // Pump the gilrs event loop and find an active gamepad
