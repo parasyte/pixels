@@ -426,13 +426,13 @@ impl<'req> PixelsBuilder<'req> {
     /// Returns an error when a [`wgpu::Adapter`] cannot be found.
     pub fn build(self) -> Result<Pixels, Error> {
         // TODO: Use `options.pixel_aspect_ratio` to stretch the scaled texture
-        let adapter = futures::executor::block_on(wgpu::Adapter::request(
+        let adapter = futures_executor::block_on(wgpu::Adapter::request(
             &self.request_adapter_options,
             wgpu::BackendBit::PRIMARY,
         ))
         .ok_or(Error::AdapterNotFound)?;
         let (device, queue) =
-            futures::executor::block_on(adapter.request_device(&self.device_descriptor));
+            futures_executor::block_on(adapter.request_device(&self.device_descriptor));
         let device = Rc::new(device);
         let queue = Rc::new(RefCell::new(queue));
 
