@@ -17,6 +17,8 @@ jobs:
     steps:
       - name: Checkout sources
         uses: actions/checkout@v2
+      - name: Update apt repos
+        run: sudo apt-get -y update
       - name: Install dependencies
         run: sudo apt -y install libsdl2-dev
       - name: Install toolchain
@@ -41,6 +43,8 @@ jobs:
     steps:
       - name: Checkout sources
         uses: actions/checkout@v2
+      - name: Update apt repos
+        run: sudo apt-get -y update
       - name: Install dependencies
         run: sudo apt -y install libsdl2-dev
       - name: Install toolchain
@@ -59,6 +63,8 @@ jobs:
     steps:
       - name: Checkout sources
         uses: actions/checkout@v2
+      - name: Update apt repos
+        run: sudo apt-get -y update
       - name: Install dependencies
         run: sudo apt -y install libsdl2-dev
       - name: Install toolchain
