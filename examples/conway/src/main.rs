@@ -66,7 +66,7 @@ fn main() -> Result<(), Error> {
                     let (dx, dy) = input.mouse_diff();
                     let prev_x = mx - dx;
                     let prev_y = my - dy;
-                    
+
                     let (mx_i, my_i) = pixels.window_pos_to_pixel((mx as f64, my as f64));
                     let (px_i, py_i) = pixels.window_pos_to_pixel((prev_x as f64, prev_y as f64));
                     (
