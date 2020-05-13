@@ -67,8 +67,24 @@ fn main() -> Result<(), Error> {
                     let prev_x = mx - dx;
                     let prev_y = my - dy;
 
-                    let (mx_i, my_i) = pixels.window_pos_to_pixel((mx as f64, my as f64));
-                    let (px_i, py_i) = pixels.window_pos_to_pixel((prev_x as f64, prev_y as f64));
+                    let (mx_i, my_i) = pixels
+                        .window_pos_to_pixel((mx as f64, my as f64))
+                        .unwrap_or_else(|(x, y)| {
+                            (
+                                x.max(0).min(SCREEN_WIDTH as isize - 1) as usize,
+                                y.max(0).min(SCREEN_HEIGHT as isize - 1) as usize,
+                            )
+                        });
+
+                    let (px_i, py_i) = pixels
+                        .window_pos_to_pixel((prev_x as f64, prev_y as f64))
+                        .unwrap_or_else(|(x, y)| {
+                            (
+                                x.max(0).min(SCREEN_WIDTH as isize - 1) as usize,
+                                y.max(0).min(SCREEN_HEIGHT as isize - 1) as usize,
+                            )
+                        });
+
                     (
                         (mx_i as isize, my_i as isize),
                         (px_i as isize, py_i as isize),

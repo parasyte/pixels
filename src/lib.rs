@@ -267,24 +267,34 @@ impl Pixels {
     ///
     /// The location must be given in physical units (for example, winit's `PhysicalLocation`)
     ///
-    /// If the given physical position is outside of the drawing area, the
-    /// closest pixel is given by clamping the output in each dimension to the
-    /// range from zero to the width or height of the surface minus one.
+    /// If the given physical position is outside of the drawing area, this
+    /// function returns an `Err` value with the pixel coordinates outside of
+    /// the screen, using isize instead of usize.
     ///
     /// ```no_run
     /// # use pixels::Pixels;
     /// # let surface = wgpu::Surface::create(&pixels_mocks::RWH);
     /// # let surface_texture = pixels::SurfaceTexture::new(1024, 768, surface);
-    /// let mut pixels = Pixels::new(320, 240, surface_texture)?;
+    /// const WIDTH:  u32 = 320;
+    /// const HEIGHT: u32 = 240;
+    ///
+    /// let mut pixels = Pixels::new(WIDTH, HEIGHT, surface_texture)?;
     ///
     /// // A cursor position in physical units
     /// let cursor_position: (f64, f64) = winit::dpi::PhysicalPosition::new(0, 0).into();
     ///
     /// // Convert it to a pixel location
-    /// let pixel_position: (usize, usize) = pixels.window_pos_to_pixel(cursor_position);
+    /// let pixel_position: (usize, usize) = pixels.window_pos_to_pixel(cursor_position)
+    ///     .unwrap_or_else(|(x, y)| ( // Clamp the output to within the screen
+    ///         x.max(0).min(WIDTH as isize - 1) as usize,
+    ///         y.max(0).min(HEIGHT as isize - 1) as usize,
+    ///     ));
     /// # Ok::<(), pixels::Error>(())
     /// ```
-    pub fn window_pos_to_pixel(&self, physical_position: (f64, f64)) -> (usize, usize) {
+    pub fn window_pos_to_pixel(
+        &self,
+        physical_position: (f64, f64),
+    ) -> Result<(usize, usize), (isize, isize)> {
         let physical_size = (
             self.surface_texture.width as f64,
             self.surface_texture.height as f64,
@@ -309,13 +319,18 @@ impl Pixels {
         let offset_y = (physical_size.1 as f64 - scaled_height) / 2.0;
 
         // Calculate the pixel position of the two physical cursor positions
-        let pixel_x = (physical_position.0 - offset_x).max(0.0).min(scaled_width) / scale;
-        let pixel_y = (physical_position.1 - offset_y).max(0.0).min(scaled_height) / scale;
+        let pixel_x = ((physical_position.0 - offset_x) / scale).floor() as isize;
+        let pixel_y = ((physical_position.1 - offset_y) / scale).floor() as isize;
 
-        (
-            pixel_x.floor().min(pixels_width - 1.0) as usize,
-            pixel_y.floor().min(pixels_height - 1.0) as usize,
-        )
+        if pixel_x < 0
+            || pixel_x > self.texture_extent.width as isize - 1
+            || pixel_y < 0
+            || pixel_y > self.texture_extent.height as isize - 1
+        {
+            Err((pixel_x, pixel_y))
+        } else {
+            Ok((pixel_x as usize, pixel_y as usize))
+        }
     }
 }
 
