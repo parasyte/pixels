@@ -55,6 +55,10 @@ pub struct Pixels {
     texture_extent: wgpu::Extent3d,
     texture_format_size: u32,
     pixels: Vec<u8>,
+
+    // The inverse of the scaling matrix used by the renderer
+    // Used to convert physical coordinates back to pixel coordinates (for the mouse)
+    scaling_matrix_inverse: [[f32; 4]; 4],
 }
 
 /// A builder to help create customized pixel buffers.
@@ -157,6 +161,16 @@ impl Pixels {
         // Update SurfaceTexture dimensions
         self.surface_texture.width = width;
         self.surface_texture.height = height;
+
+        // Update ScalingMatrix for mouse transformation
+        self.scaling_matrix_inverse = renderers::ScalingMatrix::new(
+            (
+                self.texture_extent.width as f32,
+                self.texture_extent.height as f32,
+            ),
+            (width as f32, height as f32),
+        )
+        .inverse();
 
         // Recreate the swap chain
         self.swap_chain = self.device.create_swap_chain(
@@ -296,31 +310,45 @@ impl Pixels {
         physical_position: (f64, f64),
     ) -> Result<(usize, usize), (isize, isize)> {
         let physical_size = (
-            self.surface_texture.width as f64,
-            self.surface_texture.height as f64,
+            self.surface_texture.width as f32,
+            self.surface_texture.height as f32,
         );
 
-        let pixels_width = self.texture_extent.width as f64;
-        let pixels_height = self.texture_extent.height as f64;
+        let pixels_width = self.texture_extent.width as f32;
+        let pixels_height = self.texture_extent.height as f32;
 
-        // The scale factor used in the renderer
-        let scale = (physical_size.0 / pixels_width)
-            .min(physical_size.1 / pixels_height)
-            .max(1.0)
-            .floor();
+        let pos = [
+            (physical_position.0 as f32 / physical_size.0 as f32 - 0.5) * pixels_width,
+            (physical_position.1 as f32 / physical_size.1 as f32 - 0.5) * pixels_height,
+            0.0,
+            1.0,
+        ];
 
-        // Calculate the physical resolution of pixel's rendering area
-        // (excluding the margins)
-        let scaled_width = pixels_width * scale;
-        let scaled_height = pixels_height * scale;
-
-        // Calculate the widths of the margins
-        let offset_x = (physical_size.0 as f64 - scaled_width) / 2.0;
-        let offset_y = (physical_size.1 as f64 - scaled_height) / 2.0;
-
-        // Calculate the pixel position of the two physical cursor positions
-        let pixel_x = ((physical_position.0 - offset_x) / scale).floor() as isize;
-        let pixel_y = ((physical_position.1 - offset_y) / scale).floor() as isize;
+        let matrix = self.scaling_matrix_inverse;
+        let new_pos = [
+            matrix[0][0] * pos[0]
+                + matrix[0][1] * pos[1]
+                + matrix[0][2] * pos[2]
+                + matrix[0][3] * pos[3],
+            matrix[1][0] * pos[0]
+                + matrix[1][1] * pos[1]
+                + matrix[1][2] * pos[2]
+                + matrix[1][3] * pos[3],
+            matrix[2][0] * pos[0]
+                + matrix[2][1] * pos[1]
+                + matrix[2][2] * pos[2]
+                + matrix[2][3] * pos[3],
+            matrix[3][0] * pos[0]
+                + matrix[3][1] * pos[1]
+                + matrix[3][2] * pos[2]
+                + matrix[3][3] * pos[3],
+        ];
+        let new_pos = (
+            new_pos[0] / new_pos[3] + pixels_width / 2.0,
+            -new_pos[1] / new_pos[3] + pixels_height / 2.0,
+        );
+        let pixel_x = new_pos.0.floor() as isize;
+        let pixel_y = new_pos.1.floor() as isize;
 
         if pixel_x < 0
             || pixel_x > self.texture_extent.width as isize - 1
@@ -549,6 +577,12 @@ impl<'req> PixelsBuilder<'req> {
             },
         );
 
+        let scaling_matrix_inverse = renderers::ScalingMatrix::new(
+            (width as f32, height as f32),
+            (surface_texture.width as f32, surface_texture.height as f32),
+        )
+        .inverse();
+
         // Create a renderer that impls `RenderPass`
         let mut renderers = vec![Renderer::factory(
             device.clone(),
@@ -578,6 +612,7 @@ impl<'req> PixelsBuilder<'req> {
             texture_extent,
             texture_format_size,
             pixels,
+            scaling_matrix_inverse,
         })
     }
 }
