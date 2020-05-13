@@ -260,6 +260,63 @@ impl Pixels {
     pub fn get_frame(&mut self) -> &mut [u8] {
         &mut self.pixels
     }
+
+    /// Calculate the pixel location from a physical location on the window,
+    /// dealing with window resizing, scaling, and margins. Takes a physical
+    /// position (x, y) within the window, and returns a pixel position (x, y).
+    ///
+    /// The location must be given in physical units (for example, winit's `PhysicalLocation`)
+    ///
+    /// If the given physical position is outside of the drawing area, the
+    /// closest pixel is given by clamping the output in each dimension to the
+    /// range from zero to the width or height of the surface minus one.
+    ///
+    /// ```no_run
+    /// # use pixels::Pixels;
+    /// # let surface = wgpu::Surface::create(&pixels_mocks::RWH);
+    /// # let surface_texture = pixels::SurfaceTexture::new(1024, 768, surface);
+    /// let mut pixels = Pixels::new(320, 240, surface_texture)?;
+    ///
+    /// // A cursor position in physical units
+    /// let cursor_position: (f64, f64) = winit::dpi::PhysicalPosition::new(0, 0).into();
+    ///
+    /// // Convert it to a pixel location
+    /// let pixel_position: (usize, usize) = pixels.window_pos_to_pixel(cursor_position);
+    /// # Ok::<(), pixels::Error>(())
+    /// ```
+    pub fn window_pos_to_pixel(&self, physical_position: (f64, f64)) -> (usize, usize) {
+        let physical_size = (
+            self.surface_texture.width as f64,
+            self.surface_texture.height as f64,
+        );
+
+        let pixels_width = self.texture_extent.width as f64;
+        let pixels_height = self.texture_extent.height as f64;
+
+        // The scale factor used in the renderer
+        let scale = (physical_size.0 / pixels_width)
+            .min(physical_size.1 / pixels_height)
+            .max(1.0)
+            .floor();
+
+        // Calculate the physical resolution of pixel's rendering area
+        // (excluding the margins)
+        let scaled_width = pixels_width * scale;
+        let scaled_height = pixels_height * scale;
+
+        // Calculate the widths of the margins
+        let offset_x = (physical_size.0 as f64 - scaled_width) / 2.0;
+        let offset_y = (physical_size.1 as f64 - scaled_height) / 2.0;
+
+        // Calculate the pixel position of the two physical cursor positions
+        let pixel_x = (physical_position.0 - offset_x).max(0.0).min(scaled_width) / scale;
+        let pixel_y = (physical_position.1 - offset_y).max(0.0).min(scaled_height) / scale;
+
+        (
+            pixel_x.floor().min(pixels_width - 1.0) as usize,
+            pixel_y.floor().min(pixels_height - 1.0) as usize,
+        )
+    }
 }
 
 impl<'req> PixelsBuilder<'req> {
