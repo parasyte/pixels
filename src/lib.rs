@@ -320,32 +320,21 @@ impl Pixels {
         let pos = [
             (physical_position.0 as f32 / physical_size.0 as f32 - 0.5) * pixels_width,
             (physical_position.1 as f32 / physical_size.1 as f32 - 0.5) * pixels_height,
-            0.0,
-            1.0,
         ];
+        // Pos vector: (x, y, 0, 1)
 
         let matrix = self.scaling_matrix_inverse;
+
+        // new_pos: (x, y, w) - z isn't needed so it isn't calculated
         let new_pos = [
-            matrix[0][0] * pos[0]
-                + matrix[0][1] * pos[1]
-                + matrix[0][2] * pos[2]
-                + matrix[0][3] * pos[3],
-            matrix[1][0] * pos[0]
-                + matrix[1][1] * pos[1]
-                + matrix[1][2] * pos[2]
-                + matrix[1][3] * pos[3],
-            matrix[2][0] * pos[0]
-                + matrix[2][1] * pos[1]
-                + matrix[2][2] * pos[2]
-                + matrix[2][3] * pos[3],
-            matrix[3][0] * pos[0]
-                + matrix[3][1] * pos[1]
-                + matrix[3][2] * pos[2]
-                + matrix[3][3] * pos[3],
+            matrix[0][0] * pos[0] + matrix[0][1] * pos[1] + matrix[0][3],
+            matrix[1][0] * pos[0] + matrix[1][1] * pos[1] + matrix[1][3],
+            matrix[3][0] * pos[0] + matrix[3][1] * pos[1] + matrix[3][3],
         ];
+
         let new_pos = (
-            new_pos[0] / new_pos[3] + pixels_width / 2.0,
-            -new_pos[1] / new_pos[3] + pixels_height / 2.0,
+            new_pos[0] / new_pos[2] + pixels_width / 2.0,
+            -new_pos[1] / new_pos[2] + pixels_height / 2.0,
         );
         let pixel_x = new_pos.0.floor() as isize;
         let pixel_y = new_pos.1.floor() as isize;
