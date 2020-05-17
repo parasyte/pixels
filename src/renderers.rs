@@ -1,5 +1,6 @@
 use std::fmt;
 use std::rc::Rc;
+use ultraviolet::Mat4;
 use wgpu::{self, Extent3d, TextureView};
 
 use crate::include_spv;
@@ -188,7 +189,7 @@ impl RenderPass for Renderer {
 
 #[derive(Debug)]
 pub(crate) struct ScalingMatrix {
-    pub(crate) transform: [[f32; 4]; 4],
+    pub(crate) transform: Mat4,
 }
 
 impl ScalingMatrix {
@@ -210,91 +211,19 @@ impl ScalingMatrix {
         let sw = texture_width * scale / screen_width;
         let sh = texture_height * scale / screen_height;
         #[rustfmt::skip]
-        let transform: [[f32; 4]; 4] = [
-            [sw,  0.0, 0.0, 0.0],
-            [0.0, -sh, 0.0, 0.0],
-            [0.0, 0.0, 1.0, 0.0],
-            [0.0, 0.0, 0.0, 1.0],
+        let transform: [f32; 16] = [
+            sw,  0.0, 0.0, 0.0,
+            0.0, -sh, 0.0, 0.0,
+            0.0, 0.0, 1.0, 0.0,
+            0.0, 0.0, 0.0, 1.0,
         ];
 
-        ScalingMatrix { transform }
-    }
-
-    // Could be done with unsafe code or a library like bytemuck, but that
-    // shouldn't be needed as this is rarely called (only on creation / resize).
-    fn as_bytes(&self) -> [u8; 4 * 4 * 4] {
-        let mut transform_bytes = [0; 4 * 4 * 4];
-        let mut i = 0;
-        for row in self.transform.iter() {
-            for f in row.iter() {
-                for b in f.to_bits().to_ne_bytes().iter() {
-                    transform_bytes[i] = *b;
-                    i += 1;
-                }
-            }
+        ScalingMatrix {
+            transform: Mat4::from(transform),
         }
-        transform_bytes
     }
 
-    // Calculate the inverse of the 4x4 matrix
-    // This is a ported version of https://stackoverflow.com/questions/1148309/inverting-a-4x4-matrix#answer-44446912
-    // This should probably use a library instead, but it isn't worth
-    // adding a large dependency for one function
-    #[rustfmt::skip]
-    pub(crate) fn inverse(&self) -> [[f32; 4]; 4] {
-        let m = &self.transform;
-        let a2323 = m[2][2] * m[3][3] - m[2][3] * m[3][2];
-        let a1323 = m[2][1] * m[3][3] - m[2][3] * m[3][1];
-        let a1223 = m[2][1] * m[3][2] - m[2][2] * m[3][1];
-        let a0323 = m[2][0] * m[3][3] - m[2][3] * m[3][0];
-        let a0223 = m[2][0] * m[3][2] - m[2][2] * m[3][0];
-        let a0123 = m[2][0] * m[3][1] - m[2][1] * m[3][0];
-        let a2313 = m[1][2] * m[3][3] - m[1][3] * m[3][2];
-        let a1313 = m[1][1] * m[3][3] - m[1][3] * m[3][1];
-        let a1213 = m[1][1] * m[3][2] - m[1][2] * m[3][1];
-        let a2312 = m[1][2] * m[2][3] - m[1][3] * m[2][2];
-        let a1312 = m[1][1] * m[2][3] - m[1][3] * m[2][1];
-        let a1212 = m[1][1] * m[2][2] - m[1][2] * m[2][1];
-        let a0313 = m[1][0] * m[3][3] - m[1][3] * m[3][0];
-        let a0213 = m[1][0] * m[3][2] - m[1][2] * m[3][0];
-        let a0312 = m[1][0] * m[2][3] - m[1][3] * m[2][0];
-        let a0212 = m[1][0] * m[2][2] - m[1][2] * m[2][0];
-        let a0113 = m[1][0] * m[3][1] - m[1][1] * m[3][0];
-        let a0112 = m[1][0] * m[2][1] - m[1][1] * m[2][0];
-
-        let mut det =
-              m[0][0] * (m[1][1] * a2323 - m[1][2] * a1323 + m[1][3] * a1223)
-            - m[0][1] * (m[1][0] * a2323 - m[1][2] * a0323 + m[1][3] * a0223)
-            + m[0][2] * (m[1][0] * a1323 - m[1][1] * a0323 + m[1][3] * a0123)
-            - m[0][3] * (m[1][0] * a1223 - m[1][1] * a0223 + m[1][2] * a0123);
-
-        det = 1.0 / det;
-
-        [
-            [
-                det *  (m[1][1] * a2323 - m[1][2] * a1323 + m[1][3] * a1223),
-                det * -(m[0][1] * a2323 - m[0][2] * a1323 + m[0][3] * a1223),
-                det *  (m[0][1] * a2313 - m[0][2] * a1313 + m[0][3] * a1213),
-                det * -(m[0][1] * a2312 - m[0][2] * a1312 + m[0][3] * a1212),
-            ],
-            [
-                det * -(m[1][0] * a2323 - m[1][2] * a0323 + m[1][3] * a0223),
-                det *  (m[0][0] * a2323 - m[0][2] * a0323 + m[0][3] * a0223),
-                det * -(m[0][0] * a2313 - m[0][2] * a0313 + m[0][3] * a0213),
-                det *  (m[0][0] * a2312 - m[0][2] * a0312 + m[0][3] * a0212),
-            ],
-            [
-                det *  (m[1][0] * a1323 - m[1][1] * a0323 + m[1][3] * a0123),
-                det * -(m[0][0] * a1323 - m[0][1] * a0323 + m[0][3] * a0123),
-                det *  (m[0][0] * a1313 - m[0][1] * a0313 + m[0][3] * a0113),
-                det * -(m[0][0] * a1312 - m[0][1] * a0312 + m[0][3] * a0112),
-            ],
-            [
-                det * -(m[1][0] * a1223 - m[1][1] * a0223 + m[1][2] * a0123),
-                det *  (m[0][0] * a1223 - m[0][1] * a0223 + m[0][2] * a0123),
-                det * -(m[0][0] * a1213 - m[0][1] * a0213 + m[0][2] * a0113),
-                det *  (m[0][0] * a1212 - m[0][1] * a0212 + m[0][2] * a0112),
-            ],
-        ]
+    fn as_bytes(&self) -> &[u8] {
+        self.transform.as_byte_slice()
     }
 }

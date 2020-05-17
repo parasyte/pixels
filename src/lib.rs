@@ -58,7 +58,7 @@ pub struct Pixels {
 
     // The inverse of the scaling matrix used by the renderer
     // Used to convert physical coordinates back to pixel coordinates (for the mouse)
-    scaling_matrix_inverse: [[f32; 4]; 4],
+    scaling_matrix_inverse: ultraviolet::Mat4,
 }
 
 /// A builder to help create customized pixel buffers.
@@ -170,7 +170,8 @@ impl Pixels {
             ),
             (width as f32, height as f32),
         )
-        .inverse();
+        .transform
+        .inversed();
 
         // Recreate the swap chain
         self.swap_chain = self.device.create_swap_chain(
@@ -317,24 +318,18 @@ impl Pixels {
         let pixels_width = self.texture_extent.width as f32;
         let pixels_height = self.texture_extent.height as f32;
 
-        let pos = [
+        let pos = ultraviolet::Vec4::new(
             (physical_position.0 as f32 / physical_size.0 as f32 - 0.5) * pixels_width,
             (physical_position.1 as f32 / physical_size.1 as f32 - 0.5) * pixels_height,
-        ];
-        // Pos vector: (x, y, 0, 1)
+            0.0,
+            1.0,
+        );
 
-        let matrix = self.scaling_matrix_inverse;
-
-        // new_pos: (x, y, w) - z isn't needed so it isn't calculated
-        let new_pos = [
-            matrix[0][0] * pos[0] + matrix[0][1] * pos[1] + matrix[0][3],
-            matrix[1][0] * pos[0] + matrix[1][1] * pos[1] + matrix[1][3],
-            matrix[3][0] * pos[0] + matrix[3][1] * pos[1] + matrix[3][3],
-        ];
+        let new_pos = self.scaling_matrix_inverse * pos;
 
         let new_pos = (
-            new_pos[0] / new_pos[2] + pixels_width / 2.0,
-            -new_pos[1] / new_pos[2] + pixels_height / 2.0,
+            new_pos.x / new_pos.w + pixels_width / 2.0,
+            -new_pos.y / new_pos.w + pixels_height / 2.0,
         );
         let pixel_x = new_pos.0.floor() as isize;
         let pixel_y = new_pos.1.floor() as isize;
@@ -570,7 +565,8 @@ impl<'req> PixelsBuilder<'req> {
             (width as f32, height as f32),
             (surface_texture.width as f32, surface_texture.height as f32),
         )
-        .inverse();
+        .transform
+        .inversed();
 
         // Create a renderer that impls `RenderPass`
         let mut renderers = vec![Renderer::factory(
