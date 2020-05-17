@@ -46,7 +46,7 @@ pub struct Pixels {
     queue: Rc<RefCell<wgpu::Queue>>,
     swap_chain: wgpu::SwapChain,
     surface_texture: SurfaceTexture,
-    enable_vsync: bool,
+    present_mode: wgpu::PresentMode,
 
     // List of render passes
     renderers: Vec<BoxedRenderPass>,
@@ -66,7 +66,7 @@ pub struct PixelsBuilder<'req> {
     width: u32,
     height: u32,
     pixel_aspect_ratio: f64,
-    enable_vsync: bool,
+    present_mode: wgpu::PresentMode,
     surface_texture: SurfaceTexture,
     texture_format: wgpu::TextureFormat,
     renderer_factories: Vec<RenderPassFactory>,
@@ -161,12 +161,6 @@ impl Pixels {
         self.surface_texture.width = width;
         self.surface_texture.height = height;
 
-        let present_mode = if self.enable_vsync {
-            wgpu::PresentMode::Mailbox
-        } else {
-            wgpu::PresentMode::Immediate
-        };
-
         // Recreate the swap chain
         self.swap_chain = self.device.create_swap_chain(
             &self.surface_texture.surface,
@@ -175,7 +169,7 @@ impl Pixels {
                 format: wgpu::TextureFormat::Bgra8UnormSrgb,
                 width: self.surface_texture.width,
                 height: self.surface_texture.height,
-                present_mode,
+                present_mode: self.present_mode,
             },
         );
 
@@ -316,7 +310,7 @@ impl<'req> PixelsBuilder<'req> {
             width,
             height,
             pixel_aspect_ratio: 1.0,
-            enable_vsync: true,
+            present_mode: wgpu::PresentMode::Mailbox,
             surface_texture,
             texture_format: wgpu::TextureFormat::Rgba8UnormSrgb,
             renderer_factories: Vec::new(),
@@ -371,7 +365,11 @@ impl<'req> PixelsBuilder<'req> {
     ///
     /// Vsync is enabled by default.
     pub fn enable_vsync(mut self, enable_vsync: bool) -> PixelsBuilder<'req> {
-        self.enable_vsync = enable_vsync;
+        self.present_mode = if enable_vsync {
+            wgpu::PresentMode::Mailbox
+        } else {
+            wgpu::PresentMode::Immediate
+        };
         self
     }
 
@@ -495,12 +493,7 @@ impl<'req> PixelsBuilder<'req> {
         let mut pixels = Vec::with_capacity(capacity);
         pixels.resize_with(capacity, Default::default);
 
-        let enable_vsync = self.enable_vsync;
-        let present_mode = if enable_vsync {
-            wgpu::PresentMode::Mailbox
-        } else {
-            wgpu::PresentMode::Immediate
-        };
+        let present_mode = self.present_mode;
 
         // Create swap chain
         let surface_texture = self.surface_texture;
@@ -539,7 +532,7 @@ impl<'req> PixelsBuilder<'req> {
             queue,
             swap_chain,
             surface_texture,
-            enable_vsync,
+            present_mode,
             renderers,
             texture,
             texture_extent,
