@@ -46,6 +46,7 @@ pub struct Pixels {
     queue: Rc<RefCell<wgpu::Queue>>,
     swap_chain: wgpu::SwapChain,
     surface_texture: SurfaceTexture,
+    present_mode: wgpu::PresentMode,
 
     // List of render passes
     renderers: Vec<BoxedRenderPass>,
@@ -59,11 +60,13 @@ pub struct Pixels {
 
 /// A builder to help create customized pixel buffers.
 pub struct PixelsBuilder<'req> {
-    request_adapter_options: wgpu::RequestAdapterOptions<'req>,
+    request_adapter_options: Option<wgpu::RequestAdapterOptions<'req>>,
     device_descriptor: wgpu::DeviceDescriptor,
+    backend: wgpu::BackendBit,
     width: u32,
     height: u32,
     pixel_aspect_ratio: f64,
+    present_mode: wgpu::PresentMode,
     surface_texture: SurfaceTexture,
     texture_format: wgpu::TextureFormat,
     renderer_factories: Vec<RenderPassFactory>,
@@ -166,7 +169,7 @@ impl Pixels {
                 format: wgpu::TextureFormat::Bgra8UnormSrgb,
                 width: self.surface_texture.width,
                 height: self.surface_texture.height,
-                present_mode: wgpu::PresentMode::Mailbox,
+                present_mode: self.present_mode,
             },
         );
 
@@ -301,14 +304,13 @@ impl<'req> PixelsBuilder<'req> {
         assert!(height > 0);
 
         PixelsBuilder {
-            request_adapter_options: wgpu::RequestAdapterOptions {
-                compatible_surface: None,
-                power_preference: wgpu::PowerPreference::Default,
-            },
+            request_adapter_options: None,
             device_descriptor: wgpu::DeviceDescriptor::default(),
+            backend: wgpu::BackendBit::PRIMARY,
             width,
             height,
             pixel_aspect_ratio: 1.0,
+            present_mode: wgpu::PresentMode::Mailbox,
             surface_texture,
             texture_format: wgpu::TextureFormat::Rgba8UnormSrgb,
             renderer_factories: Vec::new(),
@@ -320,7 +322,7 @@ impl<'req> PixelsBuilder<'req> {
         mut self,
         request_adapter_options: wgpu::RequestAdapterOptions<'req>,
     ) -> PixelsBuilder {
-        self.request_adapter_options = request_adapter_options;
+        self.request_adapter_options = Some(request_adapter_options);
         self
     }
 
@@ -330,6 +332,15 @@ impl<'req> PixelsBuilder<'req> {
         device_descriptor: wgpu::DeviceDescriptor,
     ) -> PixelsBuilder<'req> {
         self.device_descriptor = device_descriptor;
+        self
+    }
+
+    /// Set which backends wgpu will attempt to use.
+    ///
+    /// The default value of this is [`wgpu::BackendBit::PRIMARY`], which enables
+    /// the well supported backends for wgpu.
+    pub const fn wgpu_backend(mut self, backend: wgpu::BackendBit) -> PixelsBuilder<'req> {
+        self.backend = backend;
         self
     }
 
@@ -347,6 +358,18 @@ impl<'req> PixelsBuilder<'req> {
         assert!(pixel_aspect_ratio > 0.0);
 
         self.pixel_aspect_ratio = pixel_aspect_ratio;
+        self
+    }
+
+    /// Enable or disable vsync.
+    ///
+    /// Vsync is enabled by default.
+    pub fn enable_vsync(mut self, enable_vsync: bool) -> PixelsBuilder<'req> {
+        self.present_mode = if enable_vsync {
+            wgpu::PresentMode::Mailbox
+        } else {
+            wgpu::PresentMode::Immediate
+        };
         self
     }
 
@@ -427,10 +450,16 @@ impl<'req> PixelsBuilder<'req> {
     pub fn build(self) -> Result<Pixels, Error> {
         // TODO: Use `options.pixel_aspect_ratio` to stretch the scaled texture
         let adapter = futures_executor::block_on(wgpu::Adapter::request(
-            &self.request_adapter_options,
-            wgpu::BackendBit::PRIMARY,
+            &self
+                .request_adapter_options
+                .unwrap_or(wgpu::RequestAdapterOptions {
+                    compatible_surface: Some(&self.surface_texture.surface),
+                    power_preference: wgpu::PowerPreference::Default,
+                }),
+            self.backend,
         ))
         .ok_or(Error::AdapterNotFound)?;
+
         let (device, queue) =
             futures_executor::block_on(adapter.request_device(&self.device_descriptor));
         let device = Rc::new(device);
@@ -464,6 +493,8 @@ impl<'req> PixelsBuilder<'req> {
         let mut pixels = Vec::with_capacity(capacity);
         pixels.resize_with(capacity, Default::default);
 
+        let present_mode = self.present_mode;
+
         // Create swap chain
         let surface_texture = self.surface_texture;
         let swap_chain = device.create_swap_chain(
@@ -473,7 +504,7 @@ impl<'req> PixelsBuilder<'req> {
                 format: wgpu::TextureFormat::Bgra8UnormSrgb,
                 width: surface_texture.width,
                 height: surface_texture.height,
-                present_mode: wgpu::PresentMode::Mailbox,
+                present_mode,
             },
         );
 
@@ -501,6 +532,7 @@ impl<'req> PixelsBuilder<'req> {
             queue,
             swap_chain,
             surface_texture,
+            present_mode,
             renderers,
             texture,
             texture_extent,
