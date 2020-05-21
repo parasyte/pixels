@@ -1,5 +1,6 @@
 use std::fmt;
 use std::rc::Rc;
+use ultraviolet::Mat4;
 use wgpu::{self, Extent3d, TextureView};
 
 use crate::include_spv;
@@ -41,25 +42,17 @@ impl Renderer {
         });
 
         // Create uniform buffer
-        #[rustfmt::skip]
-        let transform: [f32; 16] = [
-            1.0, 0.0, 0.0, 0.0,
-            0.0, -1.0, 0.0, 0.0,
-            0.0, 0.0, 1.0, 0.0,
-            0.0, 0.0, 0.0, 1.0,
-        ];
-        let mut tranform_bytes: Vec<u8> = Vec::with_capacity(4 * transform.len());
-        transform
-            .iter()
-            .map(|e| e.to_bits().to_ne_bytes())
-            .for_each(|b| tranform_bytes.extend(b.iter()));
-        let mapped = device.create_buffer_mapped(&wgpu::BufferDescriptor {
-            label: None,
-            size: tranform_bytes.len() as u64,
-            usage: wgpu::BufferUsage::UNIFORM | wgpu::BufferUsage::COPY_DST,
-        });
-        mapped.data.copy_from_slice(&tranform_bytes);
-        let uniform_buffer = mapped.finish();
+        // TODO: This should also have the width / height of the of the window surface,
+        // so that it won't break when the window is created with a different size.
+        let matrix = ScalingMatrix::new(
+            (texture_size.width as f32, texture_size.height as f32),
+            (texture_size.width as f32, texture_size.height as f32),
+        );
+        let transform_bytes = matrix.as_bytes();
+        let uniform_buffer = device.create_buffer_with_data(
+            &transform_bytes,
+            wgpu::BufferUsage::UNIFORM | wgpu::BufferUsage::COPY_DST,
+        );
 
         // Create bind group
         let bind_group_layout = device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
@@ -176,38 +169,12 @@ impl RenderPass for Renderer {
     }
 
     fn resize(&mut self, encoder: &mut wgpu::CommandEncoder, width: u32, height: u32) {
-        let width = width as f32;
-        let height = height as f32;
+        let matrix = ScalingMatrix::new((self.width, self.height), (width as f32, height as f32));
+        let transform_bytes = matrix.as_bytes();
 
-        // Get smallest scale size
-        let scale = (width / self.width)
-            .min(height / self.height)
-            .max(1.0)
-            .floor();
-
-        // Update transformation matrix
-        let sw = self.width * scale / width;
-        let sh = self.height * scale / height;
-        #[rustfmt::skip]
-        let transform: [f32; 16] = [
-            sw, 0.0, 0.0, 0.0,
-            0.0, -sh, 0.0, 0.0,
-            0.0, 0.0, 1.0, 0.0,
-            0.0, 0.0, 0.0, 1.0,
-        ];
-        let mut tranform_bytes: Vec<u8> = Vec::with_capacity(4 * transform.len());
-        transform
-            .iter()
-            .map(|e| e.to_bits().to_ne_bytes())
-            .for_each(|b| tranform_bytes.extend(b.iter()));
-        let mapped = self.device.create_buffer_mapped(&wgpu::BufferDescriptor {
-            label: None,
-            size: tranform_bytes.len() as u64,
-            usage: wgpu::BufferUsage::COPY_SRC,
-        });
-        mapped.data.copy_from_slice(&tranform_bytes);
-        let temp_buf = mapped.finish();
-        encoder.copy_buffer_to_buffer(&temp_buf, 0, &self.uniform_buffer, 0, 64);
+        let temp_buf = self
+            .device
+            .create_buffer_with_data(&transform_bytes, wgpu::BufferUsage::COPY_SRC);
         encoder.copy_buffer_to_buffer(&temp_buf, 0, &self.uniform_buffer, 0, 64);
     }
 
@@ -217,5 +184,44 @@ impl RenderPass for Renderer {
 
     fn debug(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{:?}", self)
+    }
+}
+
+#[derive(Debug)]
+pub(crate) struct ScalingMatrix {
+    pub(crate) transform: Mat4,
+}
+
+impl ScalingMatrix {
+    // texture_size is the dimensions of the drawing texture
+    // screen_size is the dimensions of the surface being drawn to
+    pub(crate) fn new(texture_size: (f32, f32), screen_size: (f32, f32)) -> ScalingMatrix {
+        let (screen_width, screen_height) = screen_size;
+        let (texture_width, texture_height) = texture_size;
+
+        // Get smallest scale size
+        let scale = (screen_width / texture_width)
+            .min(screen_height / texture_height)
+            .max(1.0)
+            .floor();
+
+        // Update transformation matrix
+        let sw = texture_width * scale / screen_width;
+        let sh = texture_height * scale / screen_height;
+        #[rustfmt::skip]
+        let transform: [f32; 16] = [
+            sw,  0.0, 0.0, 0.0,
+            0.0, -sh, 0.0, 0.0,
+            0.0, 0.0, 1.0, 0.0,
+            0.0, 0.0, 0.0, 1.0,
+        ];
+
+        ScalingMatrix {
+            transform: Mat4::from(transform),
+        }
+    }
+
+    fn as_bytes(&self) -> &[u8] {
+        self.transform.as_byte_slice()
     }
 }

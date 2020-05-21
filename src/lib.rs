@@ -56,6 +56,10 @@ pub struct Pixels {
     texture_extent: wgpu::Extent3d,
     texture_format_size: u32,
     pixels: Vec<u8>,
+
+    // The inverse of the scaling matrix used by the renderer
+    // Used to convert physical coordinates back to pixel coordinates (for the mouse)
+    scaling_matrix_inverse: ultraviolet::Mat4,
 }
 
 /// A builder to help create customized pixel buffers.
@@ -161,6 +165,17 @@ impl Pixels {
         self.surface_texture.width = width;
         self.surface_texture.height = height;
 
+        // Update ScalingMatrix for mouse transformation
+        self.scaling_matrix_inverse = renderers::ScalingMatrix::new(
+            (
+                self.texture_extent.width as f32,
+                self.texture_extent.height as f32,
+            ),
+            (width as f32, height as f32),
+        )
+        .transform
+        .inversed();
+
         // Recreate the swap chain
         self.swap_chain = self.device.create_swap_chain(
             &self.surface_texture.surface,
@@ -262,6 +277,99 @@ impl Pixels {
     /// ```
     pub fn get_frame(&mut self) -> &mut [u8] {
         &mut self.pixels
+    }
+
+    /// Calculate the pixel location from a physical location on the window,
+    /// dealing with window resizing, scaling, and margins. Takes a physical
+    /// position (x, y) within the window, and returns a pixel position (x, y).
+    ///
+    /// The location must be given in physical units (for example, winit's `PhysicalLocation`)
+    ///
+    /// If the given physical position is outside of the drawing area, this
+    /// function returns an `Err` value with the pixel coordinates outside of
+    /// the screen, using isize instead of usize.
+    ///
+    /// ```no_run
+    /// # use pixels::Pixels;
+    /// # let surface = wgpu::Surface::create(&pixels_mocks::RWH);
+    /// # let surface_texture = pixels::SurfaceTexture::new(1024, 768, surface);
+    /// const WIDTH:  u32 = 320;
+    /// const HEIGHT: u32 = 240;
+    ///
+    /// let mut pixels = Pixels::new(WIDTH, HEIGHT, surface_texture)?;
+    ///
+    /// // A cursor position in physical units
+    /// let cursor_position: (f32, f32) = winit::dpi::PhysicalPosition::new(0.0, 0.0).into();
+    ///
+    /// // Convert it to a pixel location
+    /// let pixel_position: (usize, usize) = pixels.window_pos_to_pixel(cursor_position)
+    ///     // Clamp the output to within the screen
+    ///     .unwrap_or_else(|pos| pixels.clamp_pixel_pos(pos));
+    /// # Ok::<(), pixels::Error>(())
+    /// ```
+    pub fn window_pos_to_pixel(
+        &self,
+        physical_position: (f32, f32),
+    ) -> Result<(usize, usize), (isize, isize)> {
+        let physical_width = self.surface_texture.width as f32;
+        let physical_height = self.surface_texture.height as f32;
+
+        let pixels_width = self.texture_extent.width as f32;
+        let pixels_height = self.texture_extent.height as f32;
+
+        let pos = ultraviolet::Vec4::new(
+            (physical_position.0 / physical_width - 0.5) * pixels_width,
+            (physical_position.1 / physical_height - 0.5) * pixels_height,
+            0.0,
+            1.0,
+        );
+
+        let pos = self.scaling_matrix_inverse * pos;
+
+        let pos = (
+            pos.x / pos.w + pixels_width / 2.0,
+            -pos.y / pos.w + pixels_height / 2.0,
+        );
+        let pixel_x = pos.0.floor() as isize;
+        let pixel_y = pos.1.floor() as isize;
+
+        if pixel_x < 0
+            || pixel_x >= self.texture_extent.width as isize
+            || pixel_y < 0
+            || pixel_y >= self.texture_extent.height as isize
+        {
+            Err((pixel_x, pixel_y))
+        } else {
+            Ok((pixel_x as usize, pixel_y as usize))
+        }
+    }
+
+    /// Clamp a pixel position to the pixel buffer size.
+    ///
+    /// This can be used to clamp the `Err` value returned by [`Pixels::window_pos_to_pixel`]
+    /// to a position clamped within the drawing area.
+    ///
+    /// ```no_run
+    /// # use pixels::Pixels;
+    /// # let surface = wgpu::Surface::create(&pixels_mocks::RWH);
+    /// # let surface_texture = pixels::SurfaceTexture::new(1024, 768, surface);
+    /// const WIDTH:  u32 = 320;
+    /// const HEIGHT: u32 = 240;
+    ///
+    /// let mut pixels = Pixels::new(WIDTH, HEIGHT, surface_texture)?;
+    ///
+    /// let pixel_pos = pixels.clamp_pixel_pos((-19, 20));
+    /// assert_eq!(pixel_pos, (0, 20));
+    ///
+    /// let pixel_pos = pixels.clamp_pixel_pos((11, 3000));
+    /// assert_eq!(pixel_pos, (11, 240));
+    /// # Ok::<(), pixels::Error>(())
+    /// ```
+    pub fn clamp_pixel_pos(&self, pos: (isize, isize)) -> (usize, usize) {
+        (
+            pos.0.max(0).min(self.texture_extent.width as isize - 1) as usize,
+            pos.1.max(0).min(self.texture_extent.height as isize - 1) as usize,
+        )
     }
 }
 
@@ -508,6 +616,13 @@ impl<'req> PixelsBuilder<'req> {
             },
         );
 
+        let scaling_matrix_inverse = renderers::ScalingMatrix::new(
+            (width as f32, height as f32),
+            (surface_texture.width as f32, surface_texture.height as f32),
+        )
+        .transform
+        .inversed();
+
         // Create a renderer that impls `RenderPass`
         let mut renderers = vec![Renderer::factory(
             device.clone(),
@@ -538,6 +653,7 @@ impl<'req> PixelsBuilder<'req> {
             texture_extent,
             texture_format_size,
             pixels,
+            scaling_matrix_inverse,
         })
     }
 }

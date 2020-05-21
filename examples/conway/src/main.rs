@@ -66,13 +66,19 @@ fn main() -> Result<(), Error> {
                     let (dx, dy) = input.mouse_diff();
                     let prev_x = mx - dx;
                     let prev_y = my - dy;
-                    let dpx = hidpi_factor as f32;
-                    let (w, h) = (p_width as f32 / dpx, p_height as f32 / dpx);
-                    let mx_i = ((mx / w) * (SCREEN_WIDTH as f32)).round() as isize;
-                    let my_i = ((my / h) * (SCREEN_HEIGHT as f32)).round() as isize;
-                    let px_i = ((prev_x / w) * (SCREEN_WIDTH as f32)).round() as isize;
-                    let py_i = ((prev_y / h) * (SCREEN_HEIGHT as f32)).round() as isize;
-                    ((mx_i, my_i), (px_i, py_i))
+
+                    let (mx_i, my_i) = pixels
+                        .window_pos_to_pixel((mx, my))
+                        .unwrap_or_else(|pos| pixels.clamp_pixel_pos(pos));
+
+                    let (px_i, py_i) = pixels
+                        .window_pos_to_pixel((prev_x, prev_y))
+                        .unwrap_or_else(|pos| pixels.clamp_pixel_pos(pos));
+
+                    (
+                        (mx_i as isize, my_i as isize),
+                        (px_i as isize, py_i as isize),
+                    )
                 })
                 .unwrap_or_default();
 
