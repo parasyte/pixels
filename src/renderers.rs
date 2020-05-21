@@ -196,10 +196,8 @@ impl ScalingMatrix {
     // texture_size is the dimensions of the drawing texture
     // screen_size is the dimensions of the surface being drawn to
     pub(crate) fn new(texture_size: (f32, f32), screen_size: (f32, f32)) -> ScalingMatrix {
-        let screen_width = screen_size.0;
-        let screen_height = screen_size.1;
-        let texture_width = texture_size.0;
-        let texture_height = texture_size.1;
+        let (screen_width, screen_height) = screen_size;
+        let (texture_width, texture_height) = texture_size;
 
         // Get smallest scale size
         let scale = (screen_width / texture_width)

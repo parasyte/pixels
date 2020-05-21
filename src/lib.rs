@@ -296,53 +296,77 @@ impl Pixels {
     /// let mut pixels = Pixels::new(WIDTH, HEIGHT, surface_texture)?;
     ///
     /// // A cursor position in physical units
-    /// let cursor_position: (f64, f64) = winit::dpi::PhysicalPosition::new(0, 0).into();
+    /// let cursor_position: (f32, f32) = winit::dpi::PhysicalPosition::new(0.0, 0.0).into();
     ///
     /// // Convert it to a pixel location
     /// let pixel_position: (usize, usize) = pixels.window_pos_to_pixel(cursor_position)
-    ///     .unwrap_or_else(|(x, y)| ( // Clamp the output to within the screen
-    ///         x.max(0).min(WIDTH as isize - 1) as usize,
-    ///         y.max(0).min(HEIGHT as isize - 1) as usize,
-    ///     ));
+    ///     // Clamp the output to within the screen
+    ///     .unwrap_or_else(|pos| pixels.clamp_pixel_pos(pos));
     /// # Ok::<(), pixels::Error>(())
     /// ```
     pub fn window_pos_to_pixel(
         &self,
-        physical_position: (f64, f64),
+        physical_position: (f32, f32),
     ) -> Result<(usize, usize), (isize, isize)> {
-        let physical_size = (
-            self.surface_texture.width as f32,
-            self.surface_texture.height as f32,
-        );
+        let physical_width = self.surface_texture.width as f32;
+        let physical_height = self.surface_texture.height as f32;
 
         let pixels_width = self.texture_extent.width as f32;
         let pixels_height = self.texture_extent.height as f32;
 
         let pos = ultraviolet::Vec4::new(
-            (physical_position.0 as f32 / physical_size.0 as f32 - 0.5) * pixels_width,
-            (physical_position.1 as f32 / physical_size.1 as f32 - 0.5) * pixels_height,
+            (physical_position.0 / physical_width - 0.5) * pixels_width,
+            (physical_position.1 / physical_height - 0.5) * pixels_height,
             0.0,
             1.0,
         );
 
-        let new_pos = self.scaling_matrix_inverse * pos;
+        let pos = self.scaling_matrix_inverse * pos;
 
-        let new_pos = (
-            new_pos.x / new_pos.w + pixels_width / 2.0,
-            -new_pos.y / new_pos.w + pixels_height / 2.0,
+        let pos = (
+            pos.x / pos.w + pixels_width / 2.0,
+            -pos.y / pos.w + pixels_height / 2.0,
         );
-        let pixel_x = new_pos.0.floor() as isize;
-        let pixel_y = new_pos.1.floor() as isize;
+        let pixel_x = pos.0.floor() as isize;
+        let pixel_y = pos.1.floor() as isize;
 
         if pixel_x < 0
-            || pixel_x > self.texture_extent.width as isize - 1
+            || pixel_x >= self.texture_extent.width as isize
             || pixel_y < 0
-            || pixel_y > self.texture_extent.height as isize - 1
+            || pixel_y >= self.texture_extent.height as isize
         {
             Err((pixel_x, pixel_y))
         } else {
             Ok((pixel_x as usize, pixel_y as usize))
         }
+    }
+
+    /// Clamp a pixel position to the pixel buffer size.
+    ///
+    /// This can be used to clamp the `Err` value returned by [`Pixels::window_pos_to_pixel`]
+    /// to a position clamped within the drawing area.
+    ///
+    /// ```no_run
+    /// # use pixels::Pixels;
+    /// # let surface = wgpu::Surface::create(&pixels_mocks::RWH);
+    /// # let surface_texture = pixels::SurfaceTexture::new(1024, 768, surface);
+    /// const WIDTH:  u32 = 320;
+    /// const HEIGHT: u32 = 240;
+    ///
+    /// let mut pixels = Pixels::new(WIDTH, HEIGHT, surface_texture)?;
+    ///
+    /// let pixel_pos = pixels.clamp_pixel_pos((-19, 20));
+    /// assert_eq!(pixel_pos, (0, 20));
+    ///
+    /// let pixel_pos = pixels.clamp_pixel_pos((11, 3000));
+    /// assert_eq!(pixel_pos, (11, 240));
+    /// # Ok::<(), pixels::Error>(())
+    /// ```
+    pub fn clamp_pixel_pos(&self, pos: (isize, isize)) -> (usize, usize) {
+        (
+            pos.0.max(0).min(self.texture_extent.width as isize - 1) as usize,
+            pos.1.max(0).min(self.texture_extent.height as isize - 1) as usize,
+        )
     }
 }
 
