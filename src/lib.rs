@@ -557,13 +557,18 @@ impl<'req> PixelsBuilder<'req> {
     /// Returns an error when a [`wgpu::Adapter`] cannot be found.
     pub fn build(self) -> Result<Pixels, Error> {
         // TODO: Use `options.pixel_aspect_ratio` to stretch the scaled texture
+        let compatible_surface = Some(&self.surface_texture.surface);
         let adapter = pollster::block_on(wgpu::Adapter::request(
-            &self
-                .request_adapter_options
-                .unwrap_or(wgpu::RequestAdapterOptions {
-                    compatible_surface: Some(&self.surface_texture.surface),
+            &self.request_adapter_options.map_or_else(
+                || wgpu::RequestAdapterOptions {
+                    compatible_surface,
                     power_preference: wgpu::PowerPreference::Default,
-                }),
+                },
+                |rao| wgpu::RequestAdapterOptions {
+                    compatible_surface: rao.compatible_surface.or(compatible_surface),
+                    power_preference: rao.power_preference,
+                },
+            ),
             self.backend,
         ))
         .ok_or(Error::AdapterNotFound)?;
