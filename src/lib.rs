@@ -239,7 +239,7 @@ impl Pixels {
     }
 
     pub fn render_custom<
-        F: FnOnce(&mut wgpu::Device, &mut wgpu::CommandEncoder, &wgpu::TextureView),
+        F: FnOnce(&mut wgpu::Device, &mut wgpu::CommandEncoder, &wgpu::TextureView, &ScalingRenderer),
     >(
         &mut self,
         render_function: F,
@@ -278,7 +278,12 @@ impl Pixels {
             self.texture_extent,
         );
 
-        (render_function)(&mut self.device, &mut encoder, &frame.view);
+        (render_function)(
+            &mut self.device,
+            &mut encoder,
+            &frame.view,
+            &self.scaling_renderer,
+        );
 
         self.queue.submit(&[encoder.finish()]);
         Ok(())
@@ -411,10 +416,6 @@ impl Pixels {
 
     pub fn queue(&self) -> &wgpu::Queue {
         &self.queue
-    }
-
-    pub fn scaling_renderer(&self) -> &ScalingRenderer {
-        &self.scaling_renderer
     }
 }
 
