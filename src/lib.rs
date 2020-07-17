@@ -418,7 +418,7 @@ impl<'req> PixelsBuilder<'req> {
             width,
             height,
             pixel_aspect_ratio: 1.0,
-            present_mode: wgpu::PresentMode::Mailbox,
+            present_mode: wgpu::PresentMode::Fifo,
             surface_texture,
             texture_format: wgpu::TextureFormat::Rgba8UnormSrgb,
             renderer_factories: Vec::new(),
@@ -469,15 +469,27 @@ impl<'req> PixelsBuilder<'req> {
         self
     }
 
-    /// Enable or disable vsync.
+    /// Enable or disable Vsync.
     ///
     /// Vsync is enabled by default.
+    ///
+    /// The `wgpu` present mode will be set to `Fifo` when Vsync is enabled, or `Immediate` when
+    /// Vsync is disabled. To set the present mode to `Mailbox` or another value, use the
+    /// [`present_mode`] method.
     pub fn enable_vsync(mut self, enable_vsync: bool) -> PixelsBuilder<'req> {
         self.present_mode = if enable_vsync {
-            wgpu::PresentMode::Mailbox
+            wgpu::PresentMode::Fifo
         } else {
             wgpu::PresentMode::Immediate
         };
+        self
+    }
+
+    /// Set the `wgpu` present mode.
+    ///
+    /// This differs from [`enable_vsync`] by allowing the present mode to be set to any value.
+    pub fn present_mode(mut self, present_mode: wgpu::PresentMode) -> PixelsBuilder<'req> {
+        self.present_mode = present_mode;
         self
     }
 
