@@ -412,6 +412,10 @@ impl Pixels {
     pub fn queue(&self) -> &wgpu::Queue {
         &self.queue
     }
+
+    pub fn scaling_renderer(&self) -> &ScalingRenderer {
+        &self.scaling_renderer
+    }
 }
 
 impl<'req> PixelsBuilder<'req> {
