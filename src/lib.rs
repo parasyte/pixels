@@ -28,22 +28,15 @@
 #![deny(clippy::all)]
 #![forbid(unsafe_code)]
 
-use std::cell::RefCell;
 use std::env;
-use std::rc::Rc;
 
 pub use crate::macros::*;
-pub use crate::render_pass::{BoxedRenderPass, Device, Queue, RenderPass};
-use crate::renderers::Renderer;
+use crate::renderers::ScalingRenderer;
 use thiserror::Error;
 pub use wgpu;
-use wgpu::{Extent3d, TextureView};
 
 mod macros;
-mod render_pass;
 mod renderers;
-
-type RenderPassFactory = Box<dyn Fn(Device, Queue, &TextureView, &Extent3d) -> BoxedRenderPass>;
 
 /// A logical texture for a window surface.
 #[derive(Debug)]
@@ -59,14 +52,14 @@ pub struct SurfaceTexture {
 #[derive(Debug)]
 pub struct Pixels {
     // WGPU state
-    device: Rc<wgpu::Device>,
-    queue: Rc<RefCell<wgpu::Queue>>,
+    device: wgpu::Device,
+    queue: wgpu::Queue,
     swap_chain: wgpu::SwapChain,
     surface_texture: SurfaceTexture,
     present_mode: wgpu::PresentMode,
 
     // List of render passes
-    renderers: Vec<BoxedRenderPass>,
+    scaling_renderer: ScalingRenderer,
 
     // Texture state for the texel upload
     texture: wgpu::Texture,
@@ -90,7 +83,6 @@ pub struct PixelsBuilder<'req> {
     present_mode: wgpu::PresentMode,
     surface_texture: SurfaceTexture,
     texture_format: wgpu::TextureFormat,
-    renderer_factories: Vec<RenderPassFactory>,
 }
 
 /// All the ways in which creating a pixel buffer can fail.
@@ -209,11 +201,11 @@ impl Pixels {
         let mut encoder = self
             .device
             .create_command_encoder(&wgpu::CommandEncoderDescriptor { label: None });
-        for renderer in self.renderers.iter_mut() {
-            renderer.resize(&mut encoder, width, height);
-        }
 
-        self.queue.borrow_mut().submit(&[encoder.finish()]);
+        self.scaling_renderer
+            .resize(&mut self.device, &mut encoder, width, height);
+
+        self.queue.submit(&[encoder.finish()]);
     }
 
     /// Draw this pixel buffer to the configured [`SurfaceTexture`].
@@ -258,13 +250,56 @@ impl Pixels {
             self.texture_extent,
         );
 
-        // Execute all render passes
-        for renderer in self.renderers.iter() {
-            // TODO: Create a texture chain so that each pass receives the texture drawn by the previous
-            renderer.render(&mut encoder, &frame.view);
-        }
+        self.scaling_renderer.render(&mut encoder, &frame.view);
 
-        self.queue.borrow_mut().submit(&[encoder.finish()]);
+        self.queue.submit(&[encoder.finish()]);
+        Ok(())
+    }
+
+    pub fn render_custom<
+        F: FnOnce(&mut wgpu::Device, &mut wgpu::CommandEncoder, &wgpu::TextureView),
+    >(
+        &mut self,
+        render_function: F,
+    ) -> Result<(), Error> {
+        // TODO: Center frame buffer in surface
+        let frame = self
+            .swap_chain
+            .get_next_texture()
+            .map_err(|_| Error::Timeout)?;
+        let mut encoder = self
+            .device
+            .create_command_encoder(&wgpu::CommandEncoderDescriptor { label: None });
+
+        // Update the pixel buffer texture view
+        let mapped = self.device.create_buffer_mapped(&wgpu::BufferDescriptor {
+            label: None,
+            size: self.pixels.len() as u64,
+            usage: wgpu::BufferUsage::COPY_SRC,
+        });
+        mapped.data.copy_from_slice(&self.pixels);
+        let buffer = mapped.finish();
+
+        encoder.copy_buffer_to_texture(
+            wgpu::BufferCopyView {
+                buffer: &buffer,
+                offset: 0,
+                bytes_per_row: self.texture_extent.width * self.texture_format_size,
+                rows_per_image: self.texture_extent.height,
+            },
+            wgpu::TextureCopyView {
+                texture: &self.texture,
+                mip_level: 0,
+                array_layer: 0,
+                origin: wgpu::Origin3d { x: 0, y: 0, z: 0 },
+            },
+            self.texture_extent,
+        );
+
+        self.scaling_renderer.render(&mut encoder, &frame.view);
+        (render_function)(&mut self.device, &mut encoder, &frame.view);
+
+        self.queue.submit(&[encoder.finish()]);
         Ok(())
     }
 
@@ -438,7 +473,6 @@ impl<'req> PixelsBuilder<'req> {
             present_mode: wgpu::PresentMode::Fifo,
             surface_texture,
             texture_format: wgpu::TextureFormat::Rgba8UnormSrgb,
-            renderer_factories: Vec::new(),
         }
     }
 
@@ -523,62 +557,6 @@ impl<'req> PixelsBuilder<'req> {
         self
     }
 
-    /// Add a render pass.
-    ///
-    /// Render passes are executed in the order they are added.
-    ///
-    /// # Factory Arguments
-    ///
-    /// * `device` - A reference-counted [`wgpu::Device`] which allows you to create GPU resources.
-    /// * `queue` - A reference-counted [`wgpu::Queue`] which can execute command buffers.
-    /// * `texture` - A [`wgpu::TextureView`] reference that is used as the texture input for the
-    ///   render pass.
-    /// * `texture_size` - A [`wgpu::Extent3d`] providing the input texture size.
-    ///
-    /// # Examples
-    ///
-    /// ```no_run
-    /// use pixels::{BoxedRenderPass, Device, PixelsBuilder, Queue, RenderPass};
-    /// use pixels::wgpu::{Extent3d, TextureView};
-    ///
-    /// struct MyRenderPass {
-    ///     device: Device,
-    ///     queue: Queue,
-    /// }
-    ///
-    /// impl MyRenderPass {
-    ///     fn factory(
-    ///         device: Device,
-    ///         queue: Queue,
-    ///         texture: &TextureView,
-    ///         texture_size: &Extent3d,
-    ///     ) -> BoxedRenderPass {
-    ///         // Create a bind group, pipeline, etc. and store all of the necessary state...
-    ///         Box::new(MyRenderPass { device, queue })
-    ///     }
-    /// }
-    ///
-    /// impl RenderPass for MyRenderPass {
-    ///     // ...
-    /// # fn update_bindings(&mut self, _: &wgpu::TextureView, _: &wgpu::Extent3d) {}
-    /// # fn render(&self, _: &mut wgpu::CommandEncoder, _: &wgpu::TextureView) {}
-    /// }
-    ///
-    /// # let surface = wgpu::Surface::create(&pixels_mocks::RWH);
-    /// # let surface_texture = pixels::SurfaceTexture::new(1024, 768, surface);
-    /// let builder = PixelsBuilder::new(320, 240, surface_texture)
-    ///     .add_render_pass(MyRenderPass::factory)
-    ///     .build()?;
-    /// # Ok::<(), pixels::Error>(())
-    /// ```
-    pub fn add_render_pass(
-        mut self,
-        factory: impl Fn(Device, Queue, &TextureView, &Extent3d) -> BoxedRenderPass + 'static,
-    ) -> PixelsBuilder<'req> {
-        self.renderer_factories.push(Box::new(factory));
-        self
-    }
-
     /// Create a pixel buffer from the options builder.
     ///
     /// # Errors
@@ -602,9 +580,8 @@ impl<'req> PixelsBuilder<'req> {
         ))
         .ok_or(Error::AdapterNotFound)?;
 
-        let (device, queue) = pollster::block_on(adapter.request_device(&self.device_descriptor));
-        let device = Rc::new(device);
-        let queue = Rc::new(RefCell::new(queue));
+        let (mut device, queue) =
+            pollster::block_on(adapter.request_device(&self.device_descriptor));
 
         // The rest of this is technically a fixed-function pipeline... For now!
 
@@ -657,23 +634,7 @@ impl<'req> PixelsBuilder<'req> {
         .inversed();
 
         // Create a renderer that impls `RenderPass`
-        let mut renderers = vec![Renderer::factory(
-            device.clone(),
-            queue.clone(),
-            &texture_view,
-            &texture_extent,
-        )];
-
-        // Create all render passes
-        renderers.extend(self.renderer_factories.iter().map(|f| {
-            // TODO: Create a texture chain so that each pass receives the texture drawn by the previous
-            f(
-                device.clone(),
-                queue.clone(),
-                &texture_view,
-                &texture_extent,
-            )
-        }));
+        let scaling_renderer = ScalingRenderer::new(&mut device, &texture_view, &texture_extent);
 
         Ok(Pixels {
             device,
@@ -681,7 +642,7 @@ impl<'req> PixelsBuilder<'req> {
             swap_chain,
             surface_texture,
             present_mode,
-            renderers,
+            scaling_renderer,
             texture,
             texture_extent,
             texture_format_size,

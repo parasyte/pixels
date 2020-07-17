@@ -1,44 +1,39 @@
-use std::fmt;
-use std::rc::Rc;
 use ultraviolet::Mat4;
-use wgpu::{self, Extent3d, TextureView};
+use wgpu::*;
 
 use crate::include_spv;
-use crate::render_pass::{BoxedRenderPass, Device, Queue, RenderPass};
 
 /// Renderer implements [`RenderPass`].
 #[derive(Debug)]
-pub(crate) struct Renderer {
-    device: Rc<wgpu::Device>,
-    uniform_buffer: wgpu::Buffer,
-    bind_group: wgpu::BindGroup,
-    render_pipeline: wgpu::RenderPipeline,
+pub(crate) struct ScalingRenderer {
+    uniform_buffer: Buffer,
+    bind_group: BindGroup,
+    render_pipeline: RenderPipeline,
     width: f32,
     height: f32,
 }
 
-impl Renderer {
+impl ScalingRenderer {
     /// Factory function for generating `RenderPass` trait objects.
-    pub(crate) fn factory(
-        device: Device,
-        _queue: Queue,
+    pub(crate) fn new(
+        device: &mut Device,
         texture_view: &TextureView,
         texture_size: &Extent3d,
-    ) -> BoxedRenderPass {
+    ) -> Self {
         let vs_module = device.create_shader_module(include_spv!("../shaders/vert.spv"));
         let fs_module = device.create_shader_module(include_spv!("../shaders/frag.spv"));
 
         // Create a texture sampler with nearest neighbor
-        let sampler = device.create_sampler(&wgpu::SamplerDescriptor {
-            address_mode_u: wgpu::AddressMode::ClampToEdge,
-            address_mode_v: wgpu::AddressMode::ClampToEdge,
-            address_mode_w: wgpu::AddressMode::ClampToEdge,
-            mag_filter: wgpu::FilterMode::Nearest,
-            min_filter: wgpu::FilterMode::Nearest,
-            mipmap_filter: wgpu::FilterMode::Nearest,
+        let sampler = device.create_sampler(&SamplerDescriptor {
+            address_mode_u: AddressMode::ClampToEdge,
+            address_mode_v: AddressMode::ClampToEdge,
+            address_mode_w: AddressMode::ClampToEdge,
+            mag_filter: FilterMode::Nearest,
+            min_filter: FilterMode::Nearest,
+            mipmap_filter: FilterMode::Nearest,
             lod_min_clamp: 0.0,
             lod_max_clamp: 1.0,
-            compare: wgpu::CompareFunction::Always,
+            compare: CompareFunction::Always,
         });
 
         // Create uniform buffer
@@ -51,49 +46,49 @@ impl Renderer {
         let transform_bytes = matrix.as_bytes();
         let uniform_buffer = device.create_buffer_with_data(
             &transform_bytes,
-            wgpu::BufferUsage::UNIFORM | wgpu::BufferUsage::COPY_DST,
+            BufferUsage::UNIFORM | BufferUsage::COPY_DST,
         );
 
         // Create bind group
-        let bind_group_layout = device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
+        let bind_group_layout = device.create_bind_group_layout(&BindGroupLayoutDescriptor {
             label: None,
             bindings: &[
-                wgpu::BindGroupLayoutEntry {
+                BindGroupLayoutEntry {
                     binding: 0,
-                    visibility: wgpu::ShaderStage::FRAGMENT,
-                    ty: wgpu::BindingType::SampledTexture {
-                        component_type: wgpu::TextureComponentType::Uint,
+                    visibility: ShaderStage::FRAGMENT,
+                    ty: BindingType::SampledTexture {
+                        component_type: TextureComponentType::Uint,
                         multisampled: false,
-                        dimension: wgpu::TextureViewDimension::D2,
+                        dimension: TextureViewDimension::D2,
                     },
                 },
-                wgpu::BindGroupLayoutEntry {
+                BindGroupLayoutEntry {
                     binding: 1,
-                    visibility: wgpu::ShaderStage::FRAGMENT,
-                    ty: wgpu::BindingType::Sampler { comparison: false },
+                    visibility: ShaderStage::FRAGMENT,
+                    ty: BindingType::Sampler { comparison: false },
                 },
-                wgpu::BindGroupLayoutEntry {
+                BindGroupLayoutEntry {
                     binding: 2,
-                    visibility: wgpu::ShaderStage::VERTEX,
-                    ty: wgpu::BindingType::UniformBuffer { dynamic: false },
+                    visibility: ShaderStage::VERTEX,
+                    ty: BindingType::UniformBuffer { dynamic: false },
                 },
             ],
         });
-        let bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
+        let bind_group = device.create_bind_group(&BindGroupDescriptor {
             label: None,
             layout: &bind_group_layout,
             bindings: &[
-                wgpu::Binding {
+                Binding {
                     binding: 0,
-                    resource: wgpu::BindingResource::TextureView(texture_view),
+                    resource: BindingResource::TextureView(texture_view),
                 },
-                wgpu::Binding {
+                Binding {
                     binding: 1,
-                    resource: wgpu::BindingResource::Sampler(&sampler),
+                    resource: BindingResource::Sampler(&sampler),
                 },
-                wgpu::Binding {
+                Binding {
                     binding: 2,
-                    resource: wgpu::BindingResource::Buffer {
+                    resource: BindingResource::Buffer {
                         buffer: &uniform_buffer,
                         range: 0..64,
                     },
@@ -102,36 +97,36 @@ impl Renderer {
         });
 
         // Create pipeline
-        let pipeline_layout = device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
+        let pipeline_layout = device.create_pipeline_layout(&PipelineLayoutDescriptor {
             bind_group_layouts: &[&bind_group_layout],
         });
-        let render_pipeline = device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
+        let render_pipeline = device.create_render_pipeline(&RenderPipelineDescriptor {
             layout: &pipeline_layout,
-            vertex_stage: wgpu::ProgrammableStageDescriptor {
+            vertex_stage: ProgrammableStageDescriptor {
                 module: &vs_module,
                 entry_point: "main",
             },
-            fragment_stage: Some(wgpu::ProgrammableStageDescriptor {
+            fragment_stage: Some(ProgrammableStageDescriptor {
                 module: &fs_module,
                 entry_point: "main",
             }),
-            rasterization_state: Some(wgpu::RasterizationStateDescriptor {
-                front_face: wgpu::FrontFace::Ccw,
-                cull_mode: wgpu::CullMode::None,
+            rasterization_state: Some(RasterizationStateDescriptor {
+                front_face: FrontFace::Ccw,
+                cull_mode: CullMode::None,
                 depth_bias: 0,
                 depth_bias_slope_scale: 0.0,
                 depth_bias_clamp: 0.0,
             }),
-            primitive_topology: wgpu::PrimitiveTopology::TriangleList,
-            color_states: &[wgpu::ColorStateDescriptor {
-                format: wgpu::TextureFormat::Bgra8UnormSrgb,
-                color_blend: wgpu::BlendDescriptor::REPLACE,
-                alpha_blend: wgpu::BlendDescriptor::REPLACE,
-                write_mask: wgpu::ColorWrite::ALL,
+            primitive_topology: PrimitiveTopology::TriangleList,
+            color_states: &[ColorStateDescriptor {
+                format: TextureFormat::Bgra8UnormSrgb,
+                color_blend: BlendDescriptor::REPLACE,
+                alpha_blend: BlendDescriptor::REPLACE,
+                write_mask: ColorWrite::ALL,
             }],
             depth_stencil_state: None,
-            vertex_state: wgpu::VertexStateDescriptor {
-                index_format: wgpu::IndexFormat::Uint16,
+            vertex_state: VertexStateDescriptor {
+                index_format: IndexFormat::Uint16,
                 vertex_buffers: &[],
             },
             sample_count: 1,
@@ -139,27 +134,24 @@ impl Renderer {
             alpha_to_coverage_enabled: false,
         });
 
-        Box::new(Renderer {
-            device,
+        Self {
             uniform_buffer,
             bind_group,
             render_pipeline,
             width: texture_size.width as f32,
             height: texture_size.height as f32,
-        })
+        }
     }
-}
 
-impl RenderPass for Renderer {
-    fn render(&self, encoder: &mut wgpu::CommandEncoder, render_target: &TextureView) {
+    pub fn render(&self, encoder: &mut CommandEncoder, render_target: &TextureView) {
         // Draw the updated texture to the render target
-        let mut rpass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
-            color_attachments: &[wgpu::RenderPassColorAttachmentDescriptor {
+        let mut rpass = encoder.begin_render_pass(&RenderPassDescriptor {
+            color_attachments: &[RenderPassColorAttachmentDescriptor {
                 attachment: render_target,
                 resolve_target: None,
-                load_op: wgpu::LoadOp::Clear,
-                store_op: wgpu::StoreOp::Store,
-                clear_color: wgpu::Color::BLACK,
+                load_op: LoadOp::Clear,
+                store_op: StoreOp::Store,
+                clear_color: Color::BLACK,
             }],
             depth_stencil_attachment: None,
         });
@@ -168,22 +160,18 @@ impl RenderPass for Renderer {
         rpass.draw(0..6, 0..1);
     }
 
-    fn resize(&mut self, encoder: &mut wgpu::CommandEncoder, width: u32, height: u32) {
+    pub fn resize(
+        &mut self,
+        device: &mut Device,
+        encoder: &mut CommandEncoder,
+        width: u32,
+        height: u32,
+    ) {
         let matrix = ScalingMatrix::new((self.width, self.height), (width as f32, height as f32));
         let transform_bytes = matrix.as_bytes();
 
-        let temp_buf = self
-            .device
-            .create_buffer_with_data(&transform_bytes, wgpu::BufferUsage::COPY_SRC);
+        let temp_buf = device.create_buffer_with_data(&transform_bytes, BufferUsage::COPY_SRC);
         encoder.copy_buffer_to_buffer(&temp_buf, 0, &self.uniform_buffer, 0, 64);
-    }
-
-    // We don't actually have to rebind the TextureView here.
-    // It's guaranteed that the initial texture never changes.
-    fn update_bindings(&mut self, _input_texture: &TextureView, _input_texture_size: &Extent3d) {}
-
-    fn debug(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{:?}", self)
     }
 }
 
