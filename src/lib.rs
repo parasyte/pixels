@@ -423,6 +423,14 @@ impl Pixels {
             pos.1.max(0).min(self.texture_extent.height as isize - 1) as usize,
         )
     }
+
+    pub fn device(&self) -> &wgpu::Device {
+        &self.device
+    }
+
+    pub fn queue(&self) -> &wgpu::Queue {
+        &self.queue
+    }
 }
 
 impl<'req> PixelsBuilder<'req> {
