@@ -34,7 +34,6 @@ fn main() -> Result<(), Error> {
             .build(&event_loop)
             .unwrap()
     };
-    let mut hidpi_factor = window.scale_factor();
 
     let mut pixels = {
         let surface = Surface::create(&window);
@@ -63,11 +62,6 @@ fn main() -> Result<(), Error> {
             if input.key_pressed(VirtualKeyCode::Escape) || input.quit() {
                 *control_flow = ControlFlow::Exit;
                 return;
-            }
-
-            // Adjust high DPI factor
-            if let Some(factor) = input.scale_factor_changed() {
-                hidpi_factor = factor;
             }
 
             // Resize the window

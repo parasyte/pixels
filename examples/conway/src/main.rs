@@ -15,7 +15,7 @@ fn main() -> Result<(), Error> {
     env_logger::init();
     let event_loop = EventLoop::new();
     let mut input = WinitInputHelper::new();
-    let (window, surface, p_width, p_height, mut hidpi_factor) =
+    let (window, surface, p_width, p_height, mut _hidpi_factor) =
         create_window("Conway's Game of Life", &event_loop);
 
     let surface_texture = SurfaceTexture::new(p_width, p_height, surface);
@@ -110,7 +110,7 @@ fn main() -> Result<(), Error> {
             }
             // Adjust high DPI factor
             if let Some(factor) = input.scale_factor_changed() {
-                hidpi_factor = factor;
+                _hidpi_factor = factor;
             }
             // Resize the window
             if let Some(size) = input.window_resized() {
