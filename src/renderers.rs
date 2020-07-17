@@ -5,7 +5,7 @@ use crate::include_spv;
 
 /// Renderer implements [`RenderPass`].
 #[derive(Debug)]
-pub(crate) struct ScalingRenderer {
+pub struct ScalingRenderer {
     uniform_buffer: Buffer,
     bind_group: BindGroup,
     render_pipeline: RenderPipeline,
@@ -15,11 +15,7 @@ pub(crate) struct ScalingRenderer {
 
 impl ScalingRenderer {
     /// Factory function for generating `RenderPass` trait objects.
-    pub(crate) fn new(
-        device: &mut Device,
-        texture_view: &TextureView,
-        texture_size: &Extent3d,
-    ) -> Self {
+    pub fn new(device: &mut Device, texture_view: &TextureView, texture_size: &Extent3d) -> Self {
         let vs_module = device.create_shader_module(include_spv!("../shaders/vert.spv"));
         let fs_module = device.create_shader_module(include_spv!("../shaders/frag.spv"));
 
@@ -176,14 +172,14 @@ impl ScalingRenderer {
 }
 
 #[derive(Debug)]
-pub(crate) struct ScalingMatrix {
-    pub(crate) transform: Mat4,
+pub struct ScalingMatrix {
+    pub transform: Mat4,
 }
 
 impl ScalingMatrix {
     // texture_size is the dimensions of the drawing texture
     // screen_size is the dimensions of the surface being drawn to
-    pub(crate) fn new(texture_size: (f32, f32), screen_size: (f32, f32)) -> ScalingMatrix {
+    pub fn new(texture_size: (f32, f32), screen_size: (f32, f32)) -> ScalingMatrix {
         let (screen_width, screen_height) = screen_size;
         let (texture_width, texture_height) = texture_size;
 

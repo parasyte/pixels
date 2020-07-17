@@ -31,7 +31,7 @@
 use std::env;
 
 pub use crate::macros::*;
-use crate::renderers::ScalingRenderer;
+pub use crate::renderers::ScalingRenderer;
 use thiserror::Error;
 pub use wgpu;
 
@@ -296,7 +296,6 @@ impl Pixels {
             self.texture_extent,
         );
 
-        self.scaling_renderer.render(&mut encoder, &frame.view);
         (render_function)(&mut self.device, &mut encoder, &frame.view);
 
         self.queue.submit(&[encoder.finish()]);
