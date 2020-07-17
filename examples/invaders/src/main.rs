@@ -25,7 +25,7 @@ fn main() -> Result<(), Error> {
         .parse()
         .unwrap_or(false);
 
-    let (window, surface, width, height, mut hidpi_factor) =
+    let (window, surface, width, height, mut _hidpi_factor) =
         create_window("pixel invaders", &event_loop);
     let surface_texture = SurfaceTexture::new(width, height, surface);
     let mut pixels = Pixels::new(SCREEN_WIDTH as u32, SCREEN_HEIGHT as u32, surface_texture)?;
@@ -99,7 +99,7 @@ fn main() -> Result<(), Error> {
 
             // Adjust high DPI factor
             if let Some(factor) = input.scale_factor_changed() {
-                hidpi_factor = factor;
+                _hidpi_factor = factor;
             }
 
             // Resize the window
