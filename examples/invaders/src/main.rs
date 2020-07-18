@@ -38,9 +38,7 @@ fn main() -> Result<(), Error> {
         if let Event::RedrawRequested(_) = event {
             invaders.draw(pixels.get_frame());
             if pixels
-                .render(|encoder, render_target, scaling_renderer| {
-                    scaling_renderer.render(encoder, render_target);
-                })
+                .render()
                 .map_err(|e| error!("pixels.render() failed: {}", e))
                 .is_err()
             {
