@@ -12,13 +12,13 @@
 #![deny(clippy::all)]
 #![forbid(unsafe_code)]
 
+mod macros;
+mod renderers;
+
 pub use crate::macros::*;
 pub use crate::renderers::ScalingRenderer;
 use thiserror::Error;
 pub use wgpu;
-
-mod macros;
-mod renderers;
 
 /// A logical texture for a window surface.
 #[derive(Debug)]
@@ -40,11 +40,11 @@ pub struct Pixels {
     surface_texture: SurfaceTexture,
     present_mode: wgpu::PresentMode,
 
-    // List of render passes
+    // A default renderer to scale the input texture to the screen size
     scaling_renderer: ScalingRenderer,
 
     // Texture state for the texel upload
-    texture: wgpu::Texture,
+    pixel_texture: wgpu::Texture,
     texture_extent: wgpu::Extent3d,
     texture_format_size: u32,
     pixels: Vec<u8>,
@@ -150,8 +150,6 @@ impl Pixels {
     /// Call this method in response to a resize event from your window manager. The size expected
     /// is in physical pixel units.
     pub fn resize(&mut self, width: u32, height: u32) {
-        // TODO: Call `update_bindings` on each render pass to create a texture chain
-
         // Update SurfaceTexture dimensions
         self.surface_texture.width = width;
         self.surface_texture.height = height;
@@ -183,64 +181,39 @@ impl Pixels {
         let mut encoder = self
             .device
             .create_command_encoder(&wgpu::CommandEncoderDescriptor { label: None });
-
         self.scaling_renderer
             .resize(&mut self.device, &mut encoder, width, height);
-
         self.queue.submit(&[encoder.finish()]);
     }
 
-    /// Draw this pixel buffer to the configured [`SurfaceTexture`].
-    ///
-    /// This executes all render passes in sequence. See [`RenderPass`].
+    /// Provides a [`wgpu::CommandEncoder`], a [`wgpu::TextureView`] from the swapchain which you can use to render to the screen, and the default [`ScalingRenderer`].
     ///
     /// # Errors
     ///
     /// Returns an error when [`wgpu::SwapChain::get_next_texture`] times out.
-    pub fn render(&mut self) -> Result<(), Error> {
-        // TODO: Center frame buffer in surface
-        let frame = self
-            .swap_chain
-            .get_next_texture()
-            .map_err(|_| Error::Timeout)?;
-        let mut encoder = self
-            .device
-            .create_command_encoder(&wgpu::CommandEncoderDescriptor { label: None });
-
-        // Update the pixel buffer texture view
-        let mapped = self.device.create_buffer_mapped(&wgpu::BufferDescriptor {
-            label: None,
-            size: self.pixels.len() as u64,
-            usage: wgpu::BufferUsage::COPY_SRC,
-        });
-        mapped.data.copy_from_slice(&self.pixels);
-        let buffer = mapped.finish();
-
-        encoder.copy_buffer_to_texture(
-            wgpu::BufferCopyView {
-                buffer: &buffer,
-                offset: 0,
-                bytes_per_row: self.texture_extent.width * self.texture_format_size,
-                rows_per_image: self.texture_extent.height,
-            },
-            wgpu::TextureCopyView {
-                texture: &self.texture,
-                mip_level: 0,
-                array_layer: 0,
-                origin: wgpu::Origin3d { x: 0, y: 0, z: 0 },
-            },
-            self.texture_extent,
-        );
-
-        self.scaling_renderer.render(&mut encoder, &frame.view);
-
-        self.queue.submit(&[encoder.finish()]);
-        Ok(())
-    }
-
-    pub fn render_custom<
-        F: FnOnce(&mut wgpu::CommandEncoder, &wgpu::TextureView, &ScalingRenderer),
-    >(
+    ///
+    /// # Example
+    ///
+    /// ```no_run
+    /// # use pixels::Pixels;
+    /// # let surface = wgpu::Surface::create(&pixels_mocks::RWH);
+    /// # let surface_texture = pixels::SurfaceTexture::new(1024, 768, surface);
+    /// let mut pixels = Pixels::new(320, 240, surface_texture)?;
+    ///
+    /// // Clear the pixel buffer
+    /// let frame = pixels.get_frame();
+    /// for pixel in frame.chunks_exact_mut(4) {
+    ///     pixel[0] = 0x00; // R
+    ///     pixel[1] = 0x00; // G
+    ///     pixel[2] = 0x00; // B
+    ///     pixel[3] = 0xff; // A
+    /// }
+    ///
+    /// // Draw it to the `SurfaceTexture`
+    /// pixels.render(|encoder, render_target, scaling_renderer| {
+    ///    scaling_renderer.render(encoder, render_target);
+    /// });
+    pub fn render<F: FnOnce(&mut wgpu::CommandEncoder, &wgpu::TextureView, &ScalingRenderer)>(
         &mut self,
         render_function: F,
     ) -> Result<(), Error> {
@@ -261,7 +234,6 @@ impl Pixels {
         });
         mapped.data.copy_from_slice(&self.pixels);
         let buffer = mapped.finish();
-
         encoder.copy_buffer_to_texture(
             wgpu::BufferCopyView {
                 buffer: &buffer,
@@ -270,7 +242,7 @@ impl Pixels {
                 rows_per_image: self.texture_extent.height,
             },
             wgpu::TextureCopyView {
-                texture: &self.texture,
+                texture: &self.pixel_texture,
                 mip_level: 0,
                 array_layer: 0,
                 origin: wgpu::Origin3d { x: 0, y: 0, z: 0 },
@@ -278,36 +250,15 @@ impl Pixels {
             self.texture_extent,
         );
 
+        // Call the users render function
         (render_function)(&mut encoder, &frame.view, &self.scaling_renderer);
-
         self.queue.submit(&[encoder.finish()]);
+
         Ok(())
     }
 
     /// Get a mutable byte slice for the pixel buffer. The buffer is _not_ cleared for you; it will
     /// retain the previous frame's contents until you clear it yourself.
-    ///
-    /// # Example
-    ///
-    /// ```no_run
-    /// # use pixels::Pixels;
-    /// # let surface = wgpu::Surface::create(&pixels_mocks::RWH);
-    /// # let surface_texture = pixels::SurfaceTexture::new(1024, 768, surface);
-    /// let mut pixels = Pixels::new(320, 240, surface_texture)?;
-    ///
-    /// // Clear the pixel buffer
-    /// let frame = pixels.get_frame();
-    /// for pixel in frame.chunks_exact_mut(4) {
-    ///     pixel[0] = 0x00; // R
-    ///     pixel[1] = 0x00; // G
-    ///     pixel[2] = 0x00; // B
-    ///     pixel[3] = 0xff; // A
-    /// }
-    ///
-    /// // Draw it to the `SurfaceTexture`
-    /// pixels.render();
-    /// # Ok::<(), pixels::Error>(())
-    /// ```
     pub fn get_frame(&mut self) -> &mut [u8] {
         &mut self.pixels
     }
@@ -405,12 +356,19 @@ impl Pixels {
         )
     }
 
+    /// Provides access the the [`wgpu::Device`] pixels uses.
     pub fn device(&self) -> &wgpu::Device {
         &self.device
     }
 
+    /// Provides access the the [`wgpu::Queue`] pixels uses.
     pub fn queue(&self) -> &wgpu::Queue {
         &self.queue
+    }
+
+    /// Provides access the the [`wgpu::Texture`] pixels makes by uploading the frame you provide to the GPU.
+    pub fn pixel_texture(&self) -> &wgpu::Texture {
+        &self.pixel_texture
     }
 }
 
@@ -620,7 +578,7 @@ impl<'req> PixelsBuilder<'req> {
             surface_texture,
             present_mode,
             scaling_renderer,
-            texture,
+            pixel_texture: texture,
             texture_extent,
             texture_format_size,
             pixels,

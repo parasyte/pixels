@@ -1,9 +1,8 @@
+use crate::include_spv;
 use ultraviolet::Mat4;
 use wgpu::*;
 
-use crate::include_spv;
-
-/// Renderer implements [`RenderPass`].
+/// The default renderer that scales your frame to the screen size.
 #[derive(Debug)]
 pub struct ScalingRenderer {
     uniform_buffer: Buffer,
@@ -14,8 +13,11 @@ pub struct ScalingRenderer {
 }
 
 impl ScalingRenderer {
-    /// Factory function for generating `RenderPass` trait objects.
-    pub fn new(device: &mut Device, texture_view: &TextureView, texture_size: &Extent3d) -> Self {
+    pub(crate) fn new(
+        device: &mut Device,
+        texture_view: &TextureView,
+        texture_size: &Extent3d,
+    ) -> Self {
         let vs_module = device.create_shader_module(include_spv!("../shaders/vert.spv"));
         let fs_module = device.create_shader_module(include_spv!("../shaders/frag.spv"));
 
@@ -156,7 +158,7 @@ impl ScalingRenderer {
         rpass.draw(0..6, 0..1);
     }
 
-    pub fn resize(
+    pub(crate) fn resize(
         &mut self,
         device: &mut Device,
         encoder: &mut CommandEncoder,
@@ -172,14 +174,14 @@ impl ScalingRenderer {
 }
 
 #[derive(Debug)]
-pub struct ScalingMatrix {
-    pub transform: Mat4,
+pub(crate) struct ScalingMatrix {
+    pub(crate) transform: Mat4,
 }
 
 impl ScalingMatrix {
     // texture_size is the dimensions of the drawing texture
     // screen_size is the dimensions of the surface being drawn to
-    pub fn new(texture_size: (f32, f32), screen_size: (f32, f32)) -> ScalingMatrix {
+    pub(crate) fn new(texture_size: (f32, f32), screen_size: (f32, f32)) -> ScalingMatrix {
         let (screen_width, screen_height) = screen_size;
         let (texture_width, texture_height) = texture_size;
 
