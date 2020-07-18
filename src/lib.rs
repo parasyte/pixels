@@ -12,13 +12,13 @@
 #![deny(clippy::all)]
 #![forbid(unsafe_code)]
 
-mod macros;
-mod renderers;
-
 pub use crate::macros::*;
 pub use crate::renderers::ScalingRenderer;
 use thiserror::Error;
 pub use wgpu;
+
+mod macros;
+mod renderers;
 
 /// A logical texture for a window surface.
 #[derive(Debug)]
@@ -44,7 +44,7 @@ pub struct Pixels {
     scaling_renderer: ScalingRenderer,
 
     // Texture state for the texel upload
-    pixel_texture: wgpu::Texture,
+    texture: wgpu::Texture,
     texture_extent: wgpu::Extent3d,
     texture_format_size: u32,
     pixels: Vec<u8>,
@@ -186,7 +186,7 @@ impl Pixels {
         self.queue.submit(&[encoder.finish()]);
     }
 
-    /// Provides a [`wgpu::CommandEncoder`], a [`wgpu::TextureView`] from the swapchain which you can use to render to the screen, and the default [`ScalingRenderer`].
+    /// Draw this pixel buffer to the configured [`SurfaceTexture`].
     ///
     /// # Errors
     ///
@@ -210,13 +210,52 @@ impl Pixels {
     /// }
     ///
     /// // Draw it to the `SurfaceTexture`
-    /// pixels.render(|encoder, render_target, scaling_renderer| {
+    /// pixels.render();
+    /// ```
+    pub fn render(&mut self) -> Result<(), Error> {
+        self.render_with(|encoder, render_target, scaling_renderer| {
+            scaling_renderer.render(encoder, render_target);
+        })
+    }
+
+    /// Draw this pixel buffer to the configured [`SurfaceTexture`],
+    /// using a custom user-provided render function.
+    ///
+    /// Provides access to a [`wgpu::CommandEncoder`],
+    /// a [`wgpu::TextureView`] from the swapchain which you can use to render to the screen,
+    // and the default [`ScalingRenderer`].
+    ///
+    /// # Errors
+    ///
+    /// Returns an error when [`wgpu::SwapChain::get_next_texture`] times out.
+    ///
+    /// # Example
+    ///
+    /// ```no_run
+    /// # use pixels::Pixels;
+    /// # let surface = wgpu::Surface::create(&pixels_mocks::RWH);
+    /// # let surface_texture = pixels::SurfaceTexture::new(1024, 768, surface);
+    /// let mut pixels = Pixels::new(320, 240, surface_texture)?;
+    ///
+    /// // Clear the pixel buffer
+    /// let frame = pixels.get_frame();
+    /// for pixel in frame.chunks_exact_mut(4) {
+    ///     pixel[0] = 0x00; // R
+    ///     pixel[1] = 0x00; // G
+    ///     pixel[2] = 0x00; // B
+    ///     pixel[3] = 0xff; // A
+    /// }
+    ///
+    /// // Draw it to the `SurfaceTexture`
+    /// pixels.render_with(|encoder, render_target, scaling_renderer| {
     ///    scaling_renderer.render(encoder, render_target);
-    /// });
-    pub fn render<F: FnOnce(&mut wgpu::CommandEncoder, &wgpu::TextureView, &ScalingRenderer)>(
-        &mut self,
-        render_function: F,
-    ) -> Result<(), Error> {
+    ///    // etc...
+    ///  });
+    /// ```
+    pub fn render_with<F>(&mut self, render_function: F) -> Result<(), Error>
+    where
+        F: FnOnce(&mut wgpu::CommandEncoder, &wgpu::TextureView, &ScalingRenderer),
+    {
         // TODO: Center frame buffer in surface
         let frame = self
             .swap_chain
@@ -234,6 +273,7 @@ impl Pixels {
         });
         mapped.data.copy_from_slice(&self.pixels);
         let buffer = mapped.finish();
+
         encoder.copy_buffer_to_texture(
             wgpu::BufferCopyView {
                 buffer: &buffer,
@@ -242,7 +282,7 @@ impl Pixels {
                 rows_per_image: self.texture_extent.height,
             },
             wgpu::TextureCopyView {
-                texture: &self.pixel_texture,
+                texture: &self.texture,
                 mip_level: 0,
                 array_layer: 0,
                 origin: wgpu::Origin3d { x: 0, y: 0, z: 0 },
@@ -250,10 +290,10 @@ impl Pixels {
             self.texture_extent,
         );
 
-        // Call the users render function
+        // Call the users render function.
         (render_function)(&mut encoder, &frame.view, &self.scaling_renderer);
-        self.queue.submit(&[encoder.finish()]);
 
+        self.queue.submit(&[encoder.finish()]);
         Ok(())
     }
 
@@ -356,19 +396,19 @@ impl Pixels {
         )
     }
 
-    /// Provides access the the [`wgpu::Device`] pixels uses.
+    /// Provides access the the [`wgpu::Device`] `pixels` uses.
     pub fn device(&self) -> &wgpu::Device {
         &self.device
     }
 
-    /// Provides access the the [`wgpu::Queue`] pixels uses.
+    /// Provides access the the [`wgpu::Queue`] `pixels` uses.
     pub fn queue(&self) -> &wgpu::Queue {
         &self.queue
     }
 
-    /// Provides access the the [`wgpu::Texture`] pixels makes by uploading the frame you provide to the GPU.
-    pub fn pixel_texture(&self) -> &wgpu::Texture {
-        &self.pixel_texture
+    /// Provides access the the [`wgpu::Texture`] `pixels` makes by uploading the frame you provide to the GPU.
+    pub fn texture(&self) -> &wgpu::Texture {
+        &self.texture
     }
 }
 
@@ -381,24 +421,12 @@ impl<'req> PixelsBuilder<'req> {
     /// # use pixels::PixelsBuilder;
     /// # let surface = wgpu::Surface::create(&pixels_mocks::RWH);
     /// # let surface_texture = pixels::SurfaceTexture::new(1024, 768, surface);
-    /// struct MyRenderPass {
-    ///     // ...
-    /// };
-    ///
-    /// impl pixels::RenderPass for MyRenderPass {
-    ///     // ...
-    /// # fn update_bindings(&mut self, _: &wgpu::TextureView, _: &wgpu::Extent3d) {}
-    /// # fn render(&self, _: &mut wgpu::CommandEncoder, _: &wgpu::TextureView) {}
-    /// }
-    ///
     /// let mut pixels = PixelsBuilder::new(256, 240, surface_texture)
-    ///     .pixel_aspect_ratio(8.0 / 7.0)
-    ///     .add_render_pass(|device, queue, texture, texture_size| {
-    ///         // Create reources for MyRenderPass here
-    ///         Box::new(MyRenderPass {
-    ///             // ...
-    ///         })
+    ///     .request_adapter_options(wgpu::RequestAdapterOptions {
+    ///         power_preference: wgpu::PowerPreference::HighPerformance,
+    ///         compatible_surface: None,
     ///     })
+    ///     .pixel_aspect_ratio(8.0 / 7.0)
     ///     .build()?;
     /// # Ok::<(), pixels::Error>(())
     /// ```
@@ -568,7 +596,6 @@ impl<'req> PixelsBuilder<'req> {
         .transform
         .inversed();
 
-        // Create a renderer that impls `RenderPass`
         let scaling_renderer = ScalingRenderer::new(&mut device, &texture_view, &texture_extent);
 
         Ok(Pixels {
@@ -578,7 +605,7 @@ impl<'req> PixelsBuilder<'req> {
             surface_texture,
             present_mode,
             scaling_renderer,
-            pixel_texture: texture,
+            texture: texture,
             texture_extent,
             texture_format_size,
             pixels,

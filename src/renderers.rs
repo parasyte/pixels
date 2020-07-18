@@ -1,37 +1,36 @@
 use crate::include_spv;
 use ultraviolet::Mat4;
-use wgpu::*;
 
 /// The default renderer that scales your frame to the screen size.
 #[derive(Debug)]
 pub struct ScalingRenderer {
-    uniform_buffer: Buffer,
-    bind_group: BindGroup,
-    render_pipeline: RenderPipeline,
+    uniform_buffer: wgpu::Buffer,
+    bind_group: wgpu::BindGroup,
+    render_pipeline: wgpu::RenderPipeline,
     width: f32,
     height: f32,
 }
 
 impl ScalingRenderer {
     pub(crate) fn new(
-        device: &mut Device,
-        texture_view: &TextureView,
-        texture_size: &Extent3d,
+        device: &mut wgpu::Device,
+        texture_view: &wgpu::TextureView,
+        texture_size: &wgpu::Extent3d,
     ) -> Self {
         let vs_module = device.create_shader_module(include_spv!("../shaders/vert.spv"));
         let fs_module = device.create_shader_module(include_spv!("../shaders/frag.spv"));
 
         // Create a texture sampler with nearest neighbor
-        let sampler = device.create_sampler(&SamplerDescriptor {
-            address_mode_u: AddressMode::ClampToEdge,
-            address_mode_v: AddressMode::ClampToEdge,
-            address_mode_w: AddressMode::ClampToEdge,
-            mag_filter: FilterMode::Nearest,
-            min_filter: FilterMode::Nearest,
-            mipmap_filter: FilterMode::Nearest,
+        let sampler = device.create_sampler(&wgpu::SamplerDescriptor {
+            address_mode_u: wgpu::AddressMode::ClampToEdge,
+            address_mode_v: wgpu::AddressMode::ClampToEdge,
+            address_mode_w: wgpu::AddressMode::ClampToEdge,
+            mag_filter: wgpu::FilterMode::Nearest,
+            min_filter: wgpu::FilterMode::Nearest,
+            mipmap_filter: wgpu::FilterMode::Nearest,
             lod_min_clamp: 0.0,
             lod_max_clamp: 1.0,
-            compare: CompareFunction::Always,
+            compare: wgpu::CompareFunction::Always,
         });
 
         // Create uniform buffer
@@ -44,49 +43,49 @@ impl ScalingRenderer {
         let transform_bytes = matrix.as_bytes();
         let uniform_buffer = device.create_buffer_with_data(
             &transform_bytes,
-            BufferUsage::UNIFORM | BufferUsage::COPY_DST,
+            wgpu::BufferUsage::UNIFORM | wgpu::BufferUsage::COPY_DST,
         );
 
         // Create bind group
-        let bind_group_layout = device.create_bind_group_layout(&BindGroupLayoutDescriptor {
+        let bind_group_layout = device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
             label: None,
             bindings: &[
-                BindGroupLayoutEntry {
+                wgpu::BindGroupLayoutEntry {
                     binding: 0,
-                    visibility: ShaderStage::FRAGMENT,
-                    ty: BindingType::SampledTexture {
-                        component_type: TextureComponentType::Uint,
+                    visibility: wgpu::ShaderStage::FRAGMENT,
+                    ty: wgpu::BindingType::SampledTexture {
+                        component_type: wgpu::TextureComponentType::Uint,
                         multisampled: false,
-                        dimension: TextureViewDimension::D2,
+                        dimension: wgpu::TextureViewDimension::D2,
                     },
                 },
-                BindGroupLayoutEntry {
+                wgpu::BindGroupLayoutEntry {
                     binding: 1,
-                    visibility: ShaderStage::FRAGMENT,
-                    ty: BindingType::Sampler { comparison: false },
+                    visibility: wgpu::ShaderStage::FRAGMENT,
+                    ty: wgpu::BindingType::Sampler { comparison: false },
                 },
-                BindGroupLayoutEntry {
+                wgpu::BindGroupLayoutEntry {
                     binding: 2,
-                    visibility: ShaderStage::VERTEX,
-                    ty: BindingType::UniformBuffer { dynamic: false },
+                    visibility: wgpu::ShaderStage::VERTEX,
+                    ty: wgpu::BindingType::UniformBuffer { dynamic: false },
                 },
             ],
         });
-        let bind_group = device.create_bind_group(&BindGroupDescriptor {
+        let bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
             label: None,
             layout: &bind_group_layout,
             bindings: &[
-                Binding {
+                wgpu::Binding {
                     binding: 0,
-                    resource: BindingResource::TextureView(texture_view),
+                    resource: wgpu::BindingResource::TextureView(texture_view),
                 },
-                Binding {
+                wgpu::Binding {
                     binding: 1,
-                    resource: BindingResource::Sampler(&sampler),
+                    resource: wgpu::BindingResource::Sampler(&sampler),
                 },
-                Binding {
+                wgpu::Binding {
                     binding: 2,
-                    resource: BindingResource::Buffer {
+                    resource: wgpu::BindingResource::Buffer {
                         buffer: &uniform_buffer,
                         range: 0..64,
                     },
@@ -95,36 +94,36 @@ impl ScalingRenderer {
         });
 
         // Create pipeline
-        let pipeline_layout = device.create_pipeline_layout(&PipelineLayoutDescriptor {
+        let pipeline_layout = device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
             bind_group_layouts: &[&bind_group_layout],
         });
-        let render_pipeline = device.create_render_pipeline(&RenderPipelineDescriptor {
+        let render_pipeline = device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
             layout: &pipeline_layout,
-            vertex_stage: ProgrammableStageDescriptor {
+            vertex_stage: wgpu::ProgrammableStageDescriptor {
                 module: &vs_module,
                 entry_point: "main",
             },
-            fragment_stage: Some(ProgrammableStageDescriptor {
+            fragment_stage: Some(wgpu::ProgrammableStageDescriptor {
                 module: &fs_module,
                 entry_point: "main",
             }),
-            rasterization_state: Some(RasterizationStateDescriptor {
-                front_face: FrontFace::Ccw,
-                cull_mode: CullMode::None,
+            rasterization_state: Some(wgpu::RasterizationStateDescriptor {
+                front_face: wgpu::FrontFace::Ccw,
+                cull_mode: wgpu::CullMode::None,
                 depth_bias: 0,
                 depth_bias_slope_scale: 0.0,
                 depth_bias_clamp: 0.0,
             }),
-            primitive_topology: PrimitiveTopology::TriangleList,
-            color_states: &[ColorStateDescriptor {
-                format: TextureFormat::Bgra8UnormSrgb,
-                color_blend: BlendDescriptor::REPLACE,
-                alpha_blend: BlendDescriptor::REPLACE,
-                write_mask: ColorWrite::ALL,
+            primitive_topology: wgpu::PrimitiveTopology::TriangleList,
+            color_states: &[wgpu::ColorStateDescriptor {
+                format: wgpu::TextureFormat::Bgra8UnormSrgb,
+                color_blend: wgpu::BlendDescriptor::REPLACE,
+                alpha_blend: wgpu::BlendDescriptor::REPLACE,
+                write_mask: wgpu::ColorWrite::ALL,
             }],
             depth_stencil_state: None,
-            vertex_state: VertexStateDescriptor {
-                index_format: IndexFormat::Uint16,
+            vertex_state: wgpu::VertexStateDescriptor {
+                index_format: wgpu::IndexFormat::Uint16,
                 vertex_buffers: &[],
             },
             sample_count: 1,
@@ -141,15 +140,15 @@ impl ScalingRenderer {
         }
     }
 
-    pub fn render(&self, encoder: &mut CommandEncoder, render_target: &TextureView) {
+    pub fn render(&self, encoder: &mut wgpu::CommandEncoder, render_target: &wgpu::TextureView) {
         // Draw the updated texture to the render target
-        let mut rpass = encoder.begin_render_pass(&RenderPassDescriptor {
-            color_attachments: &[RenderPassColorAttachmentDescriptor {
+        let mut rpass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
+            color_attachments: &[wgpu::RenderPassColorAttachmentDescriptor {
                 attachment: render_target,
                 resolve_target: None,
-                load_op: LoadOp::Clear,
-                store_op: StoreOp::Store,
-                clear_color: Color::BLACK,
+                load_op: wgpu::LoadOp::Clear,
+                store_op: wgpu::StoreOp::Store,
+                clear_color: wgpu::Color::BLACK,
             }],
             depth_stencil_attachment: None,
         });
@@ -160,15 +159,16 @@ impl ScalingRenderer {
 
     pub(crate) fn resize(
         &mut self,
-        device: &mut Device,
-        encoder: &mut CommandEncoder,
+        device: &mut wgpu::Device,
+        encoder: &mut wgpu::CommandEncoder,
         width: u32,
         height: u32,
     ) {
         let matrix = ScalingMatrix::new((self.width, self.height), (width as f32, height as f32));
         let transform_bytes = matrix.as_bytes();
 
-        let temp_buf = device.create_buffer_with_data(&transform_bytes, BufferUsage::COPY_SRC);
+        let temp_buf =
+            device.create_buffer_with_data(&transform_bytes, wgpu::BufferUsage::COPY_SRC);
         encoder.copy_buffer_to_buffer(&temp_buf, 0, &self.uniform_buffer, 0, 64);
     }
 }
