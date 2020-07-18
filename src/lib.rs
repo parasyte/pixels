@@ -635,7 +635,7 @@ impl<'req> PixelsBuilder<'req> {
             surface_texture,
             present_mode,
             scaling_renderer,
-            texture: texture,
+            texture,
             texture_extent,
             texture_format_size,
             pixels,
