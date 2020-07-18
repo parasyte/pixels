@@ -8,11 +8,28 @@
 //! The GPU interface is offered by [`wgpu`](https://crates.io/crates/wgpu), and is re-exported for
 //! your convenience. Use a windowing framework or context manager of your choice;
 //! [`winit`](https://crates.io/crates/winit) is a good place to start.
+//!
+//! # Environment variables
+//!
+//! * `PIXELS_HIGH_PERF`: Switch the default adapter to high performance.
+//! * `PIXELS_LOW_POWER`: Switch the default adapter to low power.
+//!
+//! These variables change the default adapter to request either high performance or low power.
+//! (I.e. discrete or integrated GPUs.) The value is not checked, only the existence
+//! of the variable is relevant.
+//!
+//! The order of precedence for choosing a power preference is:
+//!
+//! 1. Application's specific adapter request through [`PixelsBuilder::request_adapter_options`]
+//! 2. `PIXELS_HIGH_PERF`
+//! 3. `PIXELS_LOW_POWER`
+//! 4. `wgpu` default power preference (usually low power)
 
 #![deny(clippy::all)]
 #![forbid(unsafe_code)]
 
 use std::cell::RefCell;
+use std::env;
 use std::rc::Rc;
 
 pub use crate::macros::*;
@@ -574,7 +591,7 @@ impl<'req> PixelsBuilder<'req> {
             &self.request_adapter_options.map_or_else(
                 || wgpu::RequestAdapterOptions {
                     compatible_surface,
-                    power_preference: wgpu::PowerPreference::Default,
+                    power_preference: get_default_power_preference(),
                 },
                 |rao| wgpu::RequestAdapterOptions {
                     compatible_surface: rao.compatible_surface.or(compatible_surface),
@@ -724,4 +741,15 @@ fn get_texture_format_size(texture_format: wgpu::TextureFormat) -> u32 {
         | wgpu::TextureFormat::Rgba32Sint
         | wgpu::TextureFormat::Rgba32Float => 16,
     }
+}
+
+fn get_default_power_preference() -> wgpu::PowerPreference {
+    env::var("PIXELS_HIGH_PERF").map_or_else(
+        |_| {
+            env::var("PIXELS_LOW_POWER").map_or(wgpu::PowerPreference::Default, |_| {
+                wgpu::PowerPreference::LowPower
+            })
+        },
+        |_| wgpu::PowerPreference::HighPerformance,
+    )
 }

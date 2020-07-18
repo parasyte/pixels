@@ -2,7 +2,7 @@ language: rust
 dist: bionic
 rust:
 # MSRV
-- 1.40.0
+- 1.41.0
 
 # Stable release channel
 - stable
