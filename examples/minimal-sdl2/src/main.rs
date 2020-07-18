@@ -53,7 +53,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
         // Draw the current frame
         world.draw(pixels.get_frame());
-        pixels.render()?;
+        pixels.render(|encoder, render_target, scaling_renderer| {
+            scaling_renderer.render(encoder, render_target);
+        })?;
     }
 
     Ok(())
