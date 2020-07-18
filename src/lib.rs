@@ -241,7 +241,7 @@ impl Pixels {
     ///
     /// Provides access to a [`wgpu::CommandEncoder`],
     /// a [`wgpu::TextureView`] from the swapchain which you can use to render to the screen,
-    // and the default [`ScalingRenderer`].
+    /// and the default [`ScalingRenderer`].
     ///
     /// # Errors
     ///
