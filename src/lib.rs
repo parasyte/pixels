@@ -237,12 +237,11 @@ impl Pixels {
         })
     }
 
-    /// Draw this pixel buffer to the configured [`SurfaceTexture`],
-    /// using a custom user-provided render function.
+    /// Draw this pixel buffer to the configured [`SurfaceTexture`] using a custom user-provided
+    /// render function.
     ///
-    /// Provides access to a [`wgpu::CommandEncoder`],
-    /// a [`wgpu::TextureView`] from the swapchain which you can use to render to the screen,
-    /// and the default [`ScalingRenderer`].
+    /// Provides access to a [`wgpu::CommandEncoder`], a [`wgpu::TextureView`] from the swapchain
+    /// which you can use to render to the screen, and the default [`ScalingRenderer`].
     ///
     /// # Errors
     ///
@@ -416,17 +415,19 @@ impl Pixels {
         )
     }
 
-    /// Provides access the the [`wgpu::Device`] `pixels` uses.
+    /// Provides access to the internal [`wgpu::Device`].
     pub fn device(&self) -> &wgpu::Device {
         &self.device
     }
 
-    /// Provides access the the [`wgpu::Queue`] `pixels` uses.
+    /// Provides access to the internal [`wgpu::Queue`].
     pub fn queue(&self) -> &wgpu::Queue {
         &self.queue
     }
 
-    /// Provides access the the [`wgpu::Texture`] `pixels` makes by uploading the frame you provide to the GPU.
+    /// Provides access to the internal source [`wgpu::Texture`].
+    ///
+    /// This is the pre-scaled texture copied from the pixel buffer.
     pub fn texture(&self) -> &wgpu::Texture {
         &self.texture
     }
@@ -446,7 +447,7 @@ impl<'req> PixelsBuilder<'req> {
     ///         power_preference: wgpu::PowerPreference::HighPerformance,
     ///         compatible_surface: None,
     ///     })
-    ///     .pixel_aspect_ratio(8.0 / 7.0)
+    ///     .enable_vsync(false)
     ///     .build()?;
     /// # Ok::<(), pixels::Error>(())
     /// ```
@@ -508,6 +509,11 @@ impl<'req> PixelsBuilder<'req> {
     /// # Panics
     ///
     /// The aspect ratio must be > 0.
+    ///
+    /// # Warning
+    ///
+    /// This documentation is hidden because support for pixel aspect ratio is incomplete.
+    #[doc(hidden)]
     pub fn pixel_aspect_ratio(mut self, pixel_aspect_ratio: f64) -> PixelsBuilder<'req> {
         assert!(pixel_aspect_ratio > 0.0);
 
@@ -521,7 +527,7 @@ impl<'req> PixelsBuilder<'req> {
     ///
     /// The `wgpu` present mode will be set to `Fifo` when Vsync is enabled, or `Immediate` when
     /// Vsync is disabled. To set the present mode to `Mailbox` or another value, use the
-    /// [`present_mode`] method.
+    /// [`PixelsBuilder::present_mode`] method.
     pub fn enable_vsync(mut self, enable_vsync: bool) -> PixelsBuilder<'req> {
         self.present_mode = if enable_vsync {
             wgpu::PresentMode::Fifo
@@ -533,7 +539,8 @@ impl<'req> PixelsBuilder<'req> {
 
     /// Set the `wgpu` present mode.
     ///
-    /// This differs from [`enable_vsync`] by allowing the present mode to be set to any value.
+    /// This differs from [`PixelsBuilder::enable_vsync`] by allowing the present mode to be set to
+    /// any value.
     pub fn present_mode(mut self, present_mode: wgpu::PresentMode) -> PixelsBuilder<'req> {
         self.present_mode = present_mode;
         self
