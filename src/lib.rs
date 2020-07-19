@@ -405,7 +405,7 @@ impl Pixels {
     /// assert_eq!(pixel_pos, (0, 20));
     ///
     /// let pixel_pos = pixels.clamp_pixel_pos((11, 3000));
-    /// assert_eq!(pixel_pos, (11, 240));
+    /// assert_eq!(pixel_pos, (11, 239));
     /// # Ok::<(), pixels::Error>(())
     /// ```
     pub fn clamp_pixel_pos(&self, pos: (isize, isize)) -> (usize, usize) {
