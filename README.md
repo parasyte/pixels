@@ -36,6 +36,27 @@ requests a low power (aka integrated) GPU by default. If the examples are not wo
 
 You should also try to keep your graphics drivers up-to-date, especially if you have an old Intel integrated GPU. Keep in mind that some drivers and GPUs are EOL and will not be supported.
 
+### Logging
+
+You may want to use the `RUST_LOG` environment variable (see [`env_logger`](https://docs.rs/env_logger) for full documentation) to gain additional insight while troubleshooting the examples. `RUST_LOG=trace` will spew all logs to `stderr` on debug builds:
+
+```
+$ RUST_LOG=trace cargo run --package minimal-winit
+```
+
+And also on release builds when default features are disabled:
+
+```
+$ cd examples/minimal-winit
+$ RUST_LOG=trace cargo run --release --no-default-features
+```
+
+Alternatively, nightly Cargo allows using the `--no-default-features` flag directly from the top-level directory in combination with the unstable `-Zpackage-features` flag:
+
+```
+$ RUST_LOG=trace cargo run --release --package minimal-winit -Zpackage-features --no-default-features
+```
+
 ## Comparison with `minifb`
 
 The [`minifb`](https://crates.io/crates/minifb) crate shares some similarities with `pixels`; it also allows rapid prototyping of 2D games and emulators. But it requires the use of its own window/GUI management, event loop, and input handling. One of the disadvantages with the `minifb` approach is the lack of hardware acceleration (except on macOS, which uses Metal but is not configurable). An advantage is that it relies on fewer dependencies.

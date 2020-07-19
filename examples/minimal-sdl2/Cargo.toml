@@ -5,8 +5,12 @@ authors = ["Jay Oster <jay@kodewerx.org>"]
 edition = "2018"
 publish = false
 
+[features]
+optimize = ["log/release_max_level_warn"]
+default = ["optimize"]
+
 [dependencies]
-beryllium = { version = "0.2.1", features = [ "extern_crate_raw_window_handle" ] }
+beryllium = { version = "0.2.1", features = ["extern_crate_raw_window_handle"] }
 env_logger = "0.7.1"
-log = { version = "0.4.8", features = [ "release_max_level_warn" ] }
+log = "0.4.8"
 pixels = { path = "../.." }
