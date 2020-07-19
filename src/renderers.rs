@@ -1,15 +1,9 @@
-use std::fmt;
-use std::rc::Rc;
-use ultraviolet::Mat4;
-use wgpu::{self, Extent3d, TextureView};
-
 use crate::include_spv;
-use crate::render_pass::{BoxedRenderPass, Device, Queue, RenderPass};
+use ultraviolet::Mat4;
 
-/// Renderer implements [`RenderPass`].
+/// The default renderer that scales your frame to the screen size.
 #[derive(Debug)]
-pub(crate) struct Renderer {
-    device: Rc<wgpu::Device>,
+pub struct ScalingRenderer {
     uniform_buffer: wgpu::Buffer,
     bind_group: wgpu::BindGroup,
     render_pipeline: wgpu::RenderPipeline,
@@ -17,14 +11,12 @@ pub(crate) struct Renderer {
     height: f32,
 }
 
-impl Renderer {
-    /// Factory function for generating `RenderPass` trait objects.
-    pub(crate) fn factory(
-        device: Device,
-        _queue: Queue,
-        texture_view: &TextureView,
-        texture_size: &Extent3d,
-    ) -> BoxedRenderPass {
+impl ScalingRenderer {
+    pub(crate) fn new(
+        device: &mut wgpu::Device,
+        texture_view: &wgpu::TextureView,
+        texture_size: &wgpu::Extent3d,
+    ) -> Self {
         let vs_module = device.create_shader_module(include_spv!("../shaders/vert.spv"));
         let fs_module = device.create_shader_module(include_spv!("../shaders/frag.spv"));
 
@@ -139,19 +131,16 @@ impl Renderer {
             alpha_to_coverage_enabled: false,
         });
 
-        Box::new(Renderer {
-            device,
+        Self {
             uniform_buffer,
             bind_group,
             render_pipeline,
             width: texture_size.width as f32,
             height: texture_size.height as f32,
-        })
+        }
     }
-}
 
-impl RenderPass for Renderer {
-    fn render(&self, encoder: &mut wgpu::CommandEncoder, render_target: &TextureView) {
+    pub fn render(&self, encoder: &mut wgpu::CommandEncoder, render_target: &wgpu::TextureView) {
         // Draw the updated texture to the render target
         let mut rpass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
             color_attachments: &[wgpu::RenderPassColorAttachmentDescriptor {
@@ -168,22 +157,19 @@ impl RenderPass for Renderer {
         rpass.draw(0..6, 0..1);
     }
 
-    fn resize(&mut self, encoder: &mut wgpu::CommandEncoder, width: u32, height: u32) {
+    pub(crate) fn resize(
+        &mut self,
+        device: &mut wgpu::Device,
+        encoder: &mut wgpu::CommandEncoder,
+        width: u32,
+        height: u32,
+    ) {
         let matrix = ScalingMatrix::new((self.width, self.height), (width as f32, height as f32));
         let transform_bytes = matrix.as_bytes();
 
-        let temp_buf = self
-            .device
-            .create_buffer_with_data(&transform_bytes, wgpu::BufferUsage::COPY_SRC);
+        let temp_buf =
+            device.create_buffer_with_data(&transform_bytes, wgpu::BufferUsage::COPY_SRC);
         encoder.copy_buffer_to_buffer(&temp_buf, 0, &self.uniform_buffer, 0, 64);
-    }
-
-    // We don't actually have to rebind the TextureView here.
-    // It's guaranteed that the initial texture never changes.
-    fn update_bindings(&mut self, _input_texture: &TextureView, _input_texture_size: &Extent3d) {}
-
-    fn debug(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{:?}", self)
     }
 }
 
