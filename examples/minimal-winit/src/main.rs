@@ -36,8 +36,9 @@ fn main() -> Result<(), Error> {
     };
 
     let mut pixels = {
+        let window_size = window.inner_size();
         let surface = Surface::create(&window);
-        let surface_texture = SurfaceTexture::new(WIDTH, HEIGHT, surface);
+        let surface_texture = SurfaceTexture::new(window_size.width, window_size.height, surface);
         Pixels::new(WIDTH, HEIGHT, surface_texture)?
     };
     let mut world = World::new();
