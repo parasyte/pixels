@@ -24,12 +24,6 @@ wgpu = "0.5.0"
 pollster = "0.2"
 ultraviolet = "0.4.6"
 
-# Workaround for build error on macOS
-# Remove this when `gfx-backend-metal` is fixed
-# See: https://github.com/gfx-rs/gfx/pull/3311
-[target.'cfg(target_os = "macos")'.dependencies]
-metal = "=0.18.0"
-
 [dev-dependencies]
 pixels-mocks = { path = "pixels-mocks" }
 winit = "0.22.0"
