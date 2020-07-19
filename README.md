@@ -48,8 +48,7 @@ $ RUST_LOG=trace cargo run --package minimal-winit
 And also on release builds when default features are disabled:
 
 ```
-$ cd examples/minimal-winit
-$ RUST_LOG=trace cargo run --release --no-default-features
+$ RUST_LOG=trace cargo run --release --manifest-path examples/minimal-winit/Cargo.toml --no-default-features
 ```
 
 Alternatively, nightly Cargo allows using the `--no-default-features` flag directly from the top-level directory in combination with the unstable `-Zpackage-features` flag:
