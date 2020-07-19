@@ -40,11 +40,11 @@ fn main() -> Result<(), Error> {
             .build(&event_loop)
             .unwrap()
     };
-    let mut hidpi_factor = window.scale_factor();
 
     let mut pixels = {
+        let window_size = window.inner_size();
         let surface = Surface::create(&window);
-        let surface_texture = SurfaceTexture::new(WIDTH, HEIGHT, surface);
+        let surface_texture = SurfaceTexture::new(window_size.width, window_size.height, surface);
         Pixels::new(WIDTH, HEIGHT, surface_texture)?
     };
     let mut world = World::new();
@@ -82,14 +82,8 @@ fn main() -> Result<(), Error> {
                 return;
             }
 
-            // Adjust high DPI factor
-            if let Some(factor) = input.scale_factor_changed() {
-                hidpi_factor = factor;
-            }
-
             // Resize the window
             if let Some(size) = input.window_resized() {
-                let size = size.to_logical(hidpi_factor);
                 pixels.resize(size.width, size.height);
             }
 
