@@ -229,6 +229,7 @@ impl Pixels {
     ///
     /// // Draw it to the `SurfaceTexture`
     /// pixels.render();
+    /// # Ok::<(), pixels::Error>(())
     /// ```
     pub fn render(&mut self) -> Result<(), Error> {
         self.render_with(|encoder, render_target, scaling_renderer| {
@@ -266,9 +267,10 @@ impl Pixels {
     ///
     /// // Draw it to the `SurfaceTexture`
     /// pixels.render_with(|encoder, render_target, scaling_renderer| {
-    ///    scaling_renderer.render(encoder, render_target);
-    ///    // etc...
-    ///  });
+    ///     scaling_renderer.render(encoder, render_target);
+    ///     // etc...
+    /// });
+    /// # Ok::<(), pixels::Error>(())
     /// ```
     pub fn render_with<F>(&mut self, render_function: F) -> Result<(), Error>
     where
