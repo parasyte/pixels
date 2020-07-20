@@ -57,11 +57,12 @@ fn main() -> Result<(), Error> {
         if let Event::RedrawRequested(_) = event {
             world.draw(pixels.get_frame());
 
-            noise_renderer.update(pixels.device(), pixels.queue(), time);
-            time += 1.0;
+            let render_result = pixels.render_with(|encoder, render_target, context| {
+                context.scaling_renderer.render(encoder, &scaled_texture);
 
-            let render_result = pixels.render_with(|encoder, render_target, scaling_renderer| {
-                scaling_renderer.render(encoder, &scaled_texture);
+                noise_renderer.update(encoder, &context.device, time);
+                time += 0.01;
+
                 noise_renderer.render(encoder, render_target);
             });
 

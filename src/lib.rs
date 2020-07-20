@@ -46,25 +46,32 @@ pub struct SurfaceTexture {
     height: u32,
 }
 
+#[derive(Debug)]
+pub struct PixelsContext {
+    // WGPU state
+    pub device: wgpu::Device,
+    pub queue: wgpu::Queue,
+    swap_chain: wgpu::SwapChain,
+
+    // Texture state for the source
+    pub texture: wgpu::Texture,
+    pub texture_extent: wgpu::Extent3d,
+    pub texture_format_size: u32,
+
+    // A default renderer to scale the input texture to the screen size
+    pub scaling_renderer: ScalingRenderer,
+}
+
 /// Represents a 2D pixel buffer with an explicit image resolution.
 ///
 /// See [`PixelsBuilder`] for building a customized pixel buffer.
 #[derive(Debug)]
 pub struct Pixels {
-    // WGPU state
-    device: wgpu::Device,
-    queue: wgpu::Queue,
-    swap_chain: wgpu::SwapChain,
+    context: PixelsContext,
     surface_texture: SurfaceTexture,
     present_mode: wgpu::PresentMode,
 
-    // A default renderer to scale the input texture to the screen size
-    scaling_renderer: ScalingRenderer,
-
-    // Texture state for the texel upload
-    texture: wgpu::Texture,
-    texture_extent: wgpu::Extent3d,
-    texture_format_size: u32,
+    // Pixel buffer
     pixels: Vec<u8>,
 
     // The inverse of the scaling matrix used by the renderer
@@ -175,8 +182,8 @@ impl Pixels {
         // Update ScalingMatrix for mouse transformation
         self.scaling_matrix_inverse = renderers::ScalingMatrix::new(
             (
-                self.texture_extent.width as f32,
-                self.texture_extent.height as f32,
+                self.context.texture_extent.width as f32,
+                self.context.texture_extent.height as f32,
             ),
             (width as f32, height as f32),
         )
@@ -184,7 +191,7 @@ impl Pixels {
         .inversed();
 
         // Recreate the swap chain
-        self.swap_chain = self.device.create_swap_chain(
+        self.context.swap_chain = self.context.device.create_swap_chain(
             &self.surface_texture.surface,
             &wgpu::SwapChainDescriptor {
                 usage: wgpu::TextureUsage::OUTPUT_ATTACHMENT,
@@ -197,11 +204,13 @@ impl Pixels {
 
         // Update state for all render passes
         let mut encoder = self
+            .context
             .device
             .create_command_encoder(&wgpu::CommandEncoderDescriptor { label: None });
-        self.scaling_renderer
-            .resize(&mut self.device, &mut encoder, width, height);
-        self.queue.submit(&[encoder.finish()]);
+        self.context
+            .scaling_renderer
+            .resize(&mut self.context.device, &mut encoder, width, height);
+        self.context.queue.submit(&[encoder.finish()]);
     }
 
     /// Draw this pixel buffer to the configured [`SurfaceTexture`].
@@ -232,8 +241,8 @@ impl Pixels {
     /// # Ok::<(), pixels::Error>(())
     /// ```
     pub fn render(&mut self) -> Result<(), Error> {
-        self.render_with(|encoder, render_target, scaling_renderer| {
-            scaling_renderer.render(encoder, render_target);
+        self.render_with(|encoder, render_target, context| {
+            context.scaling_renderer.render(encoder, render_target);
         })
     }
 
@@ -273,23 +282,28 @@ impl Pixels {
     /// ```
     pub fn render_with<F>(&mut self, render_function: F) -> Result<(), Error>
     where
-        F: FnOnce(&mut wgpu::CommandEncoder, &wgpu::TextureView, &ScalingRenderer),
+        F: FnOnce(&mut wgpu::CommandEncoder, &wgpu::TextureView, &PixelsContext),
     {
         // TODO: Center frame buffer in surface
         let frame = self
+            .context
             .swap_chain
             .get_next_texture()
             .map_err(|_| Error::Timeout)?;
         let mut encoder = self
+            .context
             .device
             .create_command_encoder(&wgpu::CommandEncoderDescriptor { label: None });
 
         // Update the pixel buffer texture view
-        let mapped = self.device.create_buffer_mapped(&wgpu::BufferDescriptor {
-            label: None,
-            size: self.pixels.len() as u64,
-            usage: wgpu::BufferUsage::COPY_SRC,
-        });
+        let mapped = self
+            .context
+            .device
+            .create_buffer_mapped(&wgpu::BufferDescriptor {
+                label: None,
+                size: self.pixels.len() as u64,
+                usage: wgpu::BufferUsage::COPY_SRC,
+            });
         mapped.data.copy_from_slice(&self.pixels);
         let buffer = mapped.finish();
 
@@ -297,22 +311,22 @@ impl Pixels {
             wgpu::BufferCopyView {
                 buffer: &buffer,
                 offset: 0,
-                bytes_per_row: self.texture_extent.width * self.texture_format_size,
-                rows_per_image: self.texture_extent.height,
+                bytes_per_row: self.context.texture_extent.width * self.context.texture_format_size,
+                rows_per_image: self.context.texture_extent.height,
             },
             wgpu::TextureCopyView {
-                texture: &self.texture,
+                texture: &self.context.texture,
                 mip_level: 0,
                 array_layer: 0,
                 origin: wgpu::Origin3d { x: 0, y: 0, z: 0 },
             },
-            self.texture_extent,
+            self.context.texture_extent,
         );
 
         // Call the users render function.
-        (render_function)(&mut encoder, &frame.view, &self.scaling_renderer);
+        (render_function)(&mut encoder, &frame.view, &self.context);
 
-        self.queue.submit(&[encoder.finish()]);
+        self.context.queue.submit(&[encoder.finish()]);
         Ok(())
     }
 
@@ -357,8 +371,8 @@ impl Pixels {
         let physical_width = self.surface_texture.width as f32;
         let physical_height = self.surface_texture.height as f32;
 
-        let pixels_width = self.texture_extent.width as f32;
-        let pixels_height = self.texture_extent.height as f32;
+        let pixels_width = self.context.texture_extent.width as f32;
+        let pixels_height = self.context.texture_extent.height as f32;
 
         let pos = ultraviolet::Vec4::new(
             (physical_position.0 / physical_width - 0.5) * pixels_width,
@@ -377,9 +391,9 @@ impl Pixels {
         let pixel_y = pos.1.floor() as isize;
 
         if pixel_x < 0
-            || pixel_x >= self.texture_extent.width as isize
+            || pixel_x >= self.context.texture_extent.width as isize
             || pixel_y < 0
-            || pixel_y >= self.texture_extent.height as isize
+            || pixel_y >= self.context.texture_extent.height as isize
         {
             Err((pixel_x, pixel_y))
         } else {
@@ -410,26 +424,30 @@ impl Pixels {
     /// ```
     pub fn clamp_pixel_pos(&self, pos: (isize, isize)) -> (usize, usize) {
         (
-            pos.0.max(0).min(self.texture_extent.width as isize - 1) as usize,
-            pos.1.max(0).min(self.texture_extent.height as isize - 1) as usize,
+            pos.0
+                .max(0)
+                .min(self.context.texture_extent.width as isize - 1) as usize,
+            pos.1
+                .max(0)
+                .min(self.context.texture_extent.height as isize - 1) as usize,
         )
     }
 
     /// Provides access to the internal [`wgpu::Device`].
     pub fn device(&self) -> &wgpu::Device {
-        &self.device
+        &self.context.device
     }
 
     /// Provides access to the internal [`wgpu::Queue`].
     pub fn queue(&self) -> &wgpu::Queue {
-        &self.queue
+        &self.context.queue
     }
 
     /// Provides access to the internal source [`wgpu::Texture`].
     ///
     /// This is the pre-scaled texture copied from the pixel buffer.
     pub fn texture(&self) -> &wgpu::Texture {
-        &self.texture
+        &self.context.texture
     }
 }
 
@@ -637,16 +655,20 @@ impl<'req> PixelsBuilder<'req> {
 
         let scaling_renderer = ScalingRenderer::new(&mut device, &texture_view, &texture_extent);
 
-        Ok(Pixels {
+        let context = PixelsContext {
             device,
             queue,
             swap_chain,
-            surface_texture,
-            present_mode,
-            scaling_renderer,
             texture,
             texture_extent,
             texture_format_size,
+            scaling_renderer,
+        };
+
+        Ok(Pixels {
+            context,
+            surface_texture,
+            present_mode,
             pixels,
             scaling_matrix_inverse,
         })

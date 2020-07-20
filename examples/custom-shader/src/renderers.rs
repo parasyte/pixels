@@ -123,15 +123,15 @@ impl NoiseRenderer {
         }
     }
 
-    pub(crate) fn update(&mut self, device: &wgpu::Device, queue: &wgpu::Queue, time: f32) {
-        let mut encoder =
-            device.create_command_encoder(&wgpu::CommandEncoderDescriptor { label: None });
-
+    pub(crate) fn update(
+        &mut self,
+        encoder: &mut wgpu::CommandEncoder,
+        device: &wgpu::Device,
+        time: f32,
+    ) {
         let temp_buf =
             device.create_buffer_with_data(&time.to_ne_bytes(), wgpu::BufferUsage::COPY_SRC);
         encoder.copy_buffer_to_buffer(&temp_buf, 0, &self.time_buffer, 0, 4);
-
-        queue.submit(&[encoder.finish()]);
     }
 
     pub(crate) fn render(
