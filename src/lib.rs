@@ -250,7 +250,8 @@ impl Pixels {
     /// render function.
     ///
     /// Provides access to a [`wgpu::CommandEncoder`], a [`wgpu::TextureView`] from the swapchain
-    /// which you can use to render to the screen, and the default [`ScalingRenderer`].
+    /// which you can use to render to the screen, and a [`PixelsContext`] with all of the internal
+    /// `wgpu` context.
     ///
     /// # Errors
     ///
@@ -274,8 +275,8 @@ impl Pixels {
     /// }
     ///
     /// // Draw it to the `SurfaceTexture`
-    /// pixels.render_with(|encoder, render_target, scaling_renderer| {
-    ///     scaling_renderer.render(encoder, render_target);
+    /// pixels.render_with(|encoder, render_target, context| {
+    ///     context.scaling_renderer.render(encoder, render_target);
     ///     // etc...
     /// });
     /// # Ok::<(), pixels::Error>(())
