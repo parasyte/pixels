@@ -589,8 +589,7 @@ impl<'req> PixelsBuilder<'req> {
         ))
         .ok_or(Error::AdapterNotFound)?;
 
-        let (mut device, queue) =
-            pollster::block_on(adapter.request_device(&self.device_descriptor));
+        let (device, queue) = pollster::block_on(adapter.request_device(&self.device_descriptor));
 
         // The rest of this is technically a fixed-function pipeline... For now!
 
