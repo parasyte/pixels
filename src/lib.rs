@@ -434,9 +434,26 @@ impl Pixels {
         )
     }
 
+    /// Provides access to the internal [`wgpu::Device`].
+    pub fn device(&self) -> &wgpu::Device {
+        &self.context.device
+    }
+
+    /// Provides access to the internal [`wgpu::Queue`].
+    pub fn queue(&self) -> &wgpu::Queue {
+        &self.context.queue
+    }
+
+    /// Provides access to the internal source [`wgpu::Texture`].
+    ///
+    /// This is the pre-scaled texture copied from the pixel buffer.
+    pub fn texture(&self) -> &wgpu::Texture {
+        &self.context.texture
+    }
+
     /// Provides access to the internal [`PixelsContext`]
-    pub fn context(&mut self) -> &mut PixelsContext {
-        &mut self.context
+    pub fn context(&self) -> &PixelsContext {
+        &self.context
     }
 }
 
