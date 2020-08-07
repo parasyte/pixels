@@ -642,7 +642,7 @@ impl<'req> PixelsBuilder<'req> {
         .transform
         .inversed();
 
-        let scaling_renderer = ScalingRenderer::new(&mut device, &texture_view, &texture_extent);
+        let scaling_renderer = ScalingRenderer::new(&device, &texture_view, &texture_extent);
 
         let context = PixelsContext {
             device,
