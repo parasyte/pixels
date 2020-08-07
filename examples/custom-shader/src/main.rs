@@ -50,7 +50,7 @@ fn main() -> Result<(), Error> {
     let mut world = World::new();
 
     let mut time = 0.0;
-    let (scaled_texture, mut noise_renderer) = create_noise_renderer(&pixels);
+    let (scaled_texture, mut noise_renderer) = create_noise_renderer(&mut pixels);
 
     event_loop.run(move |event, _, control_flow| {
         // Draw the current frame
@@ -143,7 +143,9 @@ impl World {
     }
 }
 
-fn create_noise_renderer(pixels: &Pixels) -> (wgpu::TextureView, NoiseRenderer) {
+fn create_noise_renderer(pixels: &mut Pixels) -> (wgpu::TextureView, NoiseRenderer) {
+    let device = &mut pixels.context().device;
+
     let texture_descriptor = wgpu::TextureDescriptor {
         label: None,
         size: pixels::wgpu::Extent3d {
@@ -158,11 +160,10 @@ fn create_noise_renderer(pixels: &Pixels) -> (wgpu::TextureView, NoiseRenderer) 
         format: wgpu::TextureFormat::Bgra8UnormSrgb,
         usage: wgpu::TextureUsage::SAMPLED | wgpu::TextureUsage::OUTPUT_ATTACHMENT,
     };
-    let scaled_texture = pixels
-        .device()
+    let scaled_texture = device
         .create_texture(&texture_descriptor)
         .create_default_view();
-    let noise_renderer = NoiseRenderer::new(pixels.device(), &scaled_texture);
+    let noise_renderer = NoiseRenderer::new(device, &scaled_texture);
 
     (scaled_texture, noise_renderer)
 }

@@ -13,7 +13,7 @@ pub struct ScalingRenderer {
 
 impl ScalingRenderer {
     pub(crate) fn new(
-        device: &mut wgpu::Device,
+        device: &wgpu::Device,
         texture_view: &wgpu::TextureView,
         texture_size: &wgpu::Extent3d,
     ) -> Self {

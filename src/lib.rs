@@ -434,21 +434,9 @@ impl Pixels {
         )
     }
 
-    /// Provides access to the internal [`wgpu::Device`].
-    pub fn device(&self) -> &wgpu::Device {
-        &self.context.device
-    }
-
-    /// Provides access to the internal [`wgpu::Queue`].
-    pub fn queue(&self) -> &wgpu::Queue {
-        &self.context.queue
-    }
-
-    /// Provides access to the internal source [`wgpu::Texture`].
-    ///
-    /// This is the pre-scaled texture copied from the pixel buffer.
-    pub fn texture(&self) -> &wgpu::Texture {
-        &self.context.texture
+    /// Provides access to the internal [`PixelsContext`]
+    pub fn context(&mut self) -> &mut PixelsContext {
+        &mut self.context
     }
 }
 
@@ -601,8 +589,7 @@ impl<'req> PixelsBuilder<'req> {
         ))
         .ok_or(Error::AdapterNotFound)?;
 
-        let (mut device, queue) =
-            pollster::block_on(adapter.request_device(&self.device_descriptor));
+        let (device, queue) = pollster::block_on(adapter.request_device(&self.device_descriptor));
 
         // The rest of this is technically a fixed-function pipeline... For now!
 
@@ -654,7 +641,7 @@ impl<'req> PixelsBuilder<'req> {
         .transform
         .inversed();
 
-        let scaling_renderer = ScalingRenderer::new(&mut device, &texture_view, &texture_extent);
+        let scaling_renderer = ScalingRenderer::new(&device, &texture_view, &texture_extent);
 
         let context = PixelsContext {
             device,
