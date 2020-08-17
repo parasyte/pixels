@@ -153,7 +153,6 @@ fn create_noise_renderer(pixels: &Pixels) -> (wgpu::TextureView, NoiseRenderer) 
             height: HEIGHT,
             depth: 1,
         },
-        array_layer_count: 1,
         mip_level_count: 1,
         sample_count: 1,
         dimension: wgpu::TextureDimension::D2,
@@ -162,7 +161,7 @@ fn create_noise_renderer(pixels: &Pixels) -> (wgpu::TextureView, NoiseRenderer) 
     };
     let scaled_texture = device
         .create_texture(&texture_descriptor)
-        .create_default_view();
+        .create_view(&wgpu::TextureViewDescriptor::default())
     let noise_renderer = NoiseRenderer::new(device, &scaled_texture);
 
     (scaled_texture, noise_renderer)

@@ -30,12 +30,10 @@
 
 use std::env;
 
-pub use crate::macros::*;
 pub use crate::renderers::ScalingRenderer;
 use thiserror::Error;
 pub use wgpu;
 
-mod macros;
 mod renderers;
 
 /// A logical texture for a window surface.
@@ -96,11 +94,14 @@ pub struct PixelsBuilder<'req> {
 #[derive(Error, Debug)]
 pub enum Error {
     /// No suitable [`wgpu::Adapter`] found
-    #[error("No suitable `wgpu::Adapter` found")]
+    #[error("No suitable `wgpu::Adapter` found.")]
     AdapterNotFound,
-    /// Equivalent to [`wgpu::TimeOut`]
-    #[error("The GPU timed out when attempting to acquire the next texture or if a previous output is still alive.")]
-    Timeout,
+    /// Equivalent to [`wgpu::RequestDeviceError`]
+    #[error("No wgpu::Device found.")]
+    DeviceNotFound(wgpu::RequestDeviceError),
+    /// Equivalent to [`wgpu::SwapChainError`]
+    #[error("The GPU failed to acquire a swapchain frame.")]
+    Swapchain(wgpu::SwapChainError),
 }
 
 impl SurfaceTexture {
@@ -203,14 +204,9 @@ impl Pixels {
         );
 
         // Update state for all render passes
-        let mut encoder = self
-            .context
-            .device
-            .create_command_encoder(&wgpu::CommandEncoderDescriptor { label: None });
         self.context
             .scaling_renderer
-            .resize(&mut self.context.device, &mut encoder, width, height);
-        self.context.queue.submit(&[encoder.finish()]);
+            .resize(&self.context.queue, width, height);
     }
 
     /// Draw this pixel buffer to the configured [`SurfaceTexture`].
@@ -289,45 +285,35 @@ impl Pixels {
         let frame = self
             .context
             .swap_chain
-            .get_next_texture()
-            .map_err(|_| Error::Timeout)?;
-        let mut encoder = self
-            .context
-            .device
-            .create_command_encoder(&wgpu::CommandEncoderDescriptor { label: None });
+            .get_current_frame()
+            .map_err(|err| Error::Swapchain(err))?;
+        let mut encoder =
+            self.context
+                .device
+                .create_command_encoder(&wgpu::CommandEncoderDescriptor {
+                    label: Some("pixels_command_encoder"),
+                });
 
         // Update the pixel buffer texture view
-        let mapped = self
-            .context
-            .device
-            .create_buffer_mapped(&wgpu::BufferDescriptor {
-                label: None,
-                size: self.pixels.len() as u64,
-                usage: wgpu::BufferUsage::COPY_SRC,
-            });
-        mapped.data.copy_from_slice(&self.pixels);
-        let buffer = mapped.finish();
-
-        encoder.copy_buffer_to_texture(
-            wgpu::BufferCopyView {
-                buffer: &buffer,
-                offset: 0,
-                bytes_per_row: self.context.texture_extent.width * self.context.texture_format_size,
-                rows_per_image: self.context.texture_extent.height,
-            },
+        self.context.queue.write_texture(
             wgpu::TextureCopyView {
                 texture: &self.context.texture,
                 mip_level: 0,
-                array_layer: 0,
                 origin: wgpu::Origin3d { x: 0, y: 0, z: 0 },
+            },
+            &self.pixels,
+            wgpu::TextureDataLayout {
+                offset: 0,
+                bytes_per_row: self.context.texture_extent.width * self.context.texture_format_size,
+                rows_per_image: self.context.texture_extent.height,
             },
             self.context.texture_extent,
         );
 
         // Call the users render function.
-        (render_function)(&mut encoder, &frame.view, &self.context);
+        (render_function)(&mut encoder, &frame.output.view, &self.context);
 
-        self.context.queue.submit(&[encoder.finish()]);
+        self.context.queue.submit(Some(encoder.finish()));
         Ok(())
     }
 
@@ -575,6 +561,8 @@ impl<'req> PixelsBuilder<'req> {
     /// The default value is [`wgpu::TextureFormat::Rgba8UnormSrgb`], which is 4 unsigned bytes in
     /// `RGBA` order using the SRGB color space. This is typically what you want when you are
     /// working with color values from popular image editing tools or web apps.
+    ///
+    /// Compressed texture formats are not supported.
     pub const fn texture_format(
         mut self,
         texture_format: wgpu::TextureFormat,
@@ -589,24 +577,25 @@ impl<'req> PixelsBuilder<'req> {
     ///
     /// Returns an error when a [`wgpu::Adapter`] cannot be found.
     pub fn build(self) -> Result<Pixels, Error> {
+        let instance = wgpu::Instance::new(self.backend);
+
         // TODO: Use `options.pixel_aspect_ratio` to stretch the scaled texture
         let compatible_surface = Some(&self.surface_texture.surface);
-        let adapter = pollster::block_on(wgpu::Adapter::request(
-            &self.request_adapter_options.map_or_else(
-                || wgpu::RequestAdapterOptions {
-                    compatible_surface,
-                    power_preference: get_default_power_preference(),
-                },
-                |rao| wgpu::RequestAdapterOptions {
-                    compatible_surface: rao.compatible_surface.or(compatible_surface),
-                    power_preference: rao.power_preference,
-                },
-            ),
-            self.backend,
-        ))
-        .ok_or(Error::AdapterNotFound)?;
+        let adapter = instance.request_adapter(&self.request_adapter_options.map_or_else(
+            || wgpu::RequestAdapterOptions {
+                compatible_surface,
+                power_preference: get_default_power_preference(),
+            },
+            |rao| wgpu::RequestAdapterOptions {
+                compatible_surface: rao.compatible_surface.or(compatible_surface),
+                power_preference: rao.power_preference,
+            },
+        ));
+        let adapter = pollster::block_on(adapter).ok_or(Error::AdapterNotFound)?;
 
-        let (device, queue) = pollster::block_on(adapter.request_device(&self.device_descriptor));
+        let (device, queue) =
+            pollster::block_on(adapter.request_device(&self.device_descriptor, None))
+                .map_err(|err| Error::DeviceNotFound(err))?;
 
         // The rest of this is technically a fixed-function pipeline... For now!
 
@@ -619,16 +608,15 @@ impl<'req> PixelsBuilder<'req> {
             depth: 1,
         };
         let texture = device.create_texture(&wgpu::TextureDescriptor {
-            label: None,
+            label: Some("pixels_source_texture"),
             size: texture_extent,
-            array_layer_count: 1,
             mip_level_count: 1,
             sample_count: 1,
             dimension: wgpu::TextureDimension::D2,
             format: self.texture_format,
             usage: wgpu::TextureUsage::SAMPLED | wgpu::TextureUsage::COPY_DST,
         });
-        let texture_view = texture.create_default_view();
+        let texture_view = texture.create_view(&wgpu::TextureViewDescriptor::default());
         let texture_format_size = get_texture_format_size(self.texture_format);
 
         // Create the pixel buffer
@@ -729,6 +717,24 @@ fn get_texture_format_size(texture_format: wgpu::TextureFormat) -> u32 {
         wgpu::TextureFormat::Rgba32Uint
         | wgpu::TextureFormat::Rgba32Sint
         | wgpu::TextureFormat::Rgba32Float => 16,
+
+        // Compressed formats
+        wgpu::TextureFormat::Bc1RgbaUnorm
+        | wgpu::TextureFormat::Bc1RgbaUnormSrgb
+        | wgpu::TextureFormat::Bc2RgbaUnorm
+        | wgpu::TextureFormat::Bc2RgbaUnormSrgb
+        | wgpu::TextureFormat::Bc3RgbaUnorm
+        | wgpu::TextureFormat::Bc3RgbaUnormSrgb
+        | wgpu::TextureFormat::Bc4RUnorm
+        | wgpu::TextureFormat::Bc4RSnorm
+        | wgpu::TextureFormat::Bc5RgUnorm
+        | wgpu::TextureFormat::Bc5RgSnorm
+        | wgpu::TextureFormat::Bc6hRgbUfloat
+        | wgpu::TextureFormat::Bc6hRgbSfloat
+        | wgpu::TextureFormat::Bc7RgbaUnorm
+        | wgpu::TextureFormat::Bc7RgbaUnormSrgb => {
+            panic!("Pixels does not support compressed wgpu::TextureFormat's");
+        }
     }
 }
 
