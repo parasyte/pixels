@@ -19,17 +19,19 @@ include = [
 ]
 
 [dependencies]
-thiserror = "1.0"
-wgpu = { git = "https://github.com/gfx-rs/wgpu-rs" }
+pixels-dragons = { path = "internals/pixels-dragons" }
 pollster = "0.2"
+raw-window-handle = "0.3"
+thiserror = "1.0"
 ultraviolet = "0.4"
+wgpu = { git = "https://github.com/gfx-rs/wgpu-rs" }
 
 [dev-dependencies]
-pixels-mocks = { path = "pixels-mocks" }
+pixels-mocks = { path = "internals/pixels-mocks" }
 winit = "0.22"
 
 [workspace]
 members = [
     "examples/*",
-    "pixels-mocks",
+    "internals/*",
 ]

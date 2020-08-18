@@ -3,7 +3,7 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
 use beryllium::*;
-use pixels::{wgpu::Surface, Pixels, SurfaceTexture};
+use pixels::{Pixels, SurfaceTexture};
 
 const WIDTH: u32 = 320;
 const HEIGHT: u32 = 240;
@@ -24,10 +24,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         sdl.create_raw_window("Hello Pixels", WindowPosition::Centered, WIDTH, HEIGHT, 0)?;
 
     let mut pixels = {
-        let surface = Surface::create(&window);
         // TODO: Beryllium does not expose the SDL2 `GetDrawableSize` APIs, so choosing the correct
         // surface texture size is not possible.
-        let surface_texture = SurfaceTexture::new(WIDTH, HEIGHT, surface);
+        let surface_texture = SurfaceTexture::new(WIDTH, HEIGHT, &window);
         Pixels::new(WIDTH, HEIGHT, surface_texture)?
     };
     let mut world = World::new();

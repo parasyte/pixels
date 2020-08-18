@@ -3,10 +3,7 @@
 
 use crate::renderers::NoiseRenderer;
 use log::error;
-use pixels::{
-    wgpu::{self, Surface},
-    Error, Pixels, SurfaceTexture,
-};
+use pixels::{raw_window_handle::HasRawWindowHandle, wgpu, Error, Pixels, SurfaceTexture};
 use winit::dpi::LogicalSize;
 use winit::event::{Event, VirtualKeyCode};
 use winit::event_loop::{ControlFlow, EventLoop};
@@ -43,14 +40,13 @@ fn main() -> Result<(), Error> {
 
     let mut pixels = {
         let window_size = window.inner_size();
-        let surface = Surface::create(&window);
-        let surface_texture = SurfaceTexture::new(window_size.width, window_size.height, surface);
+        let surface_texture = SurfaceTexture::new(window_size.width, window_size.height, &window);
         Pixels::new(WIDTH, HEIGHT, surface_texture)?
     };
     let mut world = World::new();
 
     let mut time = 0.0;
-    let (scaled_texture, mut noise_renderer) = create_noise_renderer(&pixels);
+    let (scaled_texture, noise_renderer) = create_noise_renderer(&pixels);
 
     event_loop.run(move |event, _, control_flow| {
         // Draw the current frame
@@ -60,7 +56,7 @@ fn main() -> Result<(), Error> {
             let render_result = pixels.render_with(|encoder, render_target, context| {
                 context.scaling_renderer.render(encoder, &scaled_texture);
 
-                noise_renderer.update(encoder, &context.device, time);
+                noise_renderer.update(&context.queue, time);
                 time += 0.01;
 
                 noise_renderer.render(encoder, render_target);
@@ -143,7 +139,9 @@ impl World {
     }
 }
 
-fn create_noise_renderer(pixels: &Pixels) -> (wgpu::TextureView, NoiseRenderer) {
+fn create_noise_renderer<W: HasRawWindowHandle>(
+    pixels: &Pixels<W>,
+) -> (wgpu::TextureView, NoiseRenderer) {
     let device = &pixels.device();
 
     let texture_descriptor = wgpu::TextureDescriptor {
@@ -161,7 +159,7 @@ fn create_noise_renderer(pixels: &Pixels) -> (wgpu::TextureView, NoiseRenderer) 
     };
     let scaled_texture = device
         .create_texture(&texture_descriptor)
-        .create_view(&wgpu::TextureViewDescriptor::default())
+        .create_view(&wgpu::TextureViewDescriptor::default());
     let noise_renderer = NoiseRenderer::new(device, &scaled_texture);
 
     (scaled_texture, noise_renderer)

@@ -31,7 +31,7 @@ impl ScalingRenderer {
             mipmap_filter: wgpu::FilterMode::Nearest,
             lod_min_clamp: 0.0,
             lod_max_clamp: 1.0,
-            compare: Some(wgpu::CompareFunction::Always),
+            compare: None,
             anisotropy_clamp: None,
         });
 
