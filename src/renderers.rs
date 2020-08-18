@@ -168,7 +168,7 @@ impl ScalingRenderer {
         rpass.draw(0..6, 0..1);
     }
 
-    pub(crate) fn resize(&mut self, queue: &wgpu::Queue, width: u32, height: u32) {
+    pub(crate) fn resize(&self, queue: &wgpu::Queue, width: u32, height: u32) {
         let matrix = ScalingMatrix::new((self.width, self.height), (width as f32, height as f32));
         let transform_bytes = matrix.as_bytes();
         queue.write_buffer(&self.uniform_buffer, 0, &transform_bytes);
