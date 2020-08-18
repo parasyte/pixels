@@ -54,20 +54,35 @@ pub struct SurfaceSize {
     height: u32,
 }
 
+/// Provides the internal state for custom shaders.
+///
+/// A reference to this struct is given to the `render_function` closure when using
+/// [`Pixels::render_with`].
 #[derive(Debug)]
 pub struct PixelsContext {
-    // WGPU state
+    /// The `Device` allows creating GPU resources.
     pub device: wgpu::Device,
+
+    /// The `Queue` provides access to the GPU command queue.
     pub queue: wgpu::Queue,
+
     surface: wgpu::Surface,
     swap_chain: wgpu::SwapChain,
 
-    // Texture state for the source
+    /// This is the texture that your raw data is copied to by [`Pixels::render`] or
+    /// [`Pixels::render_with`].
     pub texture: wgpu::Texture,
+
+    /// Provides access to the texture size.
     pub texture_extent: wgpu::Extent3d,
+
+    /// Defines the "data rate" for the raw texture data. This is effectively the "bytes per pixel"
+    /// count.
+    ///
+    /// Compressed textures may have less than one byte per pixel.
     pub texture_format_size: f32,
 
-    // A default renderer to scale the input texture to the screen size
+    /// A default renderer to scale the input texture to the screen size.
     pub scaling_renderer: ScalingRenderer,
 }
 
@@ -226,7 +241,7 @@ impl<'win, W: HasRawWindowHandle> Pixels<W> {
     ///
     /// # Errors
     ///
-    /// Returns an error when [`wgpu::SwapChain::get_next_texture`] times out.
+    /// Returns an error when [`wgpu::SwapChain::get_current_frame`] fails.
     ///
     /// # Example
     ///
@@ -264,7 +279,7 @@ impl<'win, W: HasRawWindowHandle> Pixels<W> {
     ///
     /// # Errors
     ///
-    /// Returns an error when [`wgpu::SwapChain::get_next_texture`] times out.
+    /// Returns an error when [`wgpu::SwapChain::get_current_frame`] fails.
     ///
     /// # Example
     ///
@@ -580,8 +595,6 @@ impl<'req, 'win, W: HasRawWindowHandle> PixelsBuilder<'req, 'win, W> {
     /// The default value is [`wgpu::TextureFormat::Rgba8UnormSrgb`], which is 4 unsigned bytes in
     /// `RGBA` order using the SRGB color space. This is typically what you want when you are
     /// working with color values from popular image editing tools or web apps.
-    ///
-    /// Compressed texture formats are not supported.
     pub fn texture_format(
         mut self,
         texture_format: wgpu::TextureFormat,
