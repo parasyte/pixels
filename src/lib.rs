@@ -65,7 +65,7 @@ pub struct PixelsContext {
     // Texture state for the source
     pub texture: wgpu::Texture,
     pub texture_extent: wgpu::Extent3d,
-    pub texture_format_size: u32,
+    pub texture_format_size: f32,
 
     // A default renderer to scale the input texture to the screen size
     pub scaling_renderer: ScalingRenderer,
@@ -308,6 +308,8 @@ impl<'win, W: HasRawWindowHandle> Pixels<W> {
                 });
 
         // Update the pixel buffer texture view
+        let bytes_per_row =
+            (self.context.texture_extent.width as f32 * self.context.texture_format_size) as u32;
         self.context.queue.write_texture(
             wgpu::TextureCopyView {
                 texture: &self.context.texture,
@@ -317,7 +319,7 @@ impl<'win, W: HasRawWindowHandle> Pixels<W> {
             &self.pixels,
             wgpu::TextureDataLayout {
                 offset: 0,
-                bytes_per_row: self.context.texture_extent.width * self.context.texture_format_size,
+                bytes_per_row,
                 rows_per_image: self.context.texture_extent.height,
             },
             self.context.texture_extent,
@@ -638,7 +640,7 @@ impl<'req, 'win, W: HasRawWindowHandle> PixelsBuilder<'req, 'win, W> {
         let texture_format_size = get_texture_format_size(self.texture_format);
 
         // Create the pixel buffer
-        let capacity = (width * height * texture_format_size) as usize;
+        let capacity = ((width * height) as f32 * texture_format_size) as usize;
         let mut pixels = Vec::with_capacity(capacity);
         pixels.resize_with(capacity, Default::default);
 
@@ -688,13 +690,13 @@ impl<'req, 'win, W: HasRawWindowHandle> PixelsBuilder<'req, 'win, W> {
     }
 }
 
-fn get_texture_format_size(texture_format: wgpu::TextureFormat) -> u32 {
+fn get_texture_format_size(texture_format: wgpu::TextureFormat) -> f32 {
     match texture_format {
         // 8-bit formats
         wgpu::TextureFormat::R8Unorm
         | wgpu::TextureFormat::R8Snorm
         | wgpu::TextureFormat::R8Uint
-        | wgpu::TextureFormat::R8Sint => 1,
+        | wgpu::TextureFormat::R8Sint => 1.0,
 
         // 16-bit formats
         wgpu::TextureFormat::R16Uint
@@ -703,7 +705,7 @@ fn get_texture_format_size(texture_format: wgpu::TextureFormat) -> u32 {
         | wgpu::TextureFormat::Rg8Unorm
         | wgpu::TextureFormat::Rg8Snorm
         | wgpu::TextureFormat::Rg8Uint
-        | wgpu::TextureFormat::Rg8Sint => 2,
+        | wgpu::TextureFormat::Rg8Sint => 2.0,
 
         // 32-bit formats
         wgpu::TextureFormat::R32Uint
@@ -723,7 +725,7 @@ fn get_texture_format_size(texture_format: wgpu::TextureFormat) -> u32 {
         | wgpu::TextureFormat::Rg11b10Float
         | wgpu::TextureFormat::Depth32Float
         | wgpu::TextureFormat::Depth24Plus
-        | wgpu::TextureFormat::Depth24PlusStencil8 => 4,
+        | wgpu::TextureFormat::Depth24PlusStencil8 => 4.0,
 
         // 64-bit formats
         wgpu::TextureFormat::Rg32Uint
@@ -731,30 +733,29 @@ fn get_texture_format_size(texture_format: wgpu::TextureFormat) -> u32 {
         | wgpu::TextureFormat::Rg32Float
         | wgpu::TextureFormat::Rgba16Uint
         | wgpu::TextureFormat::Rgba16Sint
-        | wgpu::TextureFormat::Rgba16Float => 8,
+        | wgpu::TextureFormat::Rgba16Float => 8.0,
 
         // 128-bit formats
         wgpu::TextureFormat::Rgba32Uint
         | wgpu::TextureFormat::Rgba32Sint
-        | wgpu::TextureFormat::Rgba32Float => 16,
+        | wgpu::TextureFormat::Rgba32Float => 16.0,
 
-        // Compressed formats: TODO
+        // Compressed formats
         wgpu::TextureFormat::Bc1RgbaUnorm
         | wgpu::TextureFormat::Bc1RgbaUnormSrgb
-        | wgpu::TextureFormat::Bc2RgbaUnorm
+        | wgpu::TextureFormat::Bc4RUnorm
+        | wgpu::TextureFormat::Bc4RSnorm => 0.5,
+
+        wgpu::TextureFormat::Bc2RgbaUnorm
         | wgpu::TextureFormat::Bc2RgbaUnormSrgb
         | wgpu::TextureFormat::Bc3RgbaUnorm
         | wgpu::TextureFormat::Bc3RgbaUnormSrgb
-        | wgpu::TextureFormat::Bc4RUnorm
-        | wgpu::TextureFormat::Bc4RSnorm
         | wgpu::TextureFormat::Bc5RgUnorm
         | wgpu::TextureFormat::Bc5RgSnorm
         | wgpu::TextureFormat::Bc6hRgbUfloat
         | wgpu::TextureFormat::Bc6hRgbSfloat
         | wgpu::TextureFormat::Bc7RgbaUnorm
-        | wgpu::TextureFormat::Bc7RgbaUnormSrgb => {
-            panic!("Pixels does not support compressed wgpu::TextureFormat's");
-        }
+        | wgpu::TextureFormat::Bc7RgbaUnormSrgb => 1.0,
     }
 }
 
