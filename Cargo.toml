@@ -24,7 +24,7 @@ pollster = "0.2"
 raw-window-handle = "0.3"
 thiserror = "1.0"
 ultraviolet = "0.4"
-wgpu = { git = "https://github.com/gfx-rs/wgpu-rs" }
+wgpu = "0.6"
 
 [dev-dependencies]
 pixels-mocks = { path = "internals/pixels-mocks" }

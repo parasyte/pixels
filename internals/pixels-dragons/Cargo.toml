@@ -6,4 +6,4 @@ edition = "2018"
 
 [dependencies]
 raw-window-handle = "0.3"
-wgpu = { git = "https://github.com/gfx-rs/wgpu-rs" }
+wgpu = "0.6"
