@@ -1,5 +1,5 @@
-use crate::include_spv;
 use ultraviolet::Mat4;
+use wgpu::util::DeviceExt;
 
 /// The default renderer that scales your frame to the screen size.
 #[derive(Debug)]
@@ -13,15 +13,16 @@ pub struct ScalingRenderer {
 
 impl ScalingRenderer {
     pub(crate) fn new(
-        device: &mut wgpu::Device,
+        device: &wgpu::Device,
         texture_view: &wgpu::TextureView,
         texture_size: &wgpu::Extent3d,
     ) -> Self {
-        let vs_module = device.create_shader_module(include_spv!("../shaders/vert.spv"));
-        let fs_module = device.create_shader_module(include_spv!("../shaders/frag.spv"));
+        let vs_module = device.create_shader_module(wgpu::include_spirv!("../shaders/vert.spv"));
+        let fs_module = device.create_shader_module(wgpu::include_spirv!("../shaders/frag.spv"));
 
         // Create a texture sampler with nearest neighbor
         let sampler = device.create_sampler(&wgpu::SamplerDescriptor {
+            label: Some("pixels_scaling_renderer_sampler"),
             address_mode_u: wgpu::AddressMode::ClampToEdge,
             address_mode_v: wgpu::AddressMode::ClampToEdge,
             address_mode_w: wgpu::AddressMode::ClampToEdge,
@@ -30,7 +31,8 @@ impl ScalingRenderer {
             mipmap_filter: wgpu::FilterMode::Nearest,
             lod_min_clamp: 0.0,
             lod_max_clamp: 1.0,
-            compare: wgpu::CompareFunction::Always,
+            compare: None,
+            anisotropy_clamp: None,
         });
 
         // Create uniform buffer
@@ -41,15 +43,16 @@ impl ScalingRenderer {
             (texture_size.width as f32, texture_size.height as f32),
         );
         let transform_bytes = matrix.as_bytes();
-        let uniform_buffer = device.create_buffer_with_data(
-            &transform_bytes,
-            wgpu::BufferUsage::UNIFORM | wgpu::BufferUsage::COPY_DST,
-        );
+        let uniform_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
+            label: Some("pixels_scaling_renderer_matrix_uniform_buffer"),
+            contents: &transform_bytes,
+            usage: wgpu::BufferUsage::UNIFORM | wgpu::BufferUsage::COPY_DST,
+        });
 
         // Create bind group
         let bind_group_layout = device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
-            label: None,
-            bindings: &[
+            label: Some("pixels_scaling_renderer_bind_group_layout"),
+            entries: &[
                 wgpu::BindGroupLayoutEntry {
                     binding: 0,
                     visibility: wgpu::ShaderStage::FRAGMENT,
@@ -58,47 +61,53 @@ impl ScalingRenderer {
                         multisampled: false,
                         dimension: wgpu::TextureViewDimension::D2,
                     },
+                    count: None,
                 },
                 wgpu::BindGroupLayoutEntry {
                     binding: 1,
                     visibility: wgpu::ShaderStage::FRAGMENT,
                     ty: wgpu::BindingType::Sampler { comparison: false },
+                    count: None,
                 },
                 wgpu::BindGroupLayoutEntry {
                     binding: 2,
                     visibility: wgpu::ShaderStage::VERTEX,
-                    ty: wgpu::BindingType::UniformBuffer { dynamic: false },
+                    ty: wgpu::BindingType::UniformBuffer {
+                        dynamic: false,
+                        min_binding_size: None,
+                    },
+                    count: None,
                 },
             ],
         });
         let bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
-            label: None,
+            label: Some("pixels_scaling_renderer_bind_group"),
             layout: &bind_group_layout,
-            bindings: &[
-                wgpu::Binding {
+            entries: &[
+                wgpu::BindGroupEntry {
                     binding: 0,
                     resource: wgpu::BindingResource::TextureView(texture_view),
                 },
-                wgpu::Binding {
+                wgpu::BindGroupEntry {
                     binding: 1,
                     resource: wgpu::BindingResource::Sampler(&sampler),
                 },
-                wgpu::Binding {
+                wgpu::BindGroupEntry {
                     binding: 2,
-                    resource: wgpu::BindingResource::Buffer {
-                        buffer: &uniform_buffer,
-                        range: 0..64,
-                    },
+                    resource: wgpu::BindingResource::Buffer(uniform_buffer.slice(..)),
                 },
             ],
         });
 
         // Create pipeline
         let pipeline_layout = device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
+            label: Some("pixels_scaling_renderer_pipeline_layout"),
             bind_group_layouts: &[&bind_group_layout],
+            push_constant_ranges: &[],
         });
         let render_pipeline = device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
-            layout: &pipeline_layout,
+            label: Some("pixels_scaling_renderer_pipeline"),
+            layout: Some(&pipeline_layout),
             vertex_stage: wgpu::ProgrammableStageDescriptor {
                 module: &vs_module,
                 entry_point: "main",
@@ -110,6 +119,7 @@ impl ScalingRenderer {
             rasterization_state: Some(wgpu::RasterizationStateDescriptor {
                 front_face: wgpu::FrontFace::Ccw,
                 cull_mode: wgpu::CullMode::None,
+                clamp_depth: false,
                 depth_bias: 0,
                 depth_bias_slope_scale: 0.0,
                 depth_bias_clamp: 0.0,
@@ -146,9 +156,10 @@ impl ScalingRenderer {
             color_attachments: &[wgpu::RenderPassColorAttachmentDescriptor {
                 attachment: render_target,
                 resolve_target: None,
-                load_op: wgpu::LoadOp::Clear,
-                store_op: wgpu::StoreOp::Store,
-                clear_color: wgpu::Color::BLACK,
+                ops: wgpu::Operations {
+                    load: wgpu::LoadOp::Clear(wgpu::Color::BLACK),
+                    store: true,
+                },
             }],
             depth_stencil_attachment: None,
         });
@@ -157,19 +168,10 @@ impl ScalingRenderer {
         rpass.draw(0..6, 0..1);
     }
 
-    pub(crate) fn resize(
-        &mut self,
-        device: &mut wgpu::Device,
-        encoder: &mut wgpu::CommandEncoder,
-        width: u32,
-        height: u32,
-    ) {
+    pub(crate) fn resize(&self, queue: &wgpu::Queue, width: u32, height: u32) {
         let matrix = ScalingMatrix::new((self.width, self.height), (width as f32, height as f32));
         let transform_bytes = matrix.as_bytes();
-
-        let temp_buf =
-            device.create_buffer_with_data(&transform_bytes, wgpu::BufferUsage::COPY_SRC);
-        encoder.copy_buffer_to_buffer(&temp_buf, 0, &self.uniform_buffer, 0, 64);
+        queue.write_buffer(&self.uniform_buffer, 0, &transform_bytes);
     }
 }
 

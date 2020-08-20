@@ -1,4 +1,4 @@
-use pixels::{include_spv, wgpu};
+use pixels::wgpu::{self, util::DeviceExt};
 
 pub(crate) struct NoiseRenderer {
     bind_group: wgpu::BindGroup,
@@ -8,11 +8,12 @@ pub(crate) struct NoiseRenderer {
 
 impl NoiseRenderer {
     pub(crate) fn new(device: &wgpu::Device, texture_view: &wgpu::TextureView) -> Self {
-        let vs_module = device.create_shader_module(include_spv!("../shaders/vert.spv"));
-        let fs_module = device.create_shader_module(include_spv!("../shaders/frag.spv"));
+        let vs_module = device.create_shader_module(wgpu::include_spirv!("../shaders/vert.spv"));
+        let fs_module = device.create_shader_module(wgpu::include_spirv!("../shaders/frag.spv"));
 
         // Create a texture sampler with nearest neighbor
         let sampler = device.create_sampler(&wgpu::SamplerDescriptor {
+            label: Some("NoiseRenderer sampler"),
             address_mode_u: wgpu::AddressMode::ClampToEdge,
             address_mode_v: wgpu::AddressMode::ClampToEdge,
             address_mode_w: wgpu::AddressMode::ClampToEdge,
@@ -21,20 +22,21 @@ impl NoiseRenderer {
             mipmap_filter: wgpu::FilterMode::Nearest,
             lod_min_clamp: 0.0,
             lod_max_clamp: 1.0,
-            compare: wgpu::CompareFunction::Always,
+            compare: None,
+            anisotropy_clamp: None,
         });
 
         // Create uniform buffer
-        let time_buffer = device.create_buffer(&wgpu::BufferDescriptor {
+        let time_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
             label: Some("NoiseRenderer u_Time"),
-            size: 4,
+            contents: &0.0_f32.to_ne_bytes(),
             usage: wgpu::BufferUsage::UNIFORM | wgpu::BufferUsage::COPY_DST,
         });
 
         // Create bind group
         let bind_group_layout = device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
             label: None,
-            bindings: &[
+            entries: &[
                 wgpu::BindGroupLayoutEntry {
                     binding: 0,
                     visibility: wgpu::ShaderStage::FRAGMENT,
@@ -43,47 +45,53 @@ impl NoiseRenderer {
                         multisampled: false,
                         dimension: wgpu::TextureViewDimension::D2,
                     },
+                    count: None,
                 },
                 wgpu::BindGroupLayoutEntry {
                     binding: 1,
                     visibility: wgpu::ShaderStage::FRAGMENT,
                     ty: wgpu::BindingType::Sampler { comparison: false },
+                    count: None,
                 },
                 wgpu::BindGroupLayoutEntry {
                     binding: 2,
                     visibility: wgpu::ShaderStage::FRAGMENT,
-                    ty: wgpu::BindingType::UniformBuffer { dynamic: false },
+                    ty: wgpu::BindingType::UniformBuffer {
+                        dynamic: false,
+                        min_binding_size: None,
+                    },
+                    count: None,
                 },
             ],
         });
         let bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
             label: None,
             layout: &bind_group_layout,
-            bindings: &[
-                wgpu::Binding {
+            entries: &[
+                wgpu::BindGroupEntry {
                     binding: 0,
                     resource: wgpu::BindingResource::TextureView(texture_view),
                 },
-                wgpu::Binding {
+                wgpu::BindGroupEntry {
                     binding: 1,
                     resource: wgpu::BindingResource::Sampler(&sampler),
                 },
-                wgpu::Binding {
+                wgpu::BindGroupEntry {
                     binding: 2,
-                    resource: wgpu::BindingResource::Buffer {
-                        buffer: &time_buffer,
-                        range: 0..4,
-                    },
+                    resource: wgpu::BindingResource::Buffer(time_buffer.slice(..)),
                 },
             ],
         });
 
         // Create pipeline
         let pipeline_layout = device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
+            label: Some("NoiseRenderer pipeline layout"),
             bind_group_layouts: &[&bind_group_layout],
+            push_constant_ranges: &[],
         });
         let render_pipeline = device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
-            layout: &pipeline_layout,
+            label: Some("NoiseRenderer pipeline"),
+            layout: Some(&pipeline_layout),
             vertex_stage: wgpu::ProgrammableStageDescriptor {
                 module: &vs_module,
                 entry_point: "main",
@@ -95,6 +103,7 @@ impl NoiseRenderer {
             rasterization_state: Some(wgpu::RasterizationStateDescriptor {
                 front_face: wgpu::FrontFace::Ccw,
                 cull_mode: wgpu::CullMode::None,
+                clamp_depth: false,
                 depth_bias: 0,
                 depth_bias_slope_scale: 0.0,
                 depth_bias_clamp: 0.0,
@@ -123,15 +132,8 @@ impl NoiseRenderer {
         }
     }
 
-    pub(crate) fn update(&mut self, device: &wgpu::Device, queue: &wgpu::Queue, time: f32) {
-        let mut encoder =
-            device.create_command_encoder(&wgpu::CommandEncoderDescriptor { label: None });
-
-        let temp_buf =
-            device.create_buffer_with_data(&time.to_ne_bytes(), wgpu::BufferUsage::COPY_SRC);
-        encoder.copy_buffer_to_buffer(&temp_buf, 0, &self.time_buffer, 0, 4);
-
-        queue.submit(&[encoder.finish()]);
+    pub(crate) fn update(&self, queue: &wgpu::Queue, time: f32) {
+        queue.write_buffer(&self.time_buffer, 0, &time.to_ne_bytes());
     }
 
     pub(crate) fn render(
@@ -143,9 +145,10 @@ impl NoiseRenderer {
             color_attachments: &[wgpu::RenderPassColorAttachmentDescriptor {
                 attachment: render_target,
                 resolve_target: None,
-                load_op: wgpu::LoadOp::Clear,
-                store_op: wgpu::StoreOp::Store,
-                clear_color: wgpu::Color::BLACK,
+                ops: wgpu::Operations {
+                    load: wgpu::LoadOp::Clear(wgpu::Color::BLACK),
+                    store: true,
+                },
             }],
             depth_stencil_attachment: None,
         });

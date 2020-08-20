@@ -1,0 +1,9 @@
+[package]
+name = "pixels-dragons"
+version = "0.1.0"
+authors = ["Jay Oster <jay@kodewerx.org>"]
+edition = "2018"
+
+[dependencies]
+raw-window-handle = "0.3"
+wgpu = "0.6"

@@ -25,9 +25,8 @@ fn main() -> Result<(), Error> {
         .parse()
         .unwrap_or(false);
 
-    let (window, surface, width, height, mut _hidpi_factor) =
-        create_window("pixel invaders", &event_loop);
-    let surface_texture = SurfaceTexture::new(width, height, surface);
+    let (window, width, height, mut _hidpi_factor) = create_window("pixel invaders", &event_loop);
+    let surface_texture = SurfaceTexture::new(width, height, &window);
     let mut pixels = Pixels::new(SCREEN_WIDTH as u32, SCREEN_HEIGHT as u32, surface_texture)?;
     let mut invaders = World::new(generate_seed(), debug);
     let mut time = Instant::now();
@@ -130,7 +129,7 @@ fn main() -> Result<(), Error> {
 fn create_window(
     title: &str,
     event_loop: &EventLoop<()>,
-) -> (winit::window::Window, pixels::wgpu::Surface, u32, u32, f64) {
+) -> (winit::window::Window, u32, u32, f64) {
     // Create a hidden window so we can estimate a good default window size
     let window = winit::window::WindowBuilder::new()
         .with_visible(false)
@@ -163,12 +162,10 @@ fn create_window(
     window.set_outer_position(center);
     window.set_visible(true);
 
-    let surface = pixels::wgpu::Surface::create(&window);
     let size = default_size.to_physical::<f64>(hidpi_factor);
 
     (
         window,
-        surface,
         size.width.round() as u32,
         size.height.round() as u32,
         hidpi_factor,

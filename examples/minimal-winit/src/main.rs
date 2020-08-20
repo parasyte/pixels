@@ -2,7 +2,7 @@
 #![forbid(unsafe_code)]
 
 use log::error;
-use pixels::{wgpu::Surface, Error, Pixels, SurfaceTexture};
+use pixels::{Error, Pixels, SurfaceTexture};
 use winit::dpi::LogicalSize;
 use winit::event::{Event, VirtualKeyCode};
 use winit::event_loop::{ControlFlow, EventLoop};
@@ -37,8 +37,7 @@ fn main() -> Result<(), Error> {
 
     let mut pixels = {
         let window_size = window.inner_size();
-        let surface = Surface::create(&window);
-        let surface_texture = SurfaceTexture::new(window_size.width, window_size.height, surface);
+        let surface_texture = SurfaceTexture::new(window_size.width, window_size.height, &window);
         Pixels::new(WIDTH, HEIGHT, surface_texture)?
     };
     let mut world = World::new();

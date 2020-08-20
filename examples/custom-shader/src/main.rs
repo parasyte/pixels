@@ -3,10 +3,7 @@
 
 use crate::renderers::NoiseRenderer;
 use log::error;
-use pixels::{
-    wgpu::{self, Surface},
-    Error, Pixels, SurfaceTexture,
-};
+use pixels::{raw_window_handle::HasRawWindowHandle, wgpu, Error, Pixels, SurfaceTexture};
 use winit::dpi::LogicalSize;
 use winit::event::{Event, VirtualKeyCode};
 use winit::event_loop::{ControlFlow, EventLoop};
@@ -43,25 +40,25 @@ fn main() -> Result<(), Error> {
 
     let mut pixels = {
         let window_size = window.inner_size();
-        let surface = Surface::create(&window);
-        let surface_texture = SurfaceTexture::new(window_size.width, window_size.height, surface);
+        let surface_texture = SurfaceTexture::new(window_size.width, window_size.height, &window);
         Pixels::new(WIDTH, HEIGHT, surface_texture)?
     };
     let mut world = World::new();
 
     let mut time = 0.0;
-    let (scaled_texture, mut noise_renderer) = create_noise_renderer(&pixels);
+    let (scaled_texture, noise_renderer) = create_noise_renderer(&pixels);
 
     event_loop.run(move |event, _, control_flow| {
         // Draw the current frame
         if let Event::RedrawRequested(_) = event {
             world.draw(pixels.get_frame());
 
-            noise_renderer.update(pixels.device(), pixels.queue(), time);
-            time += 1.0;
+            let render_result = pixels.render_with(|encoder, render_target, context| {
+                context.scaling_renderer.render(encoder, &scaled_texture);
 
-            let render_result = pixels.render_with(|encoder, render_target, scaling_renderer| {
-                scaling_renderer.render(encoder, &scaled_texture);
+                noise_renderer.update(&context.queue, time);
+                time += 0.01;
+
                 noise_renderer.render(encoder, render_target);
             });
 
@@ -142,7 +139,11 @@ impl World {
     }
 }
 
-fn create_noise_renderer(pixels: &Pixels) -> (wgpu::TextureView, NoiseRenderer) {
+fn create_noise_renderer<W: HasRawWindowHandle>(
+    pixels: &Pixels<W>,
+) -> (wgpu::TextureView, NoiseRenderer) {
+    let device = &pixels.device();
+
     let texture_descriptor = wgpu::TextureDescriptor {
         label: None,
         size: pixels::wgpu::Extent3d {
@@ -150,18 +151,16 @@ fn create_noise_renderer(pixels: &Pixels) -> (wgpu::TextureView, NoiseRenderer) 
             height: HEIGHT,
             depth: 1,
         },
-        array_layer_count: 1,
         mip_level_count: 1,
         sample_count: 1,
         dimension: wgpu::TextureDimension::D2,
         format: wgpu::TextureFormat::Bgra8UnormSrgb,
         usage: wgpu::TextureUsage::SAMPLED | wgpu::TextureUsage::OUTPUT_ATTACHMENT,
     };
-    let scaled_texture = pixels
-        .device()
+    let scaled_texture = device
         .create_texture(&texture_descriptor)
-        .create_default_view();
-    let noise_renderer = NoiseRenderer::new(pixels.device(), &scaled_texture);
+        .create_view(&wgpu::TextureViewDescriptor::default());
+    let noise_renderer = NoiseRenderer::new(device, &scaled_texture);
 
     (scaled_texture, noise_renderer)
 }

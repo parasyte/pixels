@@ -15,10 +15,10 @@ fn main() -> Result<(), Error> {
     env_logger::init();
     let event_loop = EventLoop::new();
     let mut input = WinitInputHelper::new();
-    let (window, surface, p_width, p_height, mut _hidpi_factor) =
+    let (window, p_width, p_height, mut _hidpi_factor) =
         create_window("Conway's Game of Life", &event_loop);
 
-    let surface_texture = SurfaceTexture::new(p_width, p_height, surface);
+    let surface_texture = SurfaceTexture::new(p_width, p_height, &window);
 
     let mut life = ConwayGrid::new_random(SCREEN_WIDTH as usize, SCREEN_HEIGHT as usize);
     let mut pixels = Pixels::new(SCREEN_WIDTH, SCREEN_HEIGHT, surface_texture)?;
@@ -137,7 +137,7 @@ fn main() -> Result<(), Error> {
 fn create_window(
     title: &str,
     event_loop: &EventLoop<()>,
-) -> (winit::window::Window, pixels::wgpu::Surface, u32, u32, f64) {
+) -> (winit::window::Window, u32, u32, f64) {
     // Create a hidden window so we can estimate a good default window size
     let window = winit::window::WindowBuilder::new()
         .with_visible(false)
@@ -171,12 +171,10 @@ fn create_window(
     window.set_outer_position(center);
     window.set_visible(true);
 
-    let surface = pixels::wgpu::Surface::create(&window);
     let size = default_size.to_physical::<f64>(hidpi_factor);
 
     (
         window,
-        surface,
         size.width.round() as u32,
         size.height.round() as u32,
         hidpi_factor,
