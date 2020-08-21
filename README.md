@@ -3,7 +3,6 @@
 [![CI](https://github.com/parasyte/pixels/workflows/CI/badge.svg)](https://github.com/parasyte/pixels "CI")
 [![Average time to resolve an issue](http://isitmaintained.com/badge/resolution/parasyte/pixels.svg)](http://isitmaintained.com/project/parasyte/pixels "Average time to resolve an issue")
 [![Percentage of issues still open](http://isitmaintained.com/badge/open/parasyte/pixels.svg)](http://isitmaintained.com/project/parasyte/pixels "Percentage of issues still open")
-[![Unsafe forbidden](https://img.shields.io/badge/unsafe-forbidden-success.svg)](https://github.com/rust-secure-code/safety-dance/ "Unsafe forbidden")
 
 ![Pixels Logo](img/pixels.png)
 

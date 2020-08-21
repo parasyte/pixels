@@ -27,13 +27,11 @@
 //! 4. `wgpu` default power preference (usually low power)
 
 #![deny(clippy::all)]
-#![forbid(unsafe_code)]
 
 pub use crate::renderers::ScalingRenderer;
 pub use raw_window_handle;
 pub use wgpu;
 
-use pixels_dragons::surface_from_window_handle;
 use raw_window_handle::HasRawWindowHandle;
 use std::env;
 use thiserror::Error;
@@ -612,7 +610,7 @@ impl<'req, 'win, W: HasRawWindowHandle> PixelsBuilder<'req, 'win, W> {
         let instance = wgpu::Instance::new(self.backend);
 
         // TODO: Use `options.pixel_aspect_ratio` to stretch the scaled texture
-        let surface = surface_from_window_handle(&instance, self.surface_texture.window);
+        let surface = unsafe { instance.create_surface(self.surface_texture.window) };
         let compatible_surface = Some(&surface);
         let adapter = instance.request_adapter(&self.request_adapter_options.map_or_else(
             || wgpu::RequestAdapterOptions {
