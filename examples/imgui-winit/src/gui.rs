@@ -3,10 +3,9 @@ use std::time::Instant;
 
 /// Manages all state required for rendering Dear ImGui over `Pixels`.
 pub(crate) struct Gui {
-    pub(crate) imgui: imgui::Context,
-    pub(crate) platform: imgui_winit_support::WinitPlatform,
-    pub(crate) renderer: imgui_wgpu::Renderer,
-
+    imgui: imgui::Context,
+    platform: imgui_winit_support::WinitPlatform,
+    renderer: imgui_wgpu::Renderer,
     last_frame: Instant,
     last_cursor: Option<imgui::MouseCursor>,
     about_open: bool,
@@ -62,7 +61,6 @@ impl Gui {
             imgui,
             platform,
             renderer,
-
             last_frame: Instant::now(),
             last_cursor: None,
             about_open: true,
@@ -115,6 +113,16 @@ impl Gui {
 
         self.renderer
             .render(ui.render(), &context.queue, &context.device, &mut rpass)
+    }
+
+    /// Handle any outstanding events.
+    pub(crate) fn handle_event(
+        &mut self,
+        window: &winit::window::Window,
+        event: &winit::event::Event<()>,
+    ) {
+        self.platform
+            .handle_event(self.imgui.io_mut(), window, event);
     }
 }
 

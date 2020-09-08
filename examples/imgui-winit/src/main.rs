@@ -78,8 +78,7 @@ fn main() -> Result<(), Error> {
         }
 
         // Handle input events
-        gui.platform
-            .handle_event(gui.imgui.io_mut(), &window, &event);
+        gui.handle_event(&window, &event);
         if input.update(event) {
             // Close events
             if input.key_pressed(VirtualKeyCode::Escape) || input.quit() {
