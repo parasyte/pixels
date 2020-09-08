@@ -85,8 +85,8 @@ impl Gui {
         &mut self,
         window: &winit::window::Window,
         encoder: &mut wgpu::CommandEncoder,
-        context: &PixelsContext,
         render_target: &wgpu::TextureView,
+        context: &PixelsContext,
     ) -> imgui_wgpu::RendererResult<()> {
         // Start a new Dear ImGui frame and update the cursor
         let ui = self.imgui.frame();
