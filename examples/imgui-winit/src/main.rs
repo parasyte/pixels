@@ -55,7 +55,7 @@ fn main() -> Result<(), Error> {
             world.draw(pixels.get_frame());
 
             // Prepare Dear ImGui
-            gui.prepare(&window).expect("Failed to prepare frame");
+            gui.prepare(&window).expect("gui.prepare() failed");
 
             // Render everything together
             let render_result = pixels.render_with(|encoder, render_target, context| {
@@ -64,7 +64,7 @@ fn main() -> Result<(), Error> {
 
                 // Render Dear ImGui
                 gui.render(&window, encoder, render_target, context)
-                    .expect("imgui_renderer.render() failed");
+                    .expect("gui.render() failed");
             });
 
             // Basic error handling
