@@ -96,7 +96,19 @@ impl Gui {
         }
 
         // Draw windows and GUI elements here
-        ui.show_about_window(&mut self.about_open);
+        let mut about_open = false;
+        ui.main_menu_bar(|| {
+            ui.menu(imgui::im_str!("Help"), true, || {
+                about_open = imgui::MenuItem::new(imgui::im_str!("About...")).build(&ui);
+            });
+        });
+        if about_open {
+            self.about_open = true;
+        }
+
+        if self.about_open {
+            ui.show_about_window(&mut self.about_open);
+        }
 
         // Render Dear ImGui with WGPU
         let mut rpass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
