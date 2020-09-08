@@ -125,5 +125,6 @@ fn gamma_to_linear(color: [f32; 4]) -> [f32; 4] {
     let y = color[1].powf(GAMMA);
     let z = color[2].powf(GAMMA);
     let w = 1.0 - (1.0 - color[3]).powf(GAMMA);
+
     [x, y, z, w]
 }
