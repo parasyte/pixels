@@ -28,6 +28,7 @@ Rapidly prototype a simple 2D game, pixel-based animations, software renderers, 
 - [Minimal example with SDL2](./examples/minimal-sdl2)
 - [Minimal example with `winit`](./examples/minimal-winit)
 - [Pixel Invaders](./examples/invaders)
+- [`raqote` example](./examples/raqote-winit)
 
 ## Troubleshooting
 

@@ -1,0 +1,19 @@
+[package]
+name = "raqote-winit"
+version = "0.1.0"
+authors = ["Jay Oster <jay@kodewerx.org>"]
+edition = "2018"
+publish = false
+
+[features]
+optimize = ["log/release_max_level_warn"]
+default = ["optimize"]
+
+[dependencies]
+env_logger = "0.7.1"
+euclid = "0.20"
+log = "0.4.8"
+pixels = { path = "../.." }
+raqote = { path = "../../../../other-projects/raqote", default-features = false }
+winit = "0.22.0"
+winit_input_helper = "0.6.0"
