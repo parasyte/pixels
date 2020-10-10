@@ -92,6 +92,7 @@ pub struct Pixels<W: HasRawWindowHandle> {
     context: PixelsContext,
     surface_size: SurfaceSize,
     present_mode: wgpu::PresentMode,
+    render_texture_format: wgpu::TextureFormat,
     _phantom: std::marker::PhantomData<W>,
 
     // Pixel buffer
@@ -113,6 +114,7 @@ pub struct PixelsBuilder<'req, 'win, W: HasRawWindowHandle> {
     present_mode: wgpu::PresentMode,
     surface_texture: SurfaceTexture<'win, W>,
     texture_format: wgpu::TextureFormat,
+    render_texture_format: wgpu::TextureFormat,
 }
 
 /// All the ways in which creating a pixel buffer can fail.
@@ -222,7 +224,7 @@ impl<'win, W: HasRawWindowHandle> Pixels<W> {
             &self.context.surface,
             &wgpu::SwapChainDescriptor {
                 usage: wgpu::TextureUsage::OUTPUT_ATTACHMENT,
-                format: wgpu::TextureFormat::Bgra8UnormSrgb,
+                format: self.render_texture_format,
                 width: self.surface_size.width,
                 height: self.surface_size.height,
                 present_mode: self.present_mode,
@@ -511,6 +513,7 @@ impl<'req, 'win, W: HasRawWindowHandle> PixelsBuilder<'req, 'win, W> {
             present_mode: wgpu::PresentMode::Fifo,
             surface_texture,
             texture_format: wgpu::TextureFormat::Rgba8UnormSrgb,
+            render_texture_format: wgpu::TextureFormat::Bgra8UnormSrgb,
         }
     }
 
@@ -601,6 +604,19 @@ impl<'req, 'win, W: HasRawWindowHandle> PixelsBuilder<'req, 'win, W> {
         self
     }
 
+    /// Set the render texture format.
+    ///
+    /// The default value is [`wgpu::TextureFormat::Bgra8UnormSrgb`], which is 4 unsigned bytes in
+    /// `BGRA` order using the SRGB color space. This format depends on the hardware/platform the
+    /// pixel buffer is rendered to/for.
+    pub fn render_texture_format(
+        mut self,
+        texture_format: wgpu::TextureFormat,
+    ) -> PixelsBuilder<'req, 'win, W> {
+        self.render_texture_format = texture_format;
+        self
+    }
+
     /// Create a pixel buffer from the options builder.
     ///
     /// # Errors
@@ -663,7 +679,7 @@ impl<'req, 'win, W: HasRawWindowHandle> PixelsBuilder<'req, 'win, W> {
             &surface,
             &wgpu::SwapChainDescriptor {
                 usage: wgpu::TextureUsage::OUTPUT_ATTACHMENT,
-                format: wgpu::TextureFormat::Bgra8UnormSrgb,
+                format: self.render_texture_format,
                 width: surface_size.width,
                 height: surface_size.height,
                 present_mode,
@@ -677,7 +693,12 @@ impl<'req, 'win, W: HasRawWindowHandle> PixelsBuilder<'req, 'win, W> {
         .transform
         .inversed();
 
-        let scaling_renderer = ScalingRenderer::new(&device, &texture_view, &texture_extent);
+        let scaling_renderer = ScalingRenderer::new(
+            &device,
+            &texture_view,
+            &texture_extent,
+            self.render_texture_format,
+        );
 
         let context = PixelsContext {
             device,
@@ -697,6 +718,7 @@ impl<'req, 'win, W: HasRawWindowHandle> PixelsBuilder<'req, 'win, W> {
             _phantom: std::marker::PhantomData,
             pixels,
             scaling_matrix_inverse,
+            render_texture_format: self.render_texture_format,
         })
     }
 }
