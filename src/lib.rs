@@ -308,11 +308,33 @@ impl<'win, W: HasRawWindowHandle> Pixels<W> {
         F: FnOnce(&mut wgpu::CommandEncoder, &wgpu::TextureView, &PixelsContext),
     {
         // TODO: Center frame buffer in surface
-        let frame = self
-            .context
-            .swap_chain
-            .get_current_frame()
-            .map_err(Error::Swapchain)?;
+        let frame = {
+            let frame_ = self
+                .context
+                .swap_chain
+                .get_current_frame()
+                .map_err(Error::Swapchain);
+            if let Err(Error::Swapchain(wgpu::SwapChainError::Outdated)) = frame_ {
+                // Recreate the swap chain to mitigate race condition on drawing surface resize.
+                // See https://github.com/parasyte/pixels/issues/121
+                self.context.swap_chain = self.context.device.create_swap_chain(
+                    &self.context.surface,
+                    &wgpu::SwapChainDescriptor {
+                        usage: wgpu::TextureUsage::OUTPUT_ATTACHMENT,
+                        format: wgpu::TextureFormat::Bgra8UnormSrgb,
+                        width: self.surface_size.width,
+                        height: self.surface_size.height,
+                        present_mode: self.present_mode,
+                    },
+                );
+                self.context
+                    .swap_chain
+                    .get_current_frame()
+                    .map_err(Error::Swapchain)?
+            } else {
+                frame_?
+            }
+        };
         let mut encoder =
             self.context
                 .device
