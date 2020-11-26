@@ -60,7 +60,7 @@ fn main() -> Result<(), Error> {
 
         // For everything else, for let winit_input_helper collect events to build its state.
         // It returns `true` when it is time to update our game state and request a redraw.
-        if input.update(event) {
+        if input.update(&event) {
             // Close events
             if input.key_pressed(VirtualKeyCode::Escape) || input.quit() {
                 *control_flow = ControlFlow::Exit;
@@ -142,10 +142,20 @@ fn create_window(
     let width = SCREEN_WIDTH as f64;
     let height = SCREEN_HEIGHT as f64;
     let (monitor_width, monitor_height) = {
-        let size = window.current_monitor().size();
+        let (width, height) = if let Some(monitor) = window.current_monitor() {
+            (
+                monitor.size().width,
+                monitor.size().height,
+            )
+        } else {
+            (
+                640,
+                480,
+            )
+        };
         (
-            size.width as f64 / hidpi_factor,
-            size.height as f64 / hidpi_factor,
+            width as f64 / hidpi_factor,
+            height as f64 / hidpi_factor,
         )
     };
     let scale = (monitor_height / height * 2.0 / 3.0).round();
