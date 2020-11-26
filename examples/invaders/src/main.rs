@@ -143,20 +143,11 @@ fn create_window(
     let height = SCREEN_HEIGHT as f64;
     let (monitor_width, monitor_height) = {
         let (width, height) = if let Some(monitor) = window.current_monitor() {
-            (
-                monitor.size().width,
-                monitor.size().height,
-            )
+            (monitor.size().width, monitor.size().height)
         } else {
-            (
-                640,
-                480,
-            )
+            (640, 480)
         };
-        (
-            width as f64 / hidpi_factor,
-            height as f64 / hidpi_factor,
-        )
+        (width as f64 / hidpi_factor, height as f64 / hidpi_factor)
     };
     let scale = (monitor_height / height * 2.0 / 3.0).round();
 
