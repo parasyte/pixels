@@ -7,7 +7,7 @@ use crate::{Point, SCREEN_HEIGHT, SCREEN_WIDTH};
 use line_drawing::Bresenham;
 
 // This is the type stored in the `Assets` hash map
-pub(crate) type CachedSprite = (usize, usize, Rc<Vec<u8>>);
+pub(crate) type CachedSprite = (usize, usize, Rc<[u8]>);
 
 /// Frame identifier for managing animations.
 #[derive(Debug, Eq, Hash, PartialEq)]
@@ -60,7 +60,7 @@ pub(crate) struct Sprite {
 pub(crate) struct SpriteRef {
     width: usize,
     height: usize,
-    pixels: Rc<Vec<u8>>,
+    pixels: Rc<[u8]>,
     frame: Frame,
     duration: Duration,
     dt: Duration,
@@ -96,7 +96,7 @@ impl SpriteRef {
         SpriteRef {
             width: *width,
             height: *height,
-            pixels: pixels.clone(),
+            pixels: Rc::clone(pixels),
             frame,
             duration,
             dt: Duration::default(),
@@ -108,32 +108,32 @@ impl SpriteRef {
 
         let assets = assets.sprites();
         let (pixels, frame) = match self.frame {
-            Blipjoy1 => (assets.get(&Blipjoy2).unwrap().2.clone(), Blipjoy2),
-            Blipjoy2 => (assets.get(&Blipjoy1).unwrap().2.clone(), Blipjoy1),
+            Blipjoy1 => (Rc::clone(&assets.get(&Blipjoy2).unwrap().2), Blipjoy2),
+            Blipjoy2 => (Rc::clone(&assets.get(&Blipjoy1).unwrap().2), Blipjoy1),
 
-            Ferris1 => (assets.get(&Ferris2).unwrap().2.clone(), Ferris2),
-            Ferris2 => (assets.get(&Ferris1).unwrap().2.clone(), Ferris1),
+            Ferris1 => (Rc::clone(&assets.get(&Ferris2).unwrap().2), Ferris2),
+            Ferris2 => (Rc::clone(&assets.get(&Ferris1).unwrap().2), Ferris1),
 
-            Cthulhu1 => (assets.get(&Cthulhu2).unwrap().2.clone(), Cthulhu2),
-            Cthulhu2 => (assets.get(&Cthulhu1).unwrap().2.clone(), Cthulhu1),
+            Cthulhu1 => (Rc::clone(&assets.get(&Cthulhu2).unwrap().2), Cthulhu2),
+            Cthulhu2 => (Rc::clone(&assets.get(&Cthulhu1).unwrap().2), Cthulhu1),
 
-            Player1 => (assets.get(&Player2).unwrap().2.clone(), Player2),
-            Player2 => (assets.get(&Player1).unwrap().2.clone(), Player1),
+            Player1 => (Rc::clone(&assets.get(&Player2).unwrap().2), Player2),
+            Player2 => (Rc::clone(&assets.get(&Player1).unwrap().2), Player1),
 
-            Bullet1 => (assets.get(&Bullet2).unwrap().2.clone(), Bullet2),
-            Bullet2 => (assets.get(&Bullet3).unwrap().2.clone(), Bullet3),
-            Bullet3 => (assets.get(&Bullet4).unwrap().2.clone(), Bullet4),
-            Bullet4 => (assets.get(&Bullet5).unwrap().2.clone(), Bullet5),
-            Bullet5 => (assets.get(&Bullet1).unwrap().2.clone(), Bullet1),
+            Bullet1 => (Rc::clone(&assets.get(&Bullet2).unwrap().2), Bullet2),
+            Bullet2 => (Rc::clone(&assets.get(&Bullet3).unwrap().2), Bullet3),
+            Bullet3 => (Rc::clone(&assets.get(&Bullet4).unwrap().2), Bullet4),
+            Bullet4 => (Rc::clone(&assets.get(&Bullet5).unwrap().2), Bullet5),
+            Bullet5 => (Rc::clone(&assets.get(&Bullet1).unwrap().2), Bullet1),
 
-            Laser1 => (assets.get(&Laser2).unwrap().2.clone(), Laser2),
-            Laser2 => (assets.get(&Laser3).unwrap().2.clone(), Laser3),
-            Laser3 => (assets.get(&Laser4).unwrap().2.clone(), Laser4),
-            Laser4 => (assets.get(&Laser5).unwrap().2.clone(), Laser5),
-            Laser5 => (assets.get(&Laser6).unwrap().2.clone(), Laser6),
-            Laser6 => (assets.get(&Laser7).unwrap().2.clone(), Laser7),
-            Laser7 => (assets.get(&Laser8).unwrap().2.clone(), Laser8),
-            Laser8 => (assets.get(&Laser1).unwrap().2.clone(), Laser1),
+            Laser1 => (Rc::clone(&assets.get(&Laser2).unwrap().2), Laser2),
+            Laser2 => (Rc::clone(&assets.get(&Laser3).unwrap().2), Laser3),
+            Laser3 => (Rc::clone(&assets.get(&Laser4).unwrap().2), Laser4),
+            Laser4 => (Rc::clone(&assets.get(&Laser5).unwrap().2), Laser5),
+            Laser5 => (Rc::clone(&assets.get(&Laser6).unwrap().2), Laser6),
+            Laser6 => (Rc::clone(&assets.get(&Laser7).unwrap().2), Laser7),
+            Laser7 => (Rc::clone(&assets.get(&Laser8).unwrap().2), Laser8),
+            Laser8 => (Rc::clone(&assets.get(&Laser1).unwrap().2), Laser1),
 
             _ => unreachable!(),
         };

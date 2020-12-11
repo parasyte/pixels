@@ -108,7 +108,7 @@ fn load_pcx(pcx: &[u8]) -> CachedSprite {
         }
     }
 
-    (width, height, Rc::new(result))
+    (width, height, Rc::from(result.as_ref()))
 }
 
 #[cfg(test)]
@@ -138,6 +138,6 @@ mod tests {
 
         assert_eq!(pixels.0, 10, "Width differs");
         assert_eq!(pixels.1, 8, "Height differs");
-        assert_eq!(Rc::try_unwrap(pixels.2).unwrap(), expected, "Pixels differ");
+        assert_eq!(pixels.2.as_ref(), expected, "Pixels differ");
     }
 }
