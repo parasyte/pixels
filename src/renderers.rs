@@ -9,6 +9,7 @@ pub struct ScalingRenderer {
     render_pipeline: wgpu::RenderPipeline,
     width: f32,
     height: f32,
+    render_texture_format: wgpu::TextureFormat,
 }
 
 impl ScalingRenderer {
@@ -16,6 +17,7 @@ impl ScalingRenderer {
         device: &wgpu::Device,
         texture_view: &wgpu::TextureView,
         texture_size: &wgpu::Extent3d,
+        render_texture_format: wgpu::TextureFormat,
     ) -> Self {
         let vs_module = device.create_shader_module(wgpu::include_spirv!("../shaders/vert.spv"));
         let fs_module = device.create_shader_module(wgpu::include_spirv!("../shaders/frag.spv"));
@@ -126,7 +128,7 @@ impl ScalingRenderer {
             }),
             primitive_topology: wgpu::PrimitiveTopology::TriangleList,
             color_states: &[wgpu::ColorStateDescriptor {
-                format: wgpu::TextureFormat::Bgra8UnormSrgb,
+                format: render_texture_format,
                 color_blend: wgpu::BlendDescriptor::REPLACE,
                 alpha_blend: wgpu::BlendDescriptor::REPLACE,
                 write_mask: wgpu::ColorWrite::ALL,
@@ -147,6 +149,7 @@ impl ScalingRenderer {
             render_pipeline,
             width: texture_size.width as f32,
             height: texture_size.height as f32,
+            render_texture_format,
         }
     }
 
