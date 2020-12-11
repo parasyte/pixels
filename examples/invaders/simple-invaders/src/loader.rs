@@ -138,6 +138,6 @@ mod tests {
 
         assert_eq!(pixels.0, 10, "Width differs");
         assert_eq!(pixels.1, 8, "Height differs");
-        assert_eq!(pixels.2.as_ref(), expected, "Pixels differ");
+        assert_eq!(pixels.2.to_vec(), expected, "Pixels differ");
     }
 }
