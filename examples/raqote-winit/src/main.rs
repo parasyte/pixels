@@ -35,7 +35,7 @@ fn main() -> Result<(), Error> {
         let surface_texture = SurfaceTexture::new(window_size.width, window_size.height, &window);
 
         let pixels = Pixels::new(WIDTH, HEIGHT, surface_texture)?;
-        let shapes = Shapes::new(window_size.width, window_size.height);
+        let shapes = Shapes::new(WIDTH, HEIGHT);
 
         (pixels, shapes)
     };
