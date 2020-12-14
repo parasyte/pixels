@@ -3,7 +3,7 @@
 
 use crate::renderers::NoiseRenderer;
 use log::error;
-use pixels::{raw_window_handle::HasRawWindowHandle, wgpu, Error, Pixels, SurfaceTexture};
+use pixels::{wgpu, Error, Pixels, SurfaceTexture};
 use winit::dpi::LogicalSize;
 use winit::event::{Event, VirtualKeyCode};
 use winit::event_loop::{ControlFlow, EventLoop};
@@ -139,9 +139,7 @@ impl World {
     }
 }
 
-fn create_noise_renderer<W: HasRawWindowHandle>(
-    pixels: &Pixels<W>,
-) -> (wgpu::TextureView, NoiseRenderer) {
+fn create_noise_renderer(pixels: &Pixels) -> (wgpu::TextureView, NoiseRenderer) {
     let device = &pixels.device();
 
     let texture_descriptor = wgpu::TextureDescriptor {

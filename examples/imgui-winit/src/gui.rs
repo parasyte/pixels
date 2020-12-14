@@ -1,4 +1,4 @@
-use pixels::{raw_window_handle::HasRawWindowHandle, wgpu, PixelsContext};
+use pixels::{wgpu, PixelsContext};
 use std::time::Instant;
 
 /// Manages all state required for rendering Dear ImGui over `Pixels`.
@@ -13,10 +13,7 @@ pub(crate) struct Gui {
 
 impl Gui {
     /// Create Dear ImGui.
-    pub(crate) fn new<W: HasRawWindowHandle>(
-        window: &winit::window::Window,
-        pixels: &pixels::Pixels<W>,
-    ) -> Self {
+    pub(crate) fn new(window: &winit::window::Window, pixels: &pixels::Pixels) -> Self {
         // Create Dear ImGui context
         let mut imgui = imgui::Context::create();
         imgui.set_ini_filename(None);

@@ -89,12 +89,11 @@ pub struct PixelsContext {
 ///
 /// See [`PixelsBuilder`] for building a customized pixel buffer.
 #[derive(Debug)]
-pub struct Pixels<W: HasRawWindowHandle> {
+pub struct Pixels {
     context: PixelsContext,
     surface_size: SurfaceSize,
     present_mode: wgpu::PresentMode,
     render_texture_format: wgpu::TextureFormat,
-    _phantom: std::marker::PhantomData<W>,
 
     // Pixel buffer
     pixels: Vec<u8>,
@@ -155,7 +154,7 @@ impl<'win, W: HasRawWindowHandle> SurfaceTexture<'win, W> {
     }
 }
 
-impl<'win, W: HasRawWindowHandle> Pixels<W> {
+impl Pixels {
     /// Create a pixel buffer instance with default options.
     ///
     /// # Examples
@@ -175,11 +174,11 @@ impl<'win, W: HasRawWindowHandle> Pixels<W> {
     /// # Panics
     ///
     /// Panics when `width` or `height` are 0.
-    pub fn new(
+    pub fn new<W: HasRawWindowHandle>(
         width: u32,
         height: u32,
-        surface_texture: SurfaceTexture<'win, W>,
-    ) -> Result<Pixels<W>, Error> {
+        surface_texture: SurfaceTexture<'_, W>,
+    ) -> Result<Pixels, Error> {
         PixelsBuilder::new(width, height, surface_texture).build()
     }
 

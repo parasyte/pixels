@@ -166,7 +166,7 @@ impl<'req, 'win, W: HasRawWindowHandle> PixelsBuilder<'req, 'win, W> {
     /// # Errors
     ///
     /// Returns an error when a [`wgpu::Adapter`] cannot be found.
-    pub fn build(self) -> Result<Pixels<W>, Error> {
+    pub fn build(self) -> Result<Pixels, Error> {
         let instance = wgpu::Instance::new(self.backend);
 
         // TODO: Use `options.pixel_aspect_ratio` to stretch the scaled texture
@@ -259,7 +259,6 @@ impl<'req, 'win, W: HasRawWindowHandle> PixelsBuilder<'req, 'win, W> {
             context,
             surface_size,
             present_mode,
-            _phantom: std::marker::PhantomData,
             pixels,
             scaling_matrix_inverse,
             render_texture_format: self.render_texture_format,
