@@ -1,5 +1,4 @@
 [![Documentation](https://docs.rs/pixels/badge.svg)](https://docs.rs/pixels "Documentation")
-[![Build status](https://travis-ci.org/parasyte/pixels.svg?branch=master)](https://travis-ci.org/parasyte/pixels "Build status")
 [![CI](https://github.com/parasyte/pixels/workflows/CI/badge.svg)](https://github.com/parasyte/pixels "CI")
 [![Average time to resolve an issue](http://isitmaintained.com/badge/resolution/parasyte/pixels.svg)](http://isitmaintained.com/project/parasyte/pixels "Average time to resolve an issue")
 [![Percentage of issues still open](http://isitmaintained.com/badge/open/parasyte/pixels.svg)](http://isitmaintained.com/project/parasyte/pixels "Percentage of issues still open")
