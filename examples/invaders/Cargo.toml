@@ -19,4 +19,4 @@ pixels = { path = "../.." }
 randomize = "3.0"
 simple-invaders = { path = "simple-invaders" }
 winit = "0.24"
-winit_input_helper = { git = "https://github.com/rukai/winit_input_helper.git", rev = "254b548fb3a0f2a8287c907dc8524a7530e91069" }
+winit_input_helper = "0.9"
