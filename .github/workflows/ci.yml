@@ -31,6 +31,7 @@ jobs:
         uses: actions-rs/cargo@v1
         with:
           command: check
+          args: --all
   tests:
     name: Test
     runs-on: ubuntu-latest
@@ -71,9 +72,10 @@ jobs:
       - name: Install toolchain
         uses: actions-rs/toolchain@v1
         with:
-            toolchain: stable
-            components: clippy, rustfmt
-            override: true
+          profile: minimal
+          toolchain: stable
+          components: clippy, rustfmt
+          override: true
       - name: Cargo fmt
         uses: actions-rs/cargo@v1
         with:
