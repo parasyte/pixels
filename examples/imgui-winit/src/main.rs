@@ -79,7 +79,7 @@ fn main() -> Result<(), Error> {
 
         // Handle input events
         gui.handle_event(&window, &event);
-        if input.update(event) {
+        if input.update(&event) {
             // Close events
             if input.key_pressed(VirtualKeyCode::Escape) || input.quit() {
                 *control_flow = ControlFlow::Exit;
@@ -124,7 +124,7 @@ impl World {
 
     /// Draw the `World` state to the frame buffer.
     ///
-    /// Assumes the default texture format: [`wgpu::TextureFormat::Rgba8UnormSrgb`]
+    /// Assumes the default texture format: `wgpu::TextureFormat::Rgba8UnormSrgb`
     fn draw(&self, frame: &mut [u8]) {
         for (i, pixel) in frame.chunks_exact_mut(4).enumerate() {
             let x = (i % WIDTH as usize) as i16;

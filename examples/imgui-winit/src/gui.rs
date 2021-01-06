@@ -22,7 +22,7 @@ impl Gui {
         let mut platform = imgui_winit_support::WinitPlatform::init(&mut imgui);
         platform.attach_window(
             imgui.io_mut(),
-            &window,
+            window,
             imgui_winit_support::HiDpiMode::Default,
         );
 
@@ -51,7 +51,11 @@ impl Gui {
         let device = pixels.device();
         let queue = pixels.queue();
         let texture_format = wgpu::TextureFormat::Bgra8UnormSrgb;
-        let renderer = imgui_wgpu::Renderer::new(&mut imgui, &device, &queue, texture_format);
+        let config = imgui_wgpu::RendererConfig {
+            texture_format,
+            ..Default::default()
+        };
+        let renderer = imgui_wgpu::Renderer::new(&mut imgui, &device, &queue, config);
 
         // Return GUI context
         Self {
@@ -70,9 +74,10 @@ impl Gui {
         window: &winit::window::Window,
     ) -> Result<(), winit::error::ExternalError> {
         // Prepare Dear ImGui
-        let io = self.imgui.io_mut();
-        self.last_frame = io.update_delta_time(self.last_frame);
-        self.platform.prepare_frame(io, window)
+        let now = Instant::now();
+        self.imgui.io_mut().update_delta_time(now - self.last_frame);
+        self.last_frame = now;
+        self.platform.prepare_frame(self.imgui.io_mut(), window)
     }
 
     /// Render Dear ImGui.

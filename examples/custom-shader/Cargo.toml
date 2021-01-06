@@ -10,8 +10,8 @@ optimize = ["log/release_max_level_warn"]
 default = ["optimize"]
 
 [dependencies]
-env_logger = "0.7.1"
-log = "0.4.8"
+env_logger = "0.8"
+log = "0.4"
 pixels = { path = "../.." }
-winit = "0.22.0"
-winit_input_helper = "0.6.0"
+winit = "0.24"
+winit_input_helper = "0.9"

@@ -55,9 +55,14 @@ impl Shapes {
             a: 0xff,
         });
 
-        self.t1 = self.t1.post_translate(Vector2D::new(-self.cx, -self.cy));
-        self.t1 = self.t1.post_rotate(Angle { radians: delta });
-        self.t1 = self.t1.post_translate(Vector2D::new(self.cx, self.cy));
+        let translate = Vector2D::new(-self.cx, -self.cy).to_transform();
+        let inv_translate = translate
+            .inverse()
+            .unwrap_or_else(|| Vector2D::new(self.cx, self.cy).to_transform());
+
+        self.t1 = self.t1.then(&translate);
+        self.t1 = self.t1.then_rotate(Angle::radians(delta));
+        self.t1 = self.t1.then(&inv_translate);
         self.dt.set_transform(&self.t1);
 
         let mut pb = PathBuilder::new();
@@ -91,9 +96,9 @@ impl Shapes {
         );
         self.dt.fill(&path, &gradient, &DrawOptions::new());
 
-        self.t2 = self.t2.post_translate(Vector2D::new(-self.cx, -self.cy));
-        self.t2 = self.t2.post_rotate(Angle { radians: -delta });
-        self.t2 = self.t2.post_translate(Vector2D::new(self.cx, self.cy));
+        self.t2 = self.t2.then(&translate);
+        self.t2 = self.t2.then_rotate(Angle::radians(-delta));
+        self.t2 = self.t2.then(&inv_translate);
         self.dt.set_transform(&self.t2);
 
         let mut pb = PathBuilder::new();
