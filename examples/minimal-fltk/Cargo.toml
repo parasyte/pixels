@@ -1,0 +1,16 @@
+[package]
+name = "minimal-fltk"
+version = "0.1.0"
+authors = ["Jay Oster <jay@kodewerx.org>"]
+edition = "2018"
+publish = false
+
+[features]
+optimize = ["log/release_max_level_warn"]
+default = ["optimize"]
+
+[dependencies]
+fltk = "0.14"
+env_logger = "0.7.1"
+log = "0.4.8"
+pixels = { path = "../.." }
