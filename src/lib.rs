@@ -209,7 +209,7 @@ impl Pixels {
         self.context.swap_chain = self.context.device.create_swap_chain(
             &self.context.surface,
             &wgpu::SwapChainDescriptor {
-                usage: wgpu::TextureUsage::OUTPUT_ATTACHMENT,
+                usage: wgpu::TextureUsage::RENDER_ATTACHMENT,
                 format: self.render_texture_format,
                 width: self.surface_size.width,
                 height: self.surface_size.height,

@@ -4,9 +4,9 @@ use raw_window_handle::HasRawWindowHandle;
 use std::env;
 
 /// A builder to help create customized pixel buffers.
-pub struct PixelsBuilder<'req, 'win, W: HasRawWindowHandle> {
+pub struct PixelsBuilder<'req, 'dev, 'win, W: HasRawWindowHandle> {
     request_adapter_options: Option<wgpu::RequestAdapterOptions<'req>>,
-    device_descriptor: wgpu::DeviceDescriptor,
+    device_descriptor: wgpu::DeviceDescriptor<'dev>,
     backend: wgpu::BackendBit,
     width: u32,
     height: u32,
@@ -17,7 +17,7 @@ pub struct PixelsBuilder<'req, 'win, W: HasRawWindowHandle> {
     render_texture_format: wgpu::TextureFormat,
 }
 
-impl<'req, 'win, W: HasRawWindowHandle> PixelsBuilder<'req, 'win, W> {
+impl<'req, 'dev, 'win, W: HasRawWindowHandle> PixelsBuilder<'req, 'dev, 'win, W> {
     /// Create a builder that can be finalized into a [`Pixels`] pixel buffer.
     ///
     /// # Examples
@@ -43,7 +43,7 @@ impl<'req, 'win, W: HasRawWindowHandle> PixelsBuilder<'req, 'win, W> {
         width: u32,
         height: u32,
         surface_texture: SurfaceTexture<'win, W>,
-    ) -> PixelsBuilder<'req, 'win, W> {
+    ) -> PixelsBuilder<'req, 'dev, 'win, W> {
         assert!(width > 0);
         assert!(height > 0);
 
@@ -65,7 +65,7 @@ impl<'req, 'win, W: HasRawWindowHandle> PixelsBuilder<'req, 'win, W> {
     pub fn request_adapter_options(
         mut self,
         request_adapter_options: wgpu::RequestAdapterOptions<'req>,
-    ) -> PixelsBuilder<'req, 'win, W> {
+    ) -> PixelsBuilder<'req, 'dev, 'win, W> {
         self.request_adapter_options = Some(request_adapter_options);
         self
     }
@@ -73,8 +73,8 @@ impl<'req, 'win, W: HasRawWindowHandle> PixelsBuilder<'req, 'win, W> {
     /// Add options for requesting a [`wgpu::Device`].
     pub fn device_descriptor(
         mut self,
-        device_descriptor: wgpu::DeviceDescriptor,
-    ) -> PixelsBuilder<'req, 'win, W> {
+        device_descriptor: wgpu::DeviceDescriptor<'dev>,
+    ) -> PixelsBuilder<'req, 'dev, 'win, W> {
         self.device_descriptor = device_descriptor;
         self
     }
@@ -83,7 +83,7 @@ impl<'req, 'win, W: HasRawWindowHandle> PixelsBuilder<'req, 'win, W> {
     ///
     /// The default value of this is [`wgpu::BackendBit::PRIMARY`], which enables
     /// the well supported backends for wgpu.
-    pub fn wgpu_backend(mut self, backend: wgpu::BackendBit) -> PixelsBuilder<'req, 'win, W> {
+    pub fn wgpu_backend(mut self, backend: wgpu::BackendBit) -> PixelsBuilder<'req, 'dev, 'win, W> {
         self.backend = backend;
         self
     }
@@ -103,7 +103,10 @@ impl<'req, 'win, W: HasRawWindowHandle> PixelsBuilder<'req, 'win, W> {
     ///
     /// This documentation is hidden because support for pixel aspect ratio is incomplete.
     #[doc(hidden)]
-    pub fn pixel_aspect_ratio(mut self, pixel_aspect_ratio: f64) -> PixelsBuilder<'req, 'win, W> {
+    pub fn pixel_aspect_ratio(
+        mut self,
+        pixel_aspect_ratio: f64,
+    ) -> PixelsBuilder<'req, 'dev, 'win, W> {
         assert!(pixel_aspect_ratio > 0.0);
 
         self.pixel_aspect_ratio = pixel_aspect_ratio;
@@ -117,7 +120,7 @@ impl<'req, 'win, W: HasRawWindowHandle> PixelsBuilder<'req, 'win, W> {
     /// The `wgpu` present mode will be set to `Fifo` when Vsync is enabled, or `Immediate` when
     /// Vsync is disabled. To set the present mode to `Mailbox` or another value, use the
     /// [`PixelsBuilder::present_mode`] method.
-    pub fn enable_vsync(mut self, enable_vsync: bool) -> PixelsBuilder<'req, 'win, W> {
+    pub fn enable_vsync(mut self, enable_vsync: bool) -> PixelsBuilder<'req, 'dev, 'win, W> {
         self.present_mode = if enable_vsync {
             wgpu::PresentMode::Fifo
         } else {
@@ -130,7 +133,10 @@ impl<'req, 'win, W: HasRawWindowHandle> PixelsBuilder<'req, 'win, W> {
     ///
     /// This differs from [`PixelsBuilder::enable_vsync`] by allowing the present mode to be set to
     /// any value.
-    pub fn present_mode(mut self, present_mode: wgpu::PresentMode) -> PixelsBuilder<'req, 'win, W> {
+    pub fn present_mode(
+        mut self,
+        present_mode: wgpu::PresentMode,
+    ) -> PixelsBuilder<'req, 'dev, 'win, W> {
         self.present_mode = present_mode;
         self
     }
@@ -143,7 +149,7 @@ impl<'req, 'win, W: HasRawWindowHandle> PixelsBuilder<'req, 'win, W> {
     pub fn texture_format(
         mut self,
         texture_format: wgpu::TextureFormat,
-    ) -> PixelsBuilder<'req, 'win, W> {
+    ) -> PixelsBuilder<'req, 'dev, 'win, W> {
         self.texture_format = texture_format;
         self
     }
@@ -156,7 +162,7 @@ impl<'req, 'win, W: HasRawWindowHandle> PixelsBuilder<'req, 'win, W> {
     pub fn render_texture_format(
         mut self,
         texture_format: wgpu::TextureFormat,
-    ) -> PixelsBuilder<'req, 'win, W> {
+    ) -> PixelsBuilder<'req, 'dev, 'win, W> {
         self.render_texture_format = texture_format;
         self
     }
@@ -222,7 +228,7 @@ impl<'req, 'win, W: HasRawWindowHandle> PixelsBuilder<'req, 'win, W> {
         let swap_chain = device.create_swap_chain(
             &surface,
             &wgpu::SwapChainDescriptor {
-                usage: wgpu::TextureUsage::OUTPUT_ATTACHMENT,
+                usage: wgpu::TextureUsage::RENDER_ATTACHMENT,
                 format: self.render_texture_format,
                 width: surface_size.width,
                 height: surface_size.height,
@@ -332,13 +338,15 @@ fn get_texture_format_size(texture_format: wgpu::TextureFormat) -> f32 {
         | wgpu::TextureFormat::Bc6hRgbSfloat
         | wgpu::TextureFormat::Bc7RgbaUnorm
         | wgpu::TextureFormat::Bc7RgbaUnormSrgb => 1.0,
+
+        _ => todo!(),
     }
 }
 
 fn get_default_power_preference() -> wgpu::PowerPreference {
     env::var("PIXELS_HIGH_PERF").map_or_else(
         |_| {
-            env::var("PIXELS_LOW_POWER").map_or(wgpu::PowerPreference::Default, |_| {
+            env::var("PIXELS_LOW_POWER").map_or(wgpu::PowerPreference::default(), |_| {
                 wgpu::PowerPreference::LowPower
             })
         },

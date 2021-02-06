@@ -153,7 +153,7 @@ fn create_noise_renderer(pixels: &Pixels) -> (wgpu::TextureView, NoiseRenderer) 
         sample_count: 1,
         dimension: wgpu::TextureDimension::D2,
         format: wgpu::TextureFormat::Bgra8UnormSrgb,
-        usage: wgpu::TextureUsage::SAMPLED | wgpu::TextureUsage::OUTPUT_ATTACHMENT,
+        usage: wgpu::TextureUsage::SAMPLED | wgpu::TextureUsage::RENDER_ATTACHMENT,
     };
     let scaled_texture = device
         .create_texture(&texture_descriptor)
