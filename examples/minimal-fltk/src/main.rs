@@ -52,11 +52,13 @@ fn main() -> Result<(), Error> {
         }
     });
 
-    Ok(while app.wait() {
+    while app.wait() {
         win.redraw();
         // Calls to redraw in the event loop require an explicit sleep
         thread::sleep(Duration::from_millis(SLEEP));
-    })
+    }
+    
+    Ok(())
 }
 
 impl World {
