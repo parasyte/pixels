@@ -57,7 +57,7 @@ fn main() -> Result<(), Error> {
         // Calls to redraw in the event loop require an explicit sleep
         thread::sleep(Duration::from_millis(SLEEP));
     }
-    
+
     Ok(())
 }
 
