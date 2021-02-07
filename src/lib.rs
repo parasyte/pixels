@@ -74,6 +74,7 @@ pub struct PixelsContext {
 
     /// Provides access to the texture size.
     pub texture_extent: wgpu::Extent3d,
+    pub texture_format: wgpu::TextureFormat,
 
     /// Defines the "data rate" for the raw texture data. This is effectively the "bytes per pixel"
     /// count.
@@ -182,6 +183,55 @@ impl Pixels {
         PixelsBuilder::new(width, height, surface_texture).build()
     }
 
+    /// Resize the pixel buffer, this doesn't resize the surface upon which the pixel buffer is rendered.
+    pub fn resize_buffer(&mut self, width: u32, height: u32) {
+        self.context.texture_extent = wgpu::Extent3d {
+            width,
+            height,
+            depth: 1,
+        };
+
+        // Update ScalingMatrix for mouse transformation
+        self.scaling_matrix_inverse = renderers::ScalingMatrix::new(
+            (
+                self.context.texture_extent.width as f32,
+                self.context.texture_extent.height as f32,
+            ),
+            (width as f32, height as f32),
+        )
+        .transform
+        .inversed();
+
+        // Recreate the texture
+        self.context.texture = self
+            .context
+            .device
+            .create_texture(&wgpu::TextureDescriptor {
+                label: Some("pixels_source_texture"),
+                size: self.context.texture_extent,
+                mip_level_count: 1,
+                sample_count: 1,
+                dimension: wgpu::TextureDimension::D2,
+                format: self.context.texture_format,
+                usage: wgpu::TextureUsage::SAMPLED | wgpu::TextureUsage::COPY_DST,
+            });
+        let texture_view = self
+            .context
+            .texture
+            .create_view(&wgpu::TextureViewDescriptor::default());
+
+        self.context.scaling_renderer = ScalingRenderer::new(
+            &self.context.device,
+            &texture_view,
+            &self.context.texture_extent,
+            self.render_texture_format,
+        );
+
+        // Resize the buffer
+        let capacity = ((width * height) as f32 * self.context.texture_format_size) as usize;
+        self.pixels.resize_with(capacity, Default::default);
+    }
+
     /// Resize the surface upon which the pixel buffer is rendered.
     ///
     /// This does not resize the pixel buffer. The pixel buffer will be fit onto the surface as
@@ -206,16 +256,7 @@ impl Pixels {
         .inversed();
 
         // Recreate the swap chain
-        self.context.swap_chain = self.context.device.create_swap_chain(
-            &self.context.surface,
-            &wgpu::SwapChainDescriptor {
-                usage: wgpu::TextureUsage::OUTPUT_ATTACHMENT,
-                format: self.render_texture_format,
-                width: self.surface_size.width,
-                height: self.surface_size.height,
-                present_mode: self.present_mode,
-            },
-        );
+        builder::create_swap_chain(self);
 
         // Update state for all render passes
         self.context
@@ -296,11 +337,24 @@ impl Pixels {
         F: FnOnce(&mut wgpu::CommandEncoder, &wgpu::TextureView, &PixelsContext),
     {
         // TODO: Center frame buffer in surface
-        let frame = self
-            .context
-            .swap_chain
-            .get_current_frame()
-            .map_err(Error::Swapchain)?;
+        let frame = {
+            let frame_ = self
+                .context
+                .swap_chain
+                .get_current_frame()
+                .map_err(Error::Swapchain);
+            if let Err(Error::Swapchain(wgpu::SwapChainError::Outdated)) = frame_ {
+                // Recreate the swap chain to mitigate race condition on drawing surface resize.
+                // See https://github.com/parasyte/pixels/issues/121
+                builder::create_swap_chain(self);
+                self.context
+                    .swap_chain
+                    .get_current_frame()
+                    .map_err(Error::Swapchain)?
+            } else {
+                frame_?
+            }
+        };
         let mut encoder =
             self.context
                 .device

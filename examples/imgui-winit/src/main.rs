@@ -26,10 +26,12 @@ struct World {
 
 fn main() -> Result<(), Error> {
     env_logger::init();
+    let mut width = WIDTH;
+    let mut height = HEIGHT;
     let event_loop = EventLoop::new();
     let mut input = WinitInputHelper::new();
     let window = {
-        let size = LogicalSize::new(WIDTH as f64, HEIGHT as f64);
+        let size = LogicalSize::new(width as f64, height as f64);
         WindowBuilder::new()
             .with_title("Hello Pixels + Dear ImGui")
             .with_inner_size(size)
@@ -41,7 +43,7 @@ fn main() -> Result<(), Error> {
     let mut pixels = {
         let window_size = window.inner_size();
         let surface_texture = SurfaceTexture::new(window_size.width, window_size.height, &window);
-        Pixels::new(WIDTH, HEIGHT, surface_texture)?
+        Pixels::new(width, height, surface_texture)?
     };
     let mut world = World::new();
 
@@ -52,7 +54,7 @@ fn main() -> Result<(), Error> {
         // Draw the current frame
         if let Event::RedrawRequested(_) = event {
             // Draw the world
-            world.draw(pixels.get_frame());
+            world.draw(pixels.get_frame(), width);
 
             // Prepare Dear ImGui
             gui.prepare(&window).expect("gui.prepare() failed");
@@ -89,10 +91,13 @@ fn main() -> Result<(), Error> {
             // Resize the window
             if let Some(size) = input.window_resized() {
                 pixels.resize(size.width, size.height);
+                width = size.width;
+                height = size.height;
+                pixels.resize_buffer(width, height);
             }
 
             // Update internal state and request a redraw
-            world.update();
+            world.update(width, height);
             window.request_redraw();
         }
     });
@@ -110,12 +115,18 @@ impl World {
     }
 
     /// Update the `World` internal state; bounce the box around the screen.
-    fn update(&mut self) {
-        if self.box_x <= 0 || self.box_x + BOX_SIZE > WIDTH as i16 {
-            self.velocity_x *= -1;
+    fn update(&mut self, width: u32, height: u32) {
+        if self.box_x <= 0 {
+            self.velocity_x = 1;
         }
-        if self.box_y <= 0 || self.box_y + BOX_SIZE > HEIGHT as i16 {
-            self.velocity_y *= -1;
+        if self.box_x + BOX_SIZE > width as i16 {
+            self.velocity_x = -1;
+        }
+        if self.box_y <= 0 {
+            self.velocity_y = 1;
+        }
+        if self.box_y + BOX_SIZE > height as i16 {
+            self.velocity_y = -1;
         }
 
         self.box_x += self.velocity_x;
@@ -125,10 +136,10 @@ impl World {
     /// Draw the `World` state to the frame buffer.
     ///
     /// Assumes the default texture format: `wgpu::TextureFormat::Rgba8UnormSrgb`
-    fn draw(&self, frame: &mut [u8]) {
+    fn draw(&self, frame: &mut [u8], width: u32) {
         for (i, pixel) in frame.chunks_exact_mut(4).enumerate() {
-            let x = (i % WIDTH as usize) as i16;
-            let y = (i / WIDTH as usize) as i16;
+            let x = (i % width as usize) as i16;
+            let y = (i / width as usize) as i16;
 
             let inside_the_box = x >= self.box_x
                 && x < self.box_x + BOX_SIZE

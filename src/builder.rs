@@ -251,19 +251,35 @@ impl<'req, 'win, W: HasRawWindowHandle> PixelsBuilder<'req, 'win, W> {
             swap_chain,
             texture,
             texture_extent,
+            texture_format: self.texture_format,
             texture_format_size,
             scaling_renderer,
         };
-
-        Ok(Pixels {
+        let mut pixels = Pixels {
             context,
             surface_size,
             present_mode,
             pixels,
             scaling_matrix_inverse,
             render_texture_format: self.render_texture_format,
-        })
+        };
+        create_swap_chain(&mut pixels);
+
+        Ok(pixels)
     }
+}
+
+pub(crate) fn create_swap_chain(pixels: &mut Pixels) {
+    pixels.context.swap_chain = pixels.context.device.create_swap_chain(
+        &pixels.context.surface,
+        &wgpu::SwapChainDescriptor {
+            usage: wgpu::TextureUsage::OUTPUT_ATTACHMENT,
+            format: pixels.render_texture_format,
+            width: pixels.surface_size.width,
+            height: pixels.surface_size.height,
+            present_mode: pixels.present_mode,
+        },
+    );
 }
 
 fn get_texture_format_size(texture_format: wgpu::TextureFormat) -> f32 {
