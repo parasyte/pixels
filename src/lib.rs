@@ -256,7 +256,7 @@ impl Pixels {
         .inversed();
 
         // Recreate the swap chain
-        builder::create_swap_chain(self);
+        self.re_create_swap_chain();
 
         // Update state for all render passes
         self.context
@@ -345,7 +345,7 @@ impl Pixels {
                 wgpu::SwapChainError::Outdated => {
                     // Recreate the swap chain to mitigate race condition on drawing surface resize.
                     // See https://github.com/parasyte/pixels/issues/121
-                    builder::create_swap_chain(self);
+                    self.re_create_swap_chain();
                     self.context.swap_chain.get_current_frame()
                 }
                 err => Err(err),
@@ -381,6 +381,18 @@ impl Pixels {
 
         self.context.queue.submit(Some(encoder.finish()));
         Ok(())
+    }
+
+    // Re-create the swap chain with its own values
+    pub(crate) fn re_create_swap_chain(&mut self) {
+        self.context.swap_chain = builder::create_swap_chain(
+            &mut self.context.device,
+            &self.context.surface,
+            self.render_texture_format,
+            self.surface_size.width,
+            self.surface_size.height,
+            self.present_mode,
+        );
     }
 
     /// Get a mutable byte slice for the pixel buffer. The buffer is _not_ cleared for you; it will

@@ -184,7 +184,7 @@ impl<'req, 'win, W: HasRawWindowHandle> PixelsBuilder<'req, 'win, W> {
         ));
         let adapter = pollster::block_on(adapter).ok_or(Error::AdapterNotFound)?;
 
-        let (device, queue) =
+        let (mut device, queue) =
             pollster::block_on(adapter.request_device(&self.device_descriptor, None))
                 .map_err(Error::DeviceNotFound)?;
 
@@ -219,15 +219,13 @@ impl<'req, 'win, W: HasRawWindowHandle> PixelsBuilder<'req, 'win, W> {
 
         // Create swap chain
         let surface_size = self.surface_texture.size;
-        let swap_chain = device.create_swap_chain(
+        let swap_chain = create_swap_chain(
+            &mut device,
             &surface,
-            &wgpu::SwapChainDescriptor {
-                usage: wgpu::TextureUsage::OUTPUT_ATTACHMENT,
-                format: self.render_texture_format,
-                width: surface_size.width,
-                height: surface_size.height,
-                present_mode,
-            },
+            self.render_texture_format,
+            surface_size.width,
+            surface_size.height,
+            present_mode,
         );
 
         let scaling_matrix_inverse = ScalingMatrix::new(
@@ -255,31 +253,35 @@ impl<'req, 'win, W: HasRawWindowHandle> PixelsBuilder<'req, 'win, W> {
             texture_format_size,
             scaling_renderer,
         };
-        let mut pixels = Pixels {
+        Ok(Pixels {
             context,
             surface_size,
             present_mode,
             pixels,
             scaling_matrix_inverse,
             render_texture_format: self.render_texture_format,
-        };
-        create_swap_chain(&mut pixels);
-
-        Ok(pixels)
+        })
     }
 }
 
-pub(crate) fn create_swap_chain(pixels: &mut Pixels) {
-    pixels.context.swap_chain = pixels.context.device.create_swap_chain(
-        &pixels.context.surface,
+pub(crate) fn create_swap_chain(
+    device: &mut wgpu::Device,
+    surface: &wgpu::Surface,
+    format: wgpu::TextureFormat,
+    width: u32,
+    height: u32,
+    present_mode: wgpu::PresentMode,
+) -> wgpu::SwapChain {
+    device.create_swap_chain(
+        &surface,
         &wgpu::SwapChainDescriptor {
             usage: wgpu::TextureUsage::OUTPUT_ATTACHMENT,
-            format: pixels.render_texture_format,
-            width: pixels.surface_size.width,
-            height: pixels.surface_size.height,
-            present_mode: pixels.present_mode,
+            format,
+            width,
+            height,
+            present_mode,
         },
-    );
+    )
 }
 
 fn get_texture_format_size(texture_format: wgpu::TextureFormat) -> f32 {
