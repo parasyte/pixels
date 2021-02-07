@@ -37,7 +37,7 @@ fn main() -> Result<(), Error> {
 
     let mut world = World::new();
 
-    win.draw(move || {
+    while app.wait() {
         // Update internal state
         world.update();
         // Draw the current frame
@@ -48,11 +48,7 @@ fn main() -> Result<(), Error> {
             .is_err()
         {
             app.quit();
-            return;
         }
-    });
-
-    while app.wait() {
         win.redraw();
         // Calls to redraw in the event loop require an explicit sleep
         thread::sleep(Duration::from_millis(SLEEP));
