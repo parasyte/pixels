@@ -193,11 +193,11 @@ impl Pixels {
 
         // Update ScalingMatrix for mouse transformation
         self.scaling_matrix_inverse = renderers::ScalingMatrix::new(
-            (
-                self.context.texture_extent.width as f32,
-                self.context.texture_extent.height as f32,
-            ),
             (width as f32, height as f32),
+            (
+                self.surface_size.width as f32,
+                self.surface_size.height as f32,
+            ),
         )
         .transform
         .inversed();
