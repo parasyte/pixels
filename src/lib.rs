@@ -185,51 +185,27 @@ impl Pixels {
 
     /// Resize the pixel buffer, this doesn't resize the surface upon which the pixel buffer is rendered.
     pub fn resize_buffer(&mut self, width: u32, height: u32) {
-        self.context.texture_extent = wgpu::Extent3d {
-            width,
-            height,
-            depth: 1,
-        };
+        // Recreate the backing texture
+        let (scaling_matrix_inverse, texture_extent, texture, scaling_renderer, pixels_buffer_size) =
+            builder::create_backing_texture(
+                &self.context.device,
+                // Backing texture values
+                width,
+                height,
+                self.context.texture_format,
+                // Render texture values
+                &self.surface_size,
+                self.render_texture_format,
+            );
 
-        // Update ScalingMatrix for mouse transformation
-        self.scaling_matrix_inverse = renderers::ScalingMatrix::new(
-            (width as f32, height as f32),
-            (
-                self.surface_size.width as f32,
-                self.surface_size.height as f32,
-            ),
-        )
-        .transform
-        .inversed();
+        self.scaling_matrix_inverse = scaling_matrix_inverse;
+        self.context.texture_extent = texture_extent;
+        self.context.texture = texture;
+        self.context.scaling_renderer = scaling_renderer;
 
-        // Recreate the texture
-        self.context.texture = self
-            .context
-            .device
-            .create_texture(&wgpu::TextureDescriptor {
-                label: Some("pixels_source_texture"),
-                size: self.context.texture_extent,
-                mip_level_count: 1,
-                sample_count: 1,
-                dimension: wgpu::TextureDimension::D2,
-                format: self.context.texture_format,
-                usage: wgpu::TextureUsage::SAMPLED | wgpu::TextureUsage::COPY_DST,
-            });
-        let texture_view = self
-            .context
-            .texture
-            .create_view(&wgpu::TextureViewDescriptor::default());
-
-        self.context.scaling_renderer = ScalingRenderer::new(
-            &self.context.device,
-            &texture_view,
-            &self.context.texture_extent,
-            self.render_texture_format,
-        );
-
-        // Resize the buffer
-        let capacity = ((width * height) as f32 * self.context.texture_format_size) as usize;
-        self.pixels.resize_with(capacity, Default::default);
+        // Resize the pixel buffer
+        self.pixels
+            .resize_with(pixels_buffer_size, Default::default);
     }
 
     /// Resize the surface upon which the pixel buffer is rendered.
@@ -256,7 +232,7 @@ impl Pixels {
         .inversed();
 
         // Recreate the swap chain
-        self.re_create_swap_chain();
+        self.recreate_swap_chain();
 
         // Update state for all render passes
         self.context
@@ -345,7 +321,7 @@ impl Pixels {
                 wgpu::SwapChainError::Outdated => {
                     // Recreate the swap chain to mitigate race condition on drawing surface resize.
                     // See https://github.com/parasyte/pixels/issues/121
-                    self.re_create_swap_chain();
+                    self.recreate_swap_chain();
                     self.context.swap_chain.get_current_frame()
                 }
                 err => Err(err),
@@ -384,13 +360,12 @@ impl Pixels {
     }
 
     // Re-create the swap chain with its own values
-    pub(crate) fn re_create_swap_chain(&mut self) {
+    pub(crate) fn recreate_swap_chain(&mut self) {
         self.context.swap_chain = builder::create_swap_chain(
             &mut self.context.device,
             &self.context.surface,
             self.render_texture_format,
-            self.surface_size.width,
-            self.surface_size.height,
+            &self.surface_size,
             self.present_mode,
         );
     }
