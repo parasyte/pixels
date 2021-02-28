@@ -74,6 +74,7 @@ pub struct PixelsContext {
 
     /// Provides access to the texture size.
     pub texture_extent: wgpu::Extent3d,
+    pub texture_format: wgpu::TextureFormat,
 
     /// Defines the "data rate" for the raw texture data. This is effectively the "bytes per pixel"
     /// count.
@@ -182,6 +183,31 @@ impl Pixels {
         PixelsBuilder::new(width, height, surface_texture).build()
     }
 
+    /// Resize the pixel buffer, this doesn't resize the surface upon which the pixel buffer is rendered.
+    pub fn resize_buffer(&mut self, width: u32, height: u32) {
+        // Recreate the backing texture
+        let (scaling_matrix_inverse, texture_extent, texture, scaling_renderer, pixels_buffer_size) =
+            builder::create_backing_texture(
+                &self.context.device,
+                // Backing texture values
+                width,
+                height,
+                self.context.texture_format,
+                // Render texture values
+                &self.surface_size,
+                self.render_texture_format,
+            );
+
+        self.scaling_matrix_inverse = scaling_matrix_inverse;
+        self.context.texture_extent = texture_extent;
+        self.context.texture = texture;
+        self.context.scaling_renderer = scaling_renderer;
+
+        // Resize the pixel buffer
+        self.pixels
+            .resize_with(pixels_buffer_size, Default::default);
+    }
+
     /// Resize the surface upon which the pixel buffer is rendered.
     ///
     /// This does not resize the pixel buffer. The pixel buffer will be fit onto the surface as
@@ -206,16 +232,7 @@ impl Pixels {
         .inversed();
 
         // Recreate the swap chain
-        self.context.swap_chain = self.context.device.create_swap_chain(
-            &self.context.surface,
-            &wgpu::SwapChainDescriptor {
-                usage: wgpu::TextureUsage::OUTPUT_ATTACHMENT,
-                format: self.render_texture_format,
-                width: self.surface_size.width,
-                height: self.surface_size.height,
-                present_mode: self.present_mode,
-            },
-        );
+        self.recreate_swap_chain();
 
         // Update state for all render passes
         self.context
@@ -300,6 +317,15 @@ impl Pixels {
             .context
             .swap_chain
             .get_current_frame()
+            .or_else(|err| match err {
+                wgpu::SwapChainError::Outdated => {
+                    // Recreate the swap chain to mitigate race condition on drawing surface resize.
+                    // See https://github.com/parasyte/pixels/issues/121
+                    self.recreate_swap_chain();
+                    self.context.swap_chain.get_current_frame()
+                }
+                err => Err(err),
+            })
             .map_err(Error::Swapchain)?;
         let mut encoder =
             self.context
@@ -331,6 +357,17 @@ impl Pixels {
 
         self.context.queue.submit(Some(encoder.finish()));
         Ok(())
+    }
+
+    // Re-create the swap chain with its own values
+    pub(crate) fn recreate_swap_chain(&mut self) {
+        self.context.swap_chain = builder::create_swap_chain(
+            &mut self.context.device,
+            &self.context.surface,
+            self.render_texture_format,
+            &self.surface_size,
+            self.present_mode,
+        );
     }
 
     /// Get a mutable byte slice for the pixel buffer. The buffer is _not_ cleared for you; it will

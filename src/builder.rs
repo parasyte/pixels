@@ -1,4 +1,5 @@
 use crate::renderers::{ScalingMatrix, ScalingRenderer};
+use crate::SurfaceSize;
 use crate::{Error, Pixels, PixelsContext, SurfaceTexture};
 use raw_window_handle::HasRawWindowHandle;
 use std::env;
@@ -184,66 +185,40 @@ impl<'req, 'win, W: HasRawWindowHandle> PixelsBuilder<'req, 'win, W> {
         ));
         let adapter = pollster::block_on(adapter).ok_or(Error::AdapterNotFound)?;
 
-        let (device, queue) =
+        let (mut device, queue) =
             pollster::block_on(adapter.request_device(&self.device_descriptor, None))
                 .map_err(Error::DeviceNotFound)?;
-
-        // The rest of this is technically a fixed-function pipeline... For now!
-
-        // Create a texture
-        let width = self.width;
-        let height = self.height;
-        let texture_extent = wgpu::Extent3d {
-            width,
-            height,
-            depth: 1,
-        };
-        let texture = device.create_texture(&wgpu::TextureDescriptor {
-            label: Some("pixels_source_texture"),
-            size: texture_extent,
-            mip_level_count: 1,
-            sample_count: 1,
-            dimension: wgpu::TextureDimension::D2,
-            format: self.texture_format,
-            usage: wgpu::TextureUsage::SAMPLED | wgpu::TextureUsage::COPY_DST,
-        });
-        let texture_view = texture.create_view(&wgpu::TextureViewDescriptor::default());
-        let texture_format_size = get_texture_format_size(self.texture_format);
-
-        // Create the pixel buffer
-        let capacity = ((width * height) as f32 * texture_format_size) as usize;
-        let mut pixels = Vec::with_capacity(capacity);
-        pixels.resize_with(capacity, Default::default);
 
         let present_mode = self.present_mode;
 
         // Create swap chain
         let surface_size = self.surface_texture.size;
-        let swap_chain = device.create_swap_chain(
+        let swap_chain = create_swap_chain(
+            &mut device,
             &surface,
-            &wgpu::SwapChainDescriptor {
-                usage: wgpu::TextureUsage::OUTPUT_ATTACHMENT,
-                format: self.render_texture_format,
-                width: surface_size.width,
-                height: surface_size.height,
-                present_mode,
-            },
-        );
-
-        let scaling_matrix_inverse = ScalingMatrix::new(
-            (width as f32, height as f32),
-            (surface_size.width as f32, surface_size.height as f32),
-        )
-        .transform
-        .inversed();
-
-        let scaling_renderer = ScalingRenderer::new(
-            &device,
-            &texture_view,
-            &texture_extent,
             self.render_texture_format,
+            &surface_size,
+            present_mode,
         );
 
+        // Create the backing texture
+        let (scaling_matrix_inverse, texture_extent, texture, scaling_renderer, pixels_buffer_size) =
+            create_backing_texture(
+                &device,
+                // Backing texture values
+                self.width,
+                self.height,
+                self.texture_format,
+                // Render texture values
+                &surface_size,
+                self.render_texture_format,
+            );
+
+        // Create the pixel buffer
+        let mut pixels = Vec::with_capacity(pixels_buffer_size);
+        pixels.resize_with(pixels_buffer_size, Default::default);
+
+        // Instantiate the Pixels struct
         let context = PixelsContext {
             device,
             queue,
@@ -251,7 +226,8 @@ impl<'req, 'win, W: HasRawWindowHandle> PixelsBuilder<'req, 'win, W> {
             swap_chain,
             texture,
             texture_extent,
-            texture_format_size,
+            texture_format: self.texture_format,
+            texture_format_size: get_texture_format_size(self.texture_format),
             scaling_renderer,
         };
 
@@ -266,7 +242,86 @@ impl<'req, 'win, W: HasRawWindowHandle> PixelsBuilder<'req, 'win, W> {
     }
 }
 
-fn get_texture_format_size(texture_format: wgpu::TextureFormat) -> f32 {
+pub(crate) fn create_swap_chain(
+    device: &mut wgpu::Device,
+    surface: &wgpu::Surface,
+    format: wgpu::TextureFormat,
+    surface_size: &SurfaceSize,
+    // width: u32,
+    // height: u32,
+    present_mode: wgpu::PresentMode,
+) -> wgpu::SwapChain {
+    device.create_swap_chain(
+        &surface,
+        &wgpu::SwapChainDescriptor {
+            usage: wgpu::TextureUsage::OUTPUT_ATTACHMENT,
+            format,
+            width: surface_size.width,
+            height: surface_size.height,
+            present_mode,
+        },
+    )
+}
+
+pub(crate) fn create_backing_texture(
+    device: &wgpu::Device,
+    width: u32,
+    height: u32,
+    backing_texture_format: wgpu::TextureFormat,
+    surface_size: &SurfaceSize,
+    render_texture_format: wgpu::TextureFormat,
+) -> (
+    ultraviolet::Mat4,
+    wgpu::Extent3d,
+    wgpu::Texture,
+    ScalingRenderer,
+    usize,
+) {
+    let scaling_matrix_inverse = ScalingMatrix::new(
+        (width as f32, height as f32),
+        (surface_size.width as f32, surface_size.height as f32),
+    )
+    .transform
+    .inversed();
+
+    let texture_extent = wgpu::Extent3d {
+        width,
+        height,
+        depth: 1,
+    };
+
+    let texture = device.create_texture(&wgpu::TextureDescriptor {
+        label: Some("pixels_source_texture"),
+        size: texture_extent,
+        mip_level_count: 1,
+        sample_count: 1,
+        dimension: wgpu::TextureDimension::D2,
+        format: backing_texture_format,
+        usage: wgpu::TextureUsage::SAMPLED | wgpu::TextureUsage::COPY_DST,
+    });
+    let texture_view = texture.create_view(&wgpu::TextureViewDescriptor::default());
+
+    let scaling_renderer = ScalingRenderer::new(
+        device,
+        &texture_view,
+        &texture_extent,
+        render_texture_format,
+    );
+
+    let texture_format_size = get_texture_format_size(backing_texture_format);
+    let pixels_buffer_size = ((width * height) as f32 * texture_format_size) as usize;
+
+    (
+        scaling_matrix_inverse,
+        texture_extent,
+        texture,
+        scaling_renderer,
+        pixels_buffer_size,
+    )
+}
+
+#[inline]
+const fn get_texture_format_size(texture_format: wgpu::TextureFormat) -> f32 {
     match texture_format {
         // 8-bit formats
         wgpu::TextureFormat::R8Unorm
