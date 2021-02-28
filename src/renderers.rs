@@ -1,4 +1,5 @@
 use crate::SurfaceSize;
+use std::borrow::Cow;
 use ultraviolet::Mat4;
 use wgpu::util::DeviceExt;
 
@@ -21,8 +22,13 @@ impl ScalingRenderer {
         surface_size: &SurfaceSize,
         render_texture_format: wgpu::TextureFormat,
     ) -> Self {
-        let vs_module = device.create_shader_module(&wgpu::include_spirv!("../shaders/vert.spv"));
-        let fs_module = device.create_shader_module(&wgpu::include_spirv!("../shaders/frag.spv"));
+        let shader = wgpu::ShaderModuleDescriptor {
+            label: Some("pixels_scaling_renderer_shader"),
+            source: wgpu::ShaderSource::Wgsl(Cow::Borrowed(include_str!("../shaders/scale.wgsl"))),
+            flags: wgpu::ShaderFlags::VALIDATION,
+        };
+        let vs_module = device.create_shader_module(&shader);
+        let fs_module = device.create_shader_module(&shader);
 
         // Create a texture sampler with nearest neighbor
         let sampler = device.create_sampler(&wgpu::SamplerDescriptor {
@@ -121,7 +127,7 @@ impl ScalingRenderer {
             layout: Some(&pipeline_layout),
             vertex: wgpu::VertexState {
                 module: &vs_module,
-                entry_point: "main",
+                entry_point: "vs_main",
                 buffers: &[],
             },
             primitive: wgpu::PrimitiveState::default(),
@@ -129,7 +135,7 @@ impl ScalingRenderer {
             multisample: wgpu::MultisampleState::default(),
             fragment: Some(wgpu::FragmentState {
                 module: &fs_module,
-                entry_point: "main",
+                entry_point: "fs_main",
                 targets: &[wgpu::ColorTargetState {
                     format: render_texture_format,
                     blend: Some(wgpu::BlendState {

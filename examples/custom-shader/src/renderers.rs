@@ -1,4 +1,5 @@
 use pixels::wgpu::{self, util::DeviceExt};
+use std::borrow::Cow;
 
 pub(crate) struct NoiseRenderer {
     bind_group: wgpu::BindGroup,
@@ -8,8 +9,13 @@ pub(crate) struct NoiseRenderer {
 
 impl NoiseRenderer {
     pub(crate) fn new(device: &wgpu::Device, texture_view: &wgpu::TextureView) -> Self {
-        let vs_module = device.create_shader_module(&wgpu::include_spirv!("../shaders/vert.spv"));
-        let fs_module = device.create_shader_module(&wgpu::include_spirv!("../shaders/frag.spv"));
+        let shader = wgpu::ShaderModuleDescriptor {
+            label: Some("custom_noise_shader"),
+            source: wgpu::ShaderSource::Wgsl(Cow::Borrowed(include_str!("../shaders/noise.wgsl"))),
+            flags: wgpu::ShaderFlags::VALIDATION,
+        };
+        let vs_module = device.create_shader_module(&shader);
+        let fs_module = device.create_shader_module(&shader);
 
         // Create a texture sampler with nearest neighbor
         let sampler = device.create_sampler(&wgpu::SamplerDescriptor {
@@ -103,7 +109,7 @@ impl NoiseRenderer {
             layout: Some(&pipeline_layout),
             vertex: wgpu::VertexState {
                 module: &vs_module,
-                entry_point: "main",
+                entry_point: "vs_main",
                 buffers: &[],
             },
             primitive: wgpu::PrimitiveState::default(),
@@ -111,7 +117,7 @@ impl NoiseRenderer {
             multisample: wgpu::MultisampleState::default(),
             fragment: Some(wgpu::FragmentState {
                 module: &fs_module,
-                entry_point: "main",
+                entry_point: "fs_main",
                 targets: &[wgpu::ColorTargetState {
                     format: wgpu::TextureFormat::Bgra8UnormSrgb,
                     blend: Some(wgpu::BlendState {
