@@ -324,83 +324,145 @@ pub(crate) fn create_backing_texture(
     )
 }
 
+#[rustfmt::skip]
 #[inline]
 const fn get_texture_format_size(texture_format: wgpu::TextureFormat) -> f32 {
     use wgpu::TextureFormat::*;
 
     // TODO: Use constant arithmetic when supported.
-    // SEE: https://github.com/rust-lang/rust/issues/57241
+    // See: https://github.com/rust-lang/rust/issues/57241
     match texture_format {
         // 8-bit formats, 8 bits per component
-        R8Unorm | R8Snorm | R8Uint | R8Sint => 1.0, // 8.0 / 8.0
+        R8Unorm
+        | R8Snorm
+        | R8Uint
+        | R8Sint => 1.0, // 8.0 / 8.0
 
         // 16-bit formats, 8 bits per component
-        R16Uint | R16Sint | R16Float | Rg8Unorm | Rg8Snorm | Rg8Uint | Rg8Sint => 2.0, // 16.0 / 8.0
+        R16Uint
+        | R16Sint
+        | R16Float
+        | Rg8Unorm
+        | Rg8Snorm
+        | Rg8Uint
+        | Rg8Sint => 2.0, // 16.0 / 8.0
 
         // 32-bit formats, 8 bits per component
-        R32Uint | R32Sint | R32Float | Rg16Uint | Rg16Sint | Rg16Float | Rgba8Unorm
-        | Rgba8UnormSrgb | Rgba8Snorm | Rgba8Uint | Rgba8Sint | Bgra8Unorm | Bgra8UnormSrgb
-        | Rgb10a2Unorm | Rg11b10Float | Depth32Float | Depth24Plus | Depth24PlusStencil8 => {
-            4.0 // 32.0 / 8.0
-        }
+        R32Uint
+        | R32Sint
+        | R32Float
+        | Rg16Uint
+        | Rg16Sint
+        | Rg16Float
+        | Rgba8Unorm
+        | Rgba8UnormSrgb
+        | Rgba8Snorm
+        | Rgba8Uint
+        | Rgba8Sint
+        | Bgra8Unorm
+        | Bgra8UnormSrgb
+        | Rgb10a2Unorm
+        | Rg11b10Float
+        | Depth32Float
+        | Depth24Plus
+        | Depth24PlusStencil8 => 4.0, // 32.0 / 8.0
 
         // 64-bit formats, 8 bits per component
-        Rg32Uint | Rg32Sint | Rg32Float | Rgba16Uint | Rgba16Sint | Rgba16Float => 8.0, // 64.0 / 8.0
+        Rg32Uint
+        | Rg32Sint
+        | Rg32Float
+        | Rgba16Uint
+        | Rgba16Sint
+        | Rgba16Float => 8.0, // 64.0 / 8.0
 
         // 128-bit formats, 8 bits per component
-        Rgba32Uint | Rgba32Sint | Rgba32Float => 16.0, // 128.0 / 8.0
+        Rgba32Uint
+        | Rgba32Sint
+        | Rgba32Float => 16.0, // 128.0 / 8.0
 
         // Compressed formats
+
         // 4x4 blocks, 8 bytes per block
-        Bc1RgbaUnorm | Bc1RgbaUnormSrgb | Bc4RUnorm | Bc4RSnorm | Etc2RgbUnorm
-        | Etc2RgbUnormSrgb | Etc2RgbA1Unorm | Etc2RgbA1UnormSrgb | EacRUnorm | EacRSnorm => {
-            0.5 // 4.0 * 4.0 / 8.0
-        }
+        Bc1RgbaUnorm
+        | Bc1RgbaUnormSrgb
+        | Bc4RUnorm
+        | Bc4RSnorm
+        | Etc2RgbUnorm
+        | Etc2RgbUnormSrgb
+        | Etc2RgbA1Unorm
+        | Etc2RgbA1UnormSrgb
+        | EacRUnorm
+        | EacRSnorm => 0.5, // 4.0 * 4.0 / 8.0
 
         // 4x4 blocks, 16 bytes per block
-        Bc2RgbaUnorm | Bc2RgbaUnormSrgb | Bc3RgbaUnorm | Bc3RgbaUnormSrgb | Bc5RgUnorm
-        | Bc5RgSnorm | Bc6hRgbUfloat | Bc6hRgbSfloat | Bc7RgbaUnorm | Bc7RgbaUnormSrgb
-        | Etc2RgbA8Unorm | Etc2RgbA8UnormSrgb | EtcRgUnorm | EtcRgSnorm | Astc4x4RgbaUnorm
+        Bc2RgbaUnorm
+        | Bc2RgbaUnormSrgb
+        | Bc3RgbaUnorm
+        | Bc3RgbaUnormSrgb
+        | Bc5RgUnorm
+        | Bc5RgSnorm
+        | Bc6hRgbUfloat
+        | Bc6hRgbSfloat
+        | Bc7RgbaUnorm
+        | Bc7RgbaUnormSrgb
+        | Etc2RgbA8Unorm
+        | Etc2RgbA8UnormSrgb
+        | EtcRgUnorm
+        | EtcRgSnorm
+        | Astc4x4RgbaUnorm
         | Astc4x4RgbaUnormSrgb => 1.0, // 4.0 * 4.0 / 16.0
 
         // 5x4 blocks, 16 bytes per block
-        Astc5x4RgbaUnorm | Astc5x4RgbaUnormSrgb => 1.25, // 5.0 * 4.0 / 16.0
+        Astc5x4RgbaUnorm
+        | Astc5x4RgbaUnormSrgb => 1.25, // 5.0 * 4.0 / 16.0
 
         // 5x5 blocks, 16 bytes per block
-        Astc5x5RgbaUnorm | Astc5x5RgbaUnormSrgb => 1.5625, // 5.0 * 5.0 / 16.0
+        Astc5x5RgbaUnorm
+        | Astc5x5RgbaUnormSrgb => 1.5625, // 5.0 * 5.0 / 16.0
 
         // 6x5 blocks, 16 bytes per block
-        Astc6x5RgbaUnorm | Astc6x5RgbaUnormSrgb => 1.5625, // 6.0 * 5.0 / 16.0
+        Astc6x5RgbaUnorm
+        | Astc6x5RgbaUnormSrgb => 1.5625, // 6.0 * 5.0 / 16.0
 
         // 6x6 blocks, 16 bytes per block
-        Astc6x6RgbaUnorm | Astc6x6RgbaUnormSrgb => 2.25, // 6.0 * 6.0 / 16.0
+        Astc6x6RgbaUnorm
+        | Astc6x6RgbaUnormSrgb => 2.25, // 6.0 * 6.0 / 16.0
 
         // 8x5 blocks, 16 bytes per block
-        Astc8x5RgbaUnorm | Astc8x5RgbaUnormSrgb => 2.5, // 8.0 * 5.0 / 16.0
+        Astc8x5RgbaUnorm
+        | Astc8x5RgbaUnormSrgb => 2.5, // 8.0 * 5.0 / 16.0
 
         // 8x6 blocks, 16 bytes per block
-        Astc8x6RgbaUnorm | Astc8x6RgbaUnormSrgb => 3.0, // 8.0 * 6.0 / 16.0
+        Astc8x6RgbaUnorm
+        | Astc8x6RgbaUnormSrgb => 3.0, // 8.0 * 6.0 / 16.0
 
         // 8x8 blocks, 16 bytes per block
-        Astc8x8RgbaUnorm | Astc8x8RgbaUnormSrgb => 4.0, // 8.0 * 8.0 / 16.0
+        Astc8x8RgbaUnorm
+        | Astc8x8RgbaUnormSrgb => 4.0, // 8.0 * 8.0 / 16.0
 
         // 10x5 blocks, 16 bytes per block
-        Astc10x5RgbaUnorm | Astc10x5RgbaUnormSrgb => 3.125, // 10.0 * 5.0 / 16.0
+        Astc10x5RgbaUnorm
+        | Astc10x5RgbaUnormSrgb => 3.125, // 10.0 * 5.0 / 16.0
 
         // 10x6 blocks, 16 bytes per block
-        Astc10x6RgbaUnorm | Astc10x6RgbaUnormSrgb => 3.75, // 10.0 * 6.0 / 16.0
+        Astc10x6RgbaUnorm
+        | Astc10x6RgbaUnormSrgb => 3.75, // 10.0 * 6.0 / 16.0
 
         // 10x8 blocks, 16 bytes per block
-        Astc10x8RgbaUnorm | Astc10x8RgbaUnormSrgb => 5.0, // 10.0 * 8.0 / 16.0
+        Astc10x8RgbaUnorm
+        | Astc10x8RgbaUnormSrgb => 5.0, // 10.0 * 8.0 / 16.0
 
         // 10x10 blocks, 16 bytes per block
-        Astc10x10RgbaUnorm | Astc10x10RgbaUnormSrgb => 6.25, // 10.0 * 10.0 / 16.0
+        Astc10x10RgbaUnorm
+        | Astc10x10RgbaUnormSrgb => 6.25, // 10.0 * 10.0 / 16.0
 
         // 12x10 blocks, 16 bytes per block
-        Astc12x10RgbaUnorm | Astc12x10RgbaUnormSrgb => 7.5, // 12.0 * 10.0 / 16.0
+        Astc12x10RgbaUnorm
+        | Astc12x10RgbaUnormSrgb => 7.5, // 12.0 * 10.0 / 16.0
 
         // 12x12 blocks, 16 bytes per block
-        Astc12x12RgbaUnorm | Astc12x12RgbaUnormSrgb => 9.0, // 12.0 * 12.0 / 16.0
+        Astc12x12RgbaUnorm
+        | Astc12x12RgbaUnormSrgb => 9.0, // 12.0 * 12.0 / 16.0
     }
 }
 
