@@ -247,8 +247,6 @@ pub(crate) fn create_swap_chain(
     surface: &wgpu::Surface,
     format: wgpu::TextureFormat,
     surface_size: &SurfaceSize,
-    // width: u32,
-    // height: u32,
     present_mode: wgpu::PresentMode,
 ) -> wgpu::SwapChain {
     device.create_swap_chain(
