@@ -1,3 +1,4 @@
+use crate::SurfaceSize;
 use ultraviolet::Mat4;
 use wgpu::util::DeviceExt;
 
@@ -17,6 +18,7 @@ impl ScalingRenderer {
         device: &wgpu::Device,
         texture_view: &wgpu::TextureView,
         texture_size: &wgpu::Extent3d,
+        surface_size: &SurfaceSize,
         render_texture_format: wgpu::TextureFormat,
     ) -> Self {
         let vs_module = device.create_shader_module(&wgpu::include_spirv!("../shaders/vert.spv"));
@@ -39,11 +41,9 @@ impl ScalingRenderer {
         });
 
         // Create uniform buffer
-        // TODO: This should also have the width / height of the of the window surface,
-        // so that it won't break when the window is created with a different size.
         let matrix = ScalingMatrix::new(
             (texture_size.width as f32, texture_size.height as f32),
-            (texture_size.width as f32, texture_size.height as f32),
+            (surface_size.width as f32, surface_size.height as f32),
         );
         let transform_bytes = matrix.as_bytes();
         let uniform_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
