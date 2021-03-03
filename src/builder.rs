@@ -309,6 +309,7 @@ pub(crate) fn create_backing_texture(
         device,
         &texture_view,
         &texture_extent,
+        surface_size,
         render_texture_format,
     );
 
