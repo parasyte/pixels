@@ -25,6 +25,7 @@ Rapidly prototype a simple 2D game, pixel-based animations, software renderers, 
 - [Conway's Game of Life](./examples/conway)
 - [Custom Shader](./examples/custom-shader)
 - [Dear ImGui example with `winit`](./examples/imgui-winit)
+- [Egui example with `winit`](./examples/egui-winit)
 - [Minimal example with SDL2](./examples/minimal-sdl2)
 - [Minimal example with `winit`](./examples/minimal-winit)
 - [Minimal example with `fltk`](./examples/minimal-fltk)
