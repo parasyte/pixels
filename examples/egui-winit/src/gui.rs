@@ -1,5 +1,5 @@
 use chrono::Timelike;
-use egui::FontDefinitions;
+use egui::{FontDefinitions, PaintJobs};
 use egui_demo_lib::WrapApp;
 use egui_wgpu_backend::{RenderPass, ScreenDescriptor};
 use egui_winit_platform::{Platform, PlatformDescriptor};
@@ -37,7 +37,7 @@ pub(crate) struct Gui {
     screen_descriptor: ScreenDescriptor,
     repaint_signal: Arc<ExampleRepaintSignal>,
     rpass: RenderPass,
-    paint_jobs: Vec<(egui::Rect, epaint::Triangles)>,
+    paint_jobs: PaintJobs,
 
     // State for the demo app.
     app: WrapApp,
