@@ -67,7 +67,6 @@ impl Gui {
         };
         let repaint_signal = Arc::new(ExampleRepaintSignal(Mutex::new(event_loop_proxy)));
         let rpass = RenderPass::new(&context.device, wgpu::TextureFormat::Bgra8UnormSrgb);
-        let app = WrapApp::default();
 
         Self {
             start_time: Instant::now(),
@@ -75,8 +74,8 @@ impl Gui {
             screen_descriptor,
             repaint_signal,
             rpass,
-            paint_jobs: Vec::new(),
-            app,
+            paint_jobs: PaintJobs::new(),
+            app: WrapApp::default(),
             previous_frame_time: None,
         }
     }
