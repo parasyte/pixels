@@ -11,11 +11,11 @@ default = ["optimize"]
 
 [dependencies]
 chrono = "0.4"
-egui = "0.8"
-egui_demo_lib = "0.8"
-egui_wgpu_backend = "0.4"
-egui_winit_platform = "0.4"
-epi = "0.8"
+egui = "0.10"
+egui_demo_lib = "0.10"
+egui_wgpu_backend = { git = "https://github.com/hasenbanck/egui_wgpu_backend.git", rev = "9d03ad345d15d1e44165849b242d3562fdf3e859" }
+egui_winit_platform = { git = "https://github.com/hasenbanck/egui_winit_platform.git", rev = "17298250e9721e8bf2c1d4a17b3e22777f8cb2e8" }
+epi = "0.10"
 env_logger = "0.7"
 log = "0.4"
 pixels = { path = "../.." }

@@ -1,5 +1,5 @@
 use chrono::Timelike;
-use egui::{FontDefinitions, PaintJobs};
+use egui::{ClippedMesh, FontDefinitions};
 use egui_demo_lib::WrapApp;
 use egui_wgpu_backend::{RenderPass, ScreenDescriptor};
 use egui_winit_platform::{Platform, PlatformDescriptor};
@@ -37,7 +37,7 @@ pub(crate) struct Gui {
     screen_descriptor: ScreenDescriptor,
     repaint_signal: Arc<ExampleRepaintSignal>,
     rpass: RenderPass,
-    paint_jobs: PaintJobs,
+    paint_jobs: Vec<ClippedMesh>,
 
     // State for the demo app.
     app: WrapApp,
@@ -74,7 +74,7 @@ impl Gui {
             screen_descriptor,
             repaint_signal,
             rpass,
-            paint_jobs: PaintJobs::new(),
+            paint_jobs: Vec::new(),
             app: WrapApp::default(),
             previous_frame_time: None,
         }
@@ -112,7 +112,7 @@ impl Gui {
                 seconds_since_midnight: Some(seconds_since_midnight()),
                 native_pixels_per_point: Some(self.screen_descriptor.scale_factor),
             },
-            tex_allocator: Some(&mut self.rpass),
+            tex_allocator: &mut self.rpass,
             output: &mut app_output,
             repaint_signal: self.repaint_signal.clone(),
         }
