@@ -183,7 +183,17 @@ impl Pixels {
         PixelsBuilder::new(width, height, surface_texture).build()
     }
 
-    /// Resize the pixel buffer, this doesn't resize the surface upon which the pixel buffer is rendered.
+    /// Resize the pixel buffer.
+    ///
+    /// This does not resize the surface upon which the pixel buffer is rendered. Use
+    /// [`resize_surface`] to change the size of the surface texture.
+    ///
+    /// The pixel buffer will be fit onto the surface texture as best as possible by scaling to the
+    /// nearest integer, e.g. 2x, 3x, 4x, etc. A border will be added around the pixel buffer
+    /// texture for non-integer scaling ratios.
+    ///
+    /// Call this method to change the virtual screen resolution. E.g. when you want your pixel
+    /// buffer to be resized from `640x480` to `800x600`.
     pub fn resize_buffer(&mut self, width: u32, height: u32) {
         // Recreate the backing texture
         let (scaling_matrix_inverse, texture_extent, texture, scaling_renderer, pixels_buffer_size) =
@@ -210,8 +220,12 @@ impl Pixels {
 
     /// Resize the surface upon which the pixel buffer is rendered.
     ///
-    /// This does not resize the pixel buffer. The pixel buffer will be fit onto the surface as
-    /// best as possible by scaling to the nearest integer, e.g. 2x, 3x, 4x, etc.
+    /// This does not resize the pixel buffer. Use [`resize_buffer`] to change the size of the pixel
+    /// buffer texture.
+    ///
+    /// The pixel buffer will be fit onto the surface texture as best as possible by scaling to the
+    /// nearest integer, e.g. 2x, 3x, 4x, etc. A border will be added around the pixel buffer
+    /// texture for non-integer scaling ratios.
     ///
     /// Call this method in response to a resize event from your window manager. The size expected
     /// is in physical pixel units.
@@ -312,7 +326,6 @@ impl Pixels {
     where
         F: FnOnce(&mut wgpu::CommandEncoder, &wgpu::TextureView, &PixelsContext),
     {
-        // TODO: Center frame buffer in surface
         let frame = self
             .context
             .swap_chain
@@ -359,7 +372,9 @@ impl Pixels {
         Ok(())
     }
 
-    // Re-create the swap chain with its own values
+    /// Recreate the swap chain.
+    ///
+    /// Call this when the surface or presentation mode needs to be changed.
     pub(crate) fn recreate_swap_chain(&mut self) {
         self.context.swap_chain = builder::create_swap_chain(
             &mut self.context.device,
