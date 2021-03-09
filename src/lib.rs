@@ -229,10 +229,10 @@ impl Pixels {
     /// Resize the surface upon which the pixel buffer texture is rendered.
     ///
     /// This does not resize the pixel buffer. Use [`resize_buffer`] to change the size of the pixel
-    /// buffer texture.
+    /// buffer.
     ///
-    /// The pixel buffer will be fit onto the surface texture as best as possible by scaling to the
-    /// nearest integer, e.g. 2x, 3x, 4x, etc. A border will be added around the pixel buffer
+    /// The pixel buffer texture will be fit onto the surface texture as best as possible by scaling
+    /// to the nearest integer, e.g. 2x, 3x, 4x, etc. A border will be added around the pixel buffer
     /// texture for non-integer scaling ratios.
     ///
     /// Call this method in response to a resize event from your window manager. The size expected
