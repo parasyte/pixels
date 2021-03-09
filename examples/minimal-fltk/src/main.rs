@@ -27,7 +27,6 @@ fn main() -> Result<(), Error> {
         .with_size(WIDTH as i32, HEIGHT as i32)
         .with_label("Hello Pixels");
     win.end();
-    win.make_resizable(true);
     win.show();
 
     let mut pixels = {
