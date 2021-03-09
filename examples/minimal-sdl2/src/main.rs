@@ -44,7 +44,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             Some(Event::Window(WindowEvent {
                 event: WindowEventEnum::Resized { w, h },
                 ..
-            })) => pixels.resize(w as u32, h as u32),
+            })) => pixels.resize_surface(w as u32, h as u32),
 
             _ => (),
         }
