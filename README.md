@@ -13,10 +13,14 @@ Rapidly prototype a simple 2D game, pixel-based animations, software renderers, 
 
 `pixels` is more than just a library to push pixels to a screen, but less than a full framework. You're in charge of managing a window environment, event loop, and input handling.
 
+## MSRV Policy
+
+The Minimum Supported Rust Version for `pixels` will always be made available in the [MSRV.md](./MSRV.md) file on GitHub.
+
 ## Features
 
 - Built on modern graphics APIs powered by [`wgpu`](https://crates.io/crates/wgpu): DirectX 12, Vulkan, Metal. OpenGL support is a work in progress.
-- Use your own custom shaders for special effects. (WIP)
+- Use your own custom shaders for special effects.
 - Hardware accelerated scaling on perfect pixel boundaries.
 - Supports non-square pixel aspect ratios. (WIP)
 
