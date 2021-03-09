@@ -101,7 +101,7 @@ fn main() -> Result<(), Error> {
             // Resize the window
             if let Some(size) = input.window_resized() {
                 // Resize the surface texture
-                pixels.resize(size.width, size.height);
+                pixels.resize_surface(size.width, size.height);
 
                 // Resize the world
                 let LogicalSize { width, height } = size.to_logical(scale_factor);

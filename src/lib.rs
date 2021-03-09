@@ -215,7 +215,7 @@ impl Pixels {
     ///
     /// Call this method in response to a resize event from your window manager. The size expected
     /// is in physical pixel units.
-    pub fn resize(&mut self, width: u32, height: u32) {
+    pub fn resize_surface(&mut self, width: u32, height: u32) {
         // Update SurfaceTexture dimensions
         self.surface_size.width = width;
         self.surface_size.height = height;
