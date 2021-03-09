@@ -10,7 +10,7 @@ optimize = ["log/release_max_level_warn"]
 default = ["optimize"]
 
 [dependencies]
-beryllium = { version = "0.3.2", features = ["extern_crate_raw_window_handle"] }
-env_logger = "0.7.1"
-log = "0.4.8"
+beryllium = { version = "0.3", features = ["extern_crate_raw_window_handle"] }
+env_logger = "0.8"
+log = "0.4"
 pixels = { path = "../.." }
