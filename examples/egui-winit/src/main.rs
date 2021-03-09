@@ -1,7 +1,7 @@
 #![deny(clippy::all)]
 #![forbid(unsafe_code)]
 
-use crate::gui::{Gui, GuiEvent};
+use crate::gui::Gui;
 use log::error;
 use pixels::{Error, Pixels, SurfaceTexture};
 use winit::dpi::LogicalSize;
@@ -12,8 +12,8 @@ use winit_input_helper::WinitInputHelper;
 
 mod gui;
 
-const WIDTH: u32 = 800;
-const HEIGHT: u32 = 600;
+const WIDTH: u32 = 640;
+const HEIGHT: u32 = 480;
 const BOX_SIZE: i16 = 64;
 
 /// Representation of the application state. In this example, a box will bounce around the screen.
@@ -26,12 +26,12 @@ struct World {
 
 fn main() -> Result<(), Error> {
     env_logger::init();
-    let event_loop = EventLoop::with_user_event();
+    let event_loop = EventLoop::new();
     let mut input = WinitInputHelper::new();
     let window = {
         let size = LogicalSize::new(WIDTH as f64, HEIGHT as f64);
         WindowBuilder::new()
-            .with_title("Hello Pixels")
+            .with_title("Hello Pixels + egui")
             .with_inner_size(size)
             .with_min_inner_size(size)
             .build(&event_loop)
@@ -44,7 +44,6 @@ fn main() -> Result<(), Error> {
         let surface_texture = SurfaceTexture::new(window_size.width, window_size.height, &window);
         let pixels = Pixels::new(WIDTH, HEIGHT, surface_texture)?;
         let gui = Gui::new(
-            event_loop.create_proxy(),
             window_size.width,
             window_size.height,
             scale_factor,
@@ -107,10 +106,6 @@ fn main() -> Result<(), Error> {
 
             // Update internal state and request a redraw
             world.update();
-            window.request_redraw();
-        }
-
-        if let Event::UserEvent(GuiEvent::RequestRedraw) = event {
             window.request_redraw();
         }
     });

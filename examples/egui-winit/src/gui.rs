@@ -1,33 +1,8 @@
-use chrono::Timelike;
 use egui::{ClippedMesh, FontDefinitions};
-use egui_demo_lib::WrapApp;
 use egui_wgpu_backend::{RenderPass, ScreenDescriptor};
 use egui_winit_platform::{Platform, PlatformDescriptor};
-use epi::backend::{AppOutput, FrameBuilder};
-use epi::App;
 use pixels::{wgpu, PixelsContext};
-use std::sync::{Arc, Mutex};
 use std::time::Instant;
-use winit::event_loop::EventLoopProxy;
-
-/// A custom event type for winit.
-pub(crate) enum GuiEvent {
-    RequestRedraw,
-}
-
-/// This is the repaint signal type that egui needs for requesting a repaint from another thread.
-/// It sends the custom RequestRedraw event to the winit event loop.
-pub(crate) struct ExampleRepaintSignal(std::sync::Mutex<EventLoopProxy<GuiEvent>>);
-
-impl epi::RepaintSignal for ExampleRepaintSignal {
-    fn request_repaint(&self) {
-        self.0
-            .lock()
-            .unwrap()
-            .send_event(GuiEvent::RequestRedraw)
-            .ok();
-    }
-}
 
 /// Manages all state required for rendering egui over `Pixels`.
 pub(crate) struct Gui {
@@ -35,24 +10,16 @@ pub(crate) struct Gui {
     start_time: Instant,
     platform: Platform,
     screen_descriptor: ScreenDescriptor,
-    repaint_signal: Arc<ExampleRepaintSignal>,
     rpass: RenderPass,
     paint_jobs: Vec<ClippedMesh>,
 
     // State for the demo app.
-    app: WrapApp,
-    previous_frame_time: Option<f32>,
+    window_open: bool,
 }
 
 impl Gui {
     /// Create egui.
-    pub(crate) fn new(
-        event_loop_proxy: EventLoopProxy<GuiEvent>,
-        width: u32,
-        height: u32,
-        scale_factor: f64,
-        context: &PixelsContext,
-    ) -> Self {
+    pub(crate) fn new(width: u32, height: u32, scale_factor: f64, context: &PixelsContext) -> Self {
         let platform = Platform::new(PlatformDescriptor {
             physical_width: width,
             physical_height: height,
@@ -65,23 +32,20 @@ impl Gui {
             physical_height: height,
             scale_factor: scale_factor as f32,
         };
-        let repaint_signal = Arc::new(ExampleRepaintSignal(Mutex::new(event_loop_proxy)));
         let rpass = RenderPass::new(&context.device, wgpu::TextureFormat::Bgra8UnormSrgb);
 
         Self {
             start_time: Instant::now(),
             platform,
             screen_descriptor,
-            repaint_signal,
             rpass,
             paint_jobs: Vec::new(),
-            app: WrapApp::default(),
-            previous_frame_time: None,
+            window_open: true,
         }
     }
 
     /// Handle input events from the window manager.
-    pub(crate) fn handle_event(&mut self, event: &winit::event::Event<'_, GuiEvent>) {
+    pub(crate) fn handle_event(&mut self, event: &winit::event::Event<'_, ()>) {
         self.platform.handle_event(event);
     }
 
@@ -102,32 +66,41 @@ impl Gui {
             .update_time(self.start_time.elapsed().as_secs_f64());
 
         // Begin the egui frame.
-        let start = Instant::now();
         self.platform.begin_frame();
-        let mut app_output = AppOutput::default();
-        let mut frame = FrameBuilder {
-            info: epi::IntegrationInfo {
-                web_info: None,
-                cpu_usage: self.previous_frame_time,
-                seconds_since_midnight: Some(seconds_since_midnight()),
-                native_pixels_per_point: Some(self.screen_descriptor.scale_factor),
-            },
-            tex_allocator: &mut self.rpass,
-            output: &mut app_output,
-            repaint_signal: self.repaint_signal.clone(),
-        }
-        .build();
 
         // Draw the demo application.
-        self.app.update(&self.platform.context(), &mut frame);
+        self.ui(&self.platform.context());
 
         // End the egui frame and create all paint jobs to prepare for rendering.
         let (_output, paint_commands) = self.platform.end_frame();
         self.paint_jobs = self.platform.context().tessellate(paint_commands);
+    }
 
-        // Update timing info for CPU usage display in the demo.
-        let frame_time = Instant::now().duration_since(start).as_secs_f64() as f32;
-        self.previous_frame_time = Some(frame_time);
+    /// Create the UI using egui.
+    fn ui(&mut self, ctx: &egui::CtxRef) {
+        egui::TopPanel::top("menubar_container").show(ctx, |ui| {
+            egui::menu::bar(ui, |ui| {
+                egui::menu::menu(ui, "File", |ui| {
+                    if ui.button("About...").clicked() {
+                        self.window_open = true;
+                    }
+                })
+            });
+        });
+
+        egui::Window::new("Hello, egui!")
+            .open(&mut self.window_open)
+            .show(ctx, |ui| {
+                ui.label("This example demonstrates using egui with pixels.");
+                ui.label("Made with 💖 in San Francisco!");
+
+                ui.separator();
+
+                ui.horizontal_for_text(egui::TextStyle::Body, |ui| {
+                    ui.label("Learn more about egui at");
+                    ui.hyperlink("https://docs.rs/egui");
+                });
+            });
     }
 
     /// Render egui.
@@ -161,10 +134,4 @@ impl Gui {
             None,
         );
     }
-}
-
-/// Time of day as seconds since midnight. Used for clock in the demo app.
-pub fn seconds_since_midnight() -> f64 {
-    let time = chrono::Local::now().time();
-    time.num_seconds_from_midnight() as f64 + 1e-9 * (time.nanosecond() as f64)
 }
