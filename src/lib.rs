@@ -158,6 +158,14 @@ impl<'win, W: HasRawWindowHandle> SurfaceTexture<'win, W> {
 impl Pixels {
     /// Create a pixel buffer instance with default options.
     ///
+    /// Any ratio differences between the pixel buffer texture size and surface texture size will
+    /// result in a border being added around the pixel buffer texture to maintain an integer
+    /// scaling ratio.
+    ///
+    /// For instance, a pixel buffer with `320x240` can be scaled to a surface texture with sizes
+    /// `320x240`, `640x480`, `960x720`, etc. without adding a border because these are exactly
+    /// 1x, 2x, and 3x scales, respectively.
+    ///
     /// # Examples
     ///
     /// ```no_run
@@ -185,7 +193,7 @@ impl Pixels {
 
     /// Resize the pixel buffer.
     ///
-    /// This does not resize the surface upon which the pixel buffer is rendered. Use
+    /// This does not resize the surface upon which the pixel buffer texture is rendered. Use
     /// [`resize_surface`] to change the size of the surface texture.
     ///
     /// The pixel buffer will be fit onto the surface texture as best as possible by scaling to the
@@ -218,7 +226,7 @@ impl Pixels {
             .resize_with(pixels_buffer_size, Default::default);
     }
 
-    /// Resize the surface upon which the pixel buffer is rendered.
+    /// Resize the surface upon which the pixel buffer texture is rendered.
     ///
     /// This does not resize the pixel buffer. Use [`resize_buffer`] to change the size of the pixel
     /// buffer texture.
@@ -456,7 +464,7 @@ impl Pixels {
         }
     }
 
-    /// Clamp a pixel position to the pixel buffer size.
+    /// Clamp a pixel position to the pixel buffer texture size.
     ///
     /// This can be used to clamp the `Err` value returned by [`Pixels::window_pos_to_pixel`]
     /// to a position clamped within the drawing area.
