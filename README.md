@@ -22,7 +22,7 @@ The Minimum Supported Rust Version for `pixels` will always be made available in
 - Built on modern graphics APIs powered by [`wgpu`](https://crates.io/crates/wgpu): DirectX 12, Vulkan, Metal. OpenGL support is a work in progress.
 - Use your own custom shaders for special effects.
 - Hardware accelerated scaling on perfect pixel boundaries.
-- Supports non-square pixel aspect ratios. (WIP)
+- Supports non-square pixel aspect ratios.
 
 ## Examples
 
@@ -33,6 +33,7 @@ The Minimum Supported Rust Version for `pixels` will always be made available in
 - [Minimal example with SDL2](./examples/minimal-sdl2)
 - [Minimal example with `winit`](./examples/minimal-winit)
 - [Minimal example with `fltk`](./examples/minimal-fltk)
+- [Non-square Pixel Aspect Ratios](./examples/pixel-aspect-ratio)
 - [Pixel Invaders](./examples/invaders)
 - [`raqote` example](./examples/raqote-winit)
 
