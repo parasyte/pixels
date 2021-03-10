@@ -177,6 +177,8 @@ impl<'req, 'dev, 'win, W: HasRawWindowHandle> PixelsBuilder<'req, 'dev, 'win, W>
         let instance = wgpu::Instance::new(self.backend);
 
         let pixel_aspect_ratio = self.pixel_aspect_ratio;
+        let texture_format = self.texture_format;
+        let render_texture_format = self.render_texture_format;
         let surface = unsafe { instance.create_surface(self.surface_texture.window) };
         let compatible_surface = Some(&surface);
         let adapter = instance.request_adapter(&self.request_adapter_options.map_or_else(
@@ -202,7 +204,7 @@ impl<'req, 'dev, 'win, W: HasRawWindowHandle> PixelsBuilder<'req, 'dev, 'win, W>
         let swap_chain = create_swap_chain(
             &mut device,
             &surface,
-            self.render_texture_format,
+            render_texture_format,
             &surface_size,
             present_mode,
         );
@@ -214,11 +216,11 @@ impl<'req, 'dev, 'win, W: HasRawWindowHandle> PixelsBuilder<'req, 'dev, 'win, W>
                 // Backing texture values
                 self.width,
                 self.height,
-                self.pixel_aspect_ratio,
+                pixel_aspect_ratio,
                 self.texture_format,
                 // Render texture values
                 &surface_size,
-                self.render_texture_format,
+                render_texture_format,
             );
 
         // Create the pixel buffer
@@ -233,8 +235,8 @@ impl<'req, 'dev, 'win, W: HasRawWindowHandle> PixelsBuilder<'req, 'dev, 'win, W>
             swap_chain,
             texture,
             texture_extent,
-            texture_format: self.texture_format,
-            texture_format_size: get_texture_format_size(self.texture_format),
+            texture_format,
+            texture_format_size: get_texture_format_size(texture_format),
             scaling_renderer,
         };
 
@@ -245,7 +247,7 @@ impl<'req, 'dev, 'win, W: HasRawWindowHandle> PixelsBuilder<'req, 'dev, 'win, W>
             present_mode,
             pixels,
             scaling_matrix_inverse,
-            render_texture_format: self.render_texture_format,
+            render_texture_format,
         })
     }
 }
