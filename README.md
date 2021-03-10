@@ -33,7 +33,7 @@ The Minimum Supported Rust Version for `pixels` will always be made available in
 - [Minimal example with SDL2](./examples/minimal-sdl2)
 - [Minimal example with `winit`](./examples/minimal-winit)
 - [Minimal example with `fltk`](./examples/minimal-fltk)
-- [Non-square Pixel Aspect Ratios](./examples/pixel-aspect-ratio)
+- [Non-square pixel aspect ratios](./examples/pixel-aspect-ratio)
 - [Pixel Invaders](./examples/invaders)
 - [`raqote` example](./examples/raqote-winit)
 
