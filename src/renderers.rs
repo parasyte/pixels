@@ -154,13 +154,6 @@ impl ScalingRenderer {
             }),
         });
 
-        // TODO
-        let render_pipeline = if pixel_aspect_ratio == 1.0 {
-            render_pipeline
-        } else {
-            render_pipeline
-        };
-
         Self {
             uniform_buffer,
             bind_group,

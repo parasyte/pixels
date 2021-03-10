@@ -37,7 +37,7 @@ fn main() -> Result<(), Error> {
     let mut input = WinitInputHelper::new();
     let window = {
         // The window size is horizontally stretched by the PAR.
-        let size = LogicalSize::new(WIDTH as f64, HEIGHT as f64);
+        let size = LogicalSize::new(WIDTH as f64 * PAR as f64, HEIGHT as f64);
         WindowBuilder::new()
             .with_title("Hello Pixel Aspect Ratio")
             .with_inner_size(size)
@@ -50,7 +50,7 @@ fn main() -> Result<(), Error> {
         let window_size = window.inner_size();
         let surface_texture = SurfaceTexture::new(window_size.width, window_size.height, &window);
         PixelsBuilder::new(WIDTH, HEIGHT, surface_texture)
-            // .pixel_aspect_ratio(PAR)
+            .pixel_aspect_ratio(PAR)
             .build()?
     };
     let mut world = World::new();

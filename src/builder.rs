@@ -25,7 +25,7 @@ impl<'req, 'dev, 'win, W: HasRawWindowHandle> PixelsBuilder<'req, 'dev, 'win, W>
     ///
     /// ```no_run
     /// # use pixels::PixelsBuilder;
-    /// # let window = pixels_mocks::RWH;
+    /// # let window = pixels_mocks::Rwh;
     /// # let surface_texture = pixels::SurfaceTexture::new(1024, 768, &window);
     /// let mut pixels = PixelsBuilder::new(256, 240, surface_texture)
     ///     .request_adapter_options(wgpu::RequestAdapterOptions {
