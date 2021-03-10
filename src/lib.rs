@@ -92,6 +92,7 @@ pub struct PixelsContext {
 #[derive(Debug)]
 pub struct Pixels {
     context: PixelsContext,
+    pixel_aspect_ratio: f32,
     surface_size: SurfaceSize,
     present_mode: wgpu::PresentMode,
     render_texture_format: wgpu::TextureFormat,
@@ -210,6 +211,7 @@ impl Pixels {
                 // Backing texture values
                 width,
                 height,
+                self.pixel_aspect_ratio,
                 self.context.texture_format,
                 // Render texture values
                 &self.surface_size,
@@ -247,6 +249,7 @@ impl Pixels {
             (
                 self.context.texture_extent.width as f32,
                 self.context.texture_extent.height as f32,
+                self.pixel_aspect_ratio,
             ),
             (width as f32, height as f32),
         )

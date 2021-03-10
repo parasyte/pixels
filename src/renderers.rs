@@ -8,9 +8,7 @@ pub struct ScalingRenderer {
     uniform_buffer: wgpu::Buffer,
     bind_group: wgpu::BindGroup,
     render_pipeline: wgpu::RenderPipeline,
-    width: f32,
-    height: f32,
-    render_texture_format: wgpu::TextureFormat,
+    texture_size: (f32, f32, f32),
 }
 
 impl ScalingRenderer {
@@ -18,11 +16,18 @@ impl ScalingRenderer {
         device: &wgpu::Device,
         texture_view: &wgpu::TextureView,
         texture_size: &wgpu::Extent3d,
+        pixel_aspect_ratio: f32,
         surface_size: &SurfaceSize,
         render_texture_format: wgpu::TextureFormat,
     ) -> Self {
         let vs_module = device.create_shader_module(&wgpu::include_spirv!("../shaders/vert.spv"));
         let fs_module = device.create_shader_module(&wgpu::include_spirv!("../shaders/frag.spv"));
+
+        let texture_size = (
+            texture_size.width as f32,
+            texture_size.height as f32,
+            pixel_aspect_ratio,
+        );
 
         // Create a texture sampler with nearest neighbor
         let sampler = device.create_sampler(&wgpu::SamplerDescriptor {
@@ -42,7 +47,7 @@ impl ScalingRenderer {
 
         // Create uniform buffer
         let matrix = ScalingMatrix::new(
-            (texture_size.width as f32, texture_size.height as f32),
+            texture_size,
             (surface_size.width as f32, surface_size.height as f32),
         );
         let transform_bytes = matrix.as_bytes();
@@ -149,13 +154,18 @@ impl ScalingRenderer {
             }),
         });
 
+        // TODO
+        let render_pipeline = if pixel_aspect_ratio == 1.0 {
+            render_pipeline
+        } else {
+            render_pipeline
+        };
+
         Self {
             uniform_buffer,
             bind_group,
             render_pipeline,
-            width: texture_size.width as f32,
-            height: texture_size.height as f32,
-            render_texture_format,
+            texture_size,
         }
     }
 
@@ -179,33 +189,41 @@ impl ScalingRenderer {
     }
 
     pub(crate) fn resize(&self, queue: &wgpu::Queue, width: u32, height: u32) {
-        let matrix = ScalingMatrix::new((self.width, self.height), (width as f32, height as f32));
+        let matrix = ScalingMatrix::new(self.texture_size, (width as f32, height as f32));
         let transform_bytes = matrix.as_bytes();
         queue.write_buffer(&self.uniform_buffer, 0, &transform_bytes);
     }
 }
 
+/// The scaling matrix is used by the default `ScalingRenderer` to add a border which maintains the
+/// texture aspect ratio and integer scaling.
 #[derive(Debug)]
 pub(crate) struct ScalingMatrix {
     pub(crate) transform: Mat4,
 }
 
 impl ScalingMatrix {
-    // texture_size is the dimensions of the drawing texture
-    // screen_size is the dimensions of the surface being drawn to
-    pub(crate) fn new(texture_size: (f32, f32), screen_size: (f32, f32)) -> ScalingMatrix {
-        let (screen_width, screen_height) = screen_size;
-        let (texture_width, texture_height) = texture_size;
+    /// Create a new `ScalingMatrix`.
+    ///
+    /// Takes two sizes: pixel buffer texture size and surface texture size. Both are defined in
+    /// physical pixel units. The pixel buffer texture size also expects the pixel aspect ratio as
+    /// the third field. The PAR allows the pixel buffer texture to be rendered with non-square
+    /// pixels.
+    pub(crate) fn new(texture_size: (f32, f32, f32), surface_size: (f32, f32)) -> ScalingMatrix {
+        let (texture_width, texture_height, pixel_aspect_ratio) = texture_size;
+        let (surface_width, surface_height) = surface_size;
+
+        let texture_width = texture_width * pixel_aspect_ratio;
 
         // Get smallest scale size
-        let scale = (screen_width / texture_width)
-            .min(screen_height / texture_height)
+        let scale = (surface_width / texture_width)
+            .min(surface_height / texture_height)
             .max(1.0)
             .floor();
 
         // Update transformation matrix
-        let sw = texture_width * scale / screen_width;
-        let sh = texture_height * scale / screen_height;
+        let sw = texture_width * scale / surface_width;
+        let sh = texture_height * scale / surface_height;
         #[rustfmt::skip]
         let transform: [f32; 16] = [
             sw,  0.0, 0.0, 0.0,
@@ -219,6 +237,7 @@ impl ScalingMatrix {
         }
     }
 
+    /// Get a byte slice representation of the matrix suitable for copying to a `wgpu` buffer.
     fn as_bytes(&self) -> &[u8] {
         self.transform.as_byte_slice()
     }
