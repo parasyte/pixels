@@ -11,7 +11,7 @@ pub struct PixelsBuilder<'req, 'dev, 'win, W: HasRawWindowHandle> {
     backend: wgpu::BackendBit,
     width: u32,
     height: u32,
-    pixel_aspect_ratio: f64,
+    _pixel_aspect_ratio: f64,
     present_mode: wgpu::PresentMode,
     surface_texture: SurfaceTexture<'win, W>,
     texture_format: wgpu::TextureFormat,
@@ -25,7 +25,7 @@ impl<'req, 'dev, 'win, W: HasRawWindowHandle> PixelsBuilder<'req, 'dev, 'win, W>
     ///
     /// ```no_run
     /// # use pixels::PixelsBuilder;
-    /// # let window = pixels_mocks::RWH;
+    /// # let window = pixels_mocks::Rwh;
     /// # let surface_texture = pixels::SurfaceTexture::new(1024, 768, &window);
     /// let mut pixels = PixelsBuilder::new(256, 240, surface_texture)
     ///     .request_adapter_options(wgpu::RequestAdapterOptions {
@@ -54,7 +54,7 @@ impl<'req, 'dev, 'win, W: HasRawWindowHandle> PixelsBuilder<'req, 'dev, 'win, W>
             backend: wgpu::BackendBit::PRIMARY,
             width,
             height,
-            pixel_aspect_ratio: 1.0,
+            _pixel_aspect_ratio: 1.0,
             present_mode: wgpu::PresentMode::Fifo,
             surface_texture,
             texture_format: wgpu::TextureFormat::Rgba8UnormSrgb,
@@ -110,7 +110,7 @@ impl<'req, 'dev, 'win, W: HasRawWindowHandle> PixelsBuilder<'req, 'dev, 'win, W>
     ) -> PixelsBuilder<'req, 'dev, 'win, W> {
         assert!(pixel_aspect_ratio > 0.0);
 
-        self.pixel_aspect_ratio = pixel_aspect_ratio;
+        self._pixel_aspect_ratio = pixel_aspect_ratio;
         self
     }
 

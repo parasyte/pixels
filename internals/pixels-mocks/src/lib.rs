@@ -1,8 +1,8 @@
 #![deny(clippy::all)]
 
-pub struct RWH;
+pub struct Rwh;
 
-unsafe impl raw_window_handle::HasRawWindowHandle for RWH {
+unsafe impl raw_window_handle::HasRawWindowHandle for Rwh {
     fn raw_window_handle(&self) -> raw_window_handle::RawWindowHandle {
         #[cfg(target_os = "macos")]
         return raw_window_handle::RawWindowHandle::MacOS(

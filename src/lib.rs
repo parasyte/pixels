@@ -170,7 +170,7 @@ impl Pixels {
     ///
     /// ```no_run
     /// # use pixels::Pixels;
-    /// # let window = pixels_mocks::RWH;
+    /// # let window = pixels_mocks::Rwh;
     /// # let surface_texture = pixels::SurfaceTexture::new(1024, 768, &window);
     /// let mut pixels = Pixels::new(320, 240, surface_texture)?;
     /// # Ok::<(), pixels::Error>(())
@@ -272,7 +272,7 @@ impl Pixels {
     ///
     /// ```no_run
     /// # use pixels::Pixels;
-    /// # let window = pixels_mocks::RWH;
+    /// # let window = pixels_mocks::Rwh;
     /// # let surface_texture = pixels::SurfaceTexture::new(1024, 768, &window);
     /// let mut pixels = Pixels::new(320, 240, surface_texture)?;
     ///
@@ -310,7 +310,7 @@ impl Pixels {
     ///
     /// ```no_run
     /// # use pixels::Pixels;
-    /// # let window = pixels_mocks::RWH;
+    /// # let window = pixels_mocks::Rwh;
     /// # let surface_texture = pixels::SurfaceTexture::new(1024, 768, &window);
     /// let mut pixels = Pixels::new(320, 240, surface_texture)?;
     ///
@@ -411,7 +411,7 @@ impl Pixels {
     ///
     /// ```no_run
     /// # use pixels::Pixels;
-    /// # let window = pixels_mocks::RWH;
+    /// # let window = pixels_mocks::Rwh;
     /// # let surface_texture = pixels::SurfaceTexture::new(1024, 768, &window);
     /// const WIDTH:  u32 = 320;
     /// const HEIGHT: u32 = 240;
@@ -471,7 +471,7 @@ impl Pixels {
     ///
     /// ```no_run
     /// # use pixels::Pixels;
-    /// # let window = pixels_mocks::RWH;
+    /// # let window = pixels_mocks::Rwh;
     /// # let surface_texture = pixels::SurfaceTexture::new(1024, 768, &window);
     /// const WIDTH:  u32 = 320;
     /// const HEIGHT: u32 = 240;
