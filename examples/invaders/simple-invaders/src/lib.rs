@@ -287,10 +287,8 @@ impl World {
 
         // Draw the invaders
         for row in &self.invaders.grid {
-            for col in row {
-                if let Some(invader) = col {
-                    blit(screen, &invader.pos, &invader.sprite);
-                }
+            for invader in row.iter().flatten() {
+                blit(screen, &invader.pos, &invader.sprite);
             }
         }
 
