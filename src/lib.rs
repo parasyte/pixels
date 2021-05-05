@@ -31,6 +31,7 @@
 pub use crate::builder::PixelsBuilder;
 pub use crate::renderers::ScalingRenderer;
 pub use raw_window_handle;
+use std::num::NonZeroU32;
 pub use wgpu;
 
 use raw_window_handle::HasRawWindowHandle;
@@ -359,16 +360,16 @@ impl Pixels {
         let bytes_per_row =
             (self.context.texture_extent.width as f32 * self.context.texture_format_size) as u32;
         self.context.queue.write_texture(
-            wgpu::TextureCopyView {
+            wgpu::ImageCopyTexture {
                 texture: &self.context.texture,
                 mip_level: 0,
                 origin: wgpu::Origin3d { x: 0, y: 0, z: 0 },
             },
             &self.pixels,
-            wgpu::TextureDataLayout {
+            wgpu::ImageDataLayout {
                 offset: 0,
-                bytes_per_row,
-                rows_per_image: self.context.texture_extent.height,
+                bytes_per_row: NonZeroU32::new(bytes_per_row),
+                rows_per_image: NonZeroU32::new(self.context.texture_extent.height),
             },
             self.context.texture_extent,
         );

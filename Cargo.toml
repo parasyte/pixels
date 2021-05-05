@@ -22,14 +22,15 @@ include = [
 pollster = "0.2"
 raw-window-handle = "0.3"
 thiserror = "1.0"
-ultraviolet = "0.7"
-wgpu = "0.7"
+ultraviolet = "0.8"
+wgpu = "0.8"
 
 [dev-dependencies]
 pixels-mocks = { path = "internals/pixels-mocks" }
 winit = "0.24"
 
 [workspace]
+resolver = "2"
 members = [
     "examples/*",
     "internals/*",
