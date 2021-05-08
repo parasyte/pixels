@@ -101,11 +101,11 @@ impl ScalingRenderer {
                 },
                 wgpu::BindGroupEntry {
                     binding: 2,
-                    resource: wgpu::BindingResource::Buffer {
+                    resource: wgpu::BindingResource::Buffer(wgpu::BufferBinding {
                         buffer: &uniform_buffer,
                         offset: 0,
                         size: None,
-                    },
+                    }),
                 },
             ],
         });
@@ -132,8 +132,10 @@ impl ScalingRenderer {
                 entry_point: "main",
                 targets: &[wgpu::ColorTargetState {
                     format: render_texture_format,
-                    color_blend: wgpu::BlendState::REPLACE,
-                    alpha_blend: wgpu::BlendState::REPLACE,
+                    blend: Some(wgpu::BlendState {
+                        color: wgpu::BlendComponent::REPLACE,
+                        alpha: wgpu::BlendComponent::REPLACE,
+                    }),
                     write_mask: wgpu::ColorWrite::ALL,
                 }],
             }),
@@ -153,8 +155,8 @@ impl ScalingRenderer {
         // Draw the updated texture to the render target
         let mut rpass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
             label: Some("pixels_scaling_renderer_render_pass"),
-            color_attachments: &[wgpu::RenderPassColorAttachmentDescriptor {
-                attachment: render_target,
+            color_attachments: &[wgpu::RenderPassColorAttachment {
+                view: render_target,
                 resolve_target: None,
                 ops: wgpu::Operations {
                     load: wgpu::LoadOp::Clear(wgpu::Color::BLACK),

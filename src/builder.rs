@@ -291,7 +291,7 @@ pub(crate) fn create_backing_texture(
     let texture_extent = wgpu::Extent3d {
         width,
         height,
-        depth: 1,
+        depth_or_array_layers: 1,
     };
 
     let texture = device.create_texture(&wgpu::TextureDescriptor {

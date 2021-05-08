@@ -96,7 +96,8 @@ impl Gui {
 
                 ui.separator();
 
-                ui.horizontal_for_text(egui::TextStyle::Body, |ui| {
+                ui.horizontal(|ui| {
+                    ui.spacing_mut().item_spacing.x /= 2.0;
                     ui.label("Learn more about egui at");
                     ui.hyperlink("https://docs.rs/egui");
                 });
