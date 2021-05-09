@@ -203,7 +203,14 @@ impl Pixels {
     ///
     /// Call this method to change the virtual screen resolution. E.g. when you want your pixel
     /// buffer to be resized from `640x480` to `800x600`.
+    ///
+    /// # Panics
+    ///
+    /// Panics when `width` or `height` are 0.
     pub fn resize_buffer(&mut self, width: u32, height: u32) {
+        assert!(width > 0);
+        assert!(height > 0);
+
         // Recreate the backing texture
         let (scaling_matrix_inverse, texture_extent, texture, scaling_renderer, pixels_buffer_size) =
             builder::create_backing_texture(
@@ -237,8 +244,12 @@ impl Pixels {
     /// texture for non-integer scaling ratios.
     ///
     /// Call this method in response to a resize event from your window manager. The size expected
-    /// is in physical pixel units.
+    /// is in physical pixel units. Does nothing when `width` or `height` are 0.
     pub fn resize_surface(&mut self, width: u32, height: u32) {
+        if width == 0 || height == 0 {
+            return;
+        }
+
         // Update SurfaceTexture dimensions
         self.surface_size.width = width;
         self.surface_size.height = height;
