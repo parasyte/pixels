@@ -41,12 +41,6 @@ impl Gui {
                 }),
             }]);
 
-        // Fix incorrect colors with sRGB framebuffer
-        let style = imgui.style_mut();
-        for color in 0..style.colors.len() {
-            style.colors[color] = gamma_to_linear(style.colors[color]);
-        }
-
         // Create Dear ImGui WGPU renderer
         let device = pixels.device();
         let queue = pixels.queue();
@@ -139,15 +133,4 @@ impl Gui {
         self.platform
             .handle_event(self.imgui.io_mut(), window, event);
     }
-}
-
-fn gamma_to_linear(color: [f32; 4]) -> [f32; 4] {
-    const GAMMA: f32 = 2.2;
-
-    let x = color[0].powf(GAMMA);
-    let y = color[1].powf(GAMMA);
-    let z = color[2].powf(GAMMA);
-    let w = 1.0 - (1.0 - color[3]).powf(GAMMA);
-
-    [x, y, z, w]
 }
