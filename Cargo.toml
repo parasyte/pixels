@@ -27,7 +27,7 @@ wgpu = "0.8.1"
 
 [dev-dependencies]
 pixels-mocks = { path = "internals/pixels-mocks" }
-winit = "0.24"
+winit = "0.25"
 
 [workspace]
 resolver = "2"
