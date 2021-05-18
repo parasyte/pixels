@@ -46,13 +46,29 @@ impl Gui {
 
     /// Handle input events from the window manager.
     pub(crate) fn handle_event(&mut self, event: &winit::event::Event<'_, ()>) {
-        self.platform.handle_event(event);
+        use winit::dpi::PhysicalSize;
+        use winit::event::Event::WindowEvent;
+        use winit::event::WindowEvent::Resized;
+
+        match &event {
+            WindowEvent {
+                event:
+                    Resized(PhysicalSize {
+                        width: 0,
+                        height: 0,
+                    }),
+                ..
+            } => (),
+            _ => self.platform.handle_event(event),
+        }
     }
 
     /// Resize egui.
     pub(crate) fn resize(&mut self, width: u32, height: u32) {
-        self.screen_descriptor.physical_width = width;
-        self.screen_descriptor.physical_height = height;
+        if width > 0 && height > 0 {
+            self.screen_descriptor.physical_width = width;
+            self.screen_descriptor.physical_height = height;
+        }
     }
 
     /// Update scaling factor.
