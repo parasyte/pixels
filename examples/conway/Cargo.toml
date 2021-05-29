@@ -17,5 +17,5 @@ line_drawing = "0.8"
 log = "0.4"
 pixels = { path = "../.." }
 randomize = "3.0"
-winit = "0.24"
-winit_input_helper = "0.9"
+winit = "0.25"
+winit_input_helper = "0.10"
