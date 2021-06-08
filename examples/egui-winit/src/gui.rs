@@ -32,7 +32,7 @@ impl Gui {
             physical_height: height,
             scale_factor: scale_factor as f32,
         };
-        let rpass = RenderPass::new(&context.device, wgpu::TextureFormat::Bgra8UnormSrgb);
+        let rpass = RenderPass::new(&context.device, wgpu::TextureFormat::Bgra8UnormSrgb, 1);
 
         Self {
             start_time: Instant::now(),
