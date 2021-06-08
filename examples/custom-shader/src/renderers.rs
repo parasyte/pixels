@@ -14,8 +14,7 @@ impl NoiseRenderer {
             source: wgpu::ShaderSource::Wgsl(Cow::Borrowed(include_str!("../shaders/noise.wgsl"))),
             flags: wgpu::ShaderFlags::VALIDATION,
         };
-        let vs_module = device.create_shader_module(&shader);
-        let fs_module = device.create_shader_module(&shader);
+        let module = device.create_shader_module(&shader);
 
         // Create a texture sampler with nearest neighbor
         let sampler = device.create_sampler(&wgpu::SamplerDescriptor {
@@ -108,7 +107,7 @@ impl NoiseRenderer {
             label: Some("NoiseRenderer pipeline"),
             layout: Some(&pipeline_layout),
             vertex: wgpu::VertexState {
-                module: &vs_module,
+                module: &module,
                 entry_point: "vs_main",
                 buffers: &[],
             },
@@ -116,7 +115,7 @@ impl NoiseRenderer {
             depth_stencil: None,
             multisample: wgpu::MultisampleState::default(),
             fragment: Some(wgpu::FragmentState {
-                module: &fs_module,
+                module: &module,
                 entry_point: "fs_main",
                 targets: &[wgpu::ColorTargetState {
                     format: wgpu::TextureFormat::Bgra8UnormSrgb,
