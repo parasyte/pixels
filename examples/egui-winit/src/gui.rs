@@ -32,7 +32,7 @@ impl Gui {
             physical_height: height,
             scale_factor: scale_factor as f32,
         };
-        let rpass = RenderPass::new(&context.device, wgpu::TextureFormat::Bgra8UnormSrgb);
+        let rpass = RenderPass::new(&context.device, wgpu::TextureFormat::Bgra8UnormSrgb, 1);
 
         Self {
             start_time: Instant::now(),
@@ -46,21 +46,7 @@ impl Gui {
 
     /// Handle input events from the window manager.
     pub(crate) fn handle_event(&mut self, event: &winit::event::Event<'_, ()>) {
-        use winit::dpi::PhysicalSize;
-        use winit::event::Event::WindowEvent;
-        use winit::event::WindowEvent::Resized;
-
-        match &event {
-            WindowEvent {
-                event:
-                    Resized(PhysicalSize {
-                        width: 0,
-                        height: 0,
-                    }),
-                ..
-            } => (),
-            _ => self.platform.handle_event(event),
-        }
+        self.platform.handle_event(event);
     }
 
     /// Resize egui.
