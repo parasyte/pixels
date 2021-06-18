@@ -23,5 +23,5 @@ rev = "63a002c6a9b6c016e45806dd065864431caab621"
 
 [dependencies.egui_winit_platform]
 git = "https://github.com/hasenbanck/egui_winit_platform.git"
-rev = "89c9c36ae835c9a28e2af3439f1cc41f18a66c0c"
+rev = "f9a0814a395a5cc1cc997081f33ee09503a4a307"
 features = ["webbrowser"]
