@@ -14,7 +14,7 @@ include = [
     "/LICENSE",
     "/README.md",
     "/img/pixels.png",
-    "/shaders/*.spv",
+    "/shaders/*.wgsl",
     "/src/**/*",
 ]
 
