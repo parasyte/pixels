@@ -11,7 +11,7 @@ pub struct PixelsBuilder<'req, 'dev, 'win, W: HasRawWindowHandle> {
     backend: wgpu::BackendBit,
     width: u32,
     height: u32,
-    _pixel_aspect_ratio: f64,
+    pixel_aspect_ratio: f32,
     present_mode: wgpu::PresentMode,
     surface_texture: SurfaceTexture<'win, W>,
     texture_format: wgpu::TextureFormat,
@@ -54,7 +54,7 @@ impl<'req, 'dev, 'win, W: HasRawWindowHandle> PixelsBuilder<'req, 'dev, 'win, W>
             backend: wgpu::BackendBit::PRIMARY,
             width,
             height,
-            _pixel_aspect_ratio: 1.0,
+            pixel_aspect_ratio: 1.0,
             present_mode: wgpu::PresentMode::Fifo,
             surface_texture,
             texture_format: wgpu::TextureFormat::Rgba8UnormSrgb,
@@ -106,11 +106,11 @@ impl<'req, 'dev, 'win, W: HasRawWindowHandle> PixelsBuilder<'req, 'dev, 'win, W>
     #[doc(hidden)]
     pub fn pixel_aspect_ratio(
         mut self,
-        pixel_aspect_ratio: f64,
+        pixel_aspect_ratio: f32,
     ) -> PixelsBuilder<'req, 'dev, 'win, W> {
         assert!(pixel_aspect_ratio > 0.0);
 
-        self._pixel_aspect_ratio = pixel_aspect_ratio;
+        self.pixel_aspect_ratio = pixel_aspect_ratio;
         self
     }
 
@@ -176,7 +176,9 @@ impl<'req, 'dev, 'win, W: HasRawWindowHandle> PixelsBuilder<'req, 'dev, 'win, W>
     pub fn build(self) -> Result<Pixels, Error> {
         let instance = wgpu::Instance::new(self.backend);
 
-        // TODO: Use `options.pixel_aspect_ratio` to stretch the scaled texture
+        let pixel_aspect_ratio = self.pixel_aspect_ratio;
+        let texture_format = self.texture_format;
+        let render_texture_format = self.render_texture_format;
         let surface = unsafe { instance.create_surface(self.surface_texture.window) };
         let compatible_surface = Some(&surface);
         let adapter = instance.request_adapter(&self.request_adapter_options.map_or_else(
@@ -202,7 +204,7 @@ impl<'req, 'dev, 'win, W: HasRawWindowHandle> PixelsBuilder<'req, 'dev, 'win, W>
         let swap_chain = create_swap_chain(
             &mut device,
             &surface,
-            self.render_texture_format,
+            render_texture_format,
             &surface_size,
             present_mode,
         );
@@ -214,10 +216,11 @@ impl<'req, 'dev, 'win, W: HasRawWindowHandle> PixelsBuilder<'req, 'dev, 'win, W>
                 // Backing texture values
                 self.width,
                 self.height,
+                pixel_aspect_ratio,
                 self.texture_format,
                 // Render texture values
                 &surface_size,
-                self.render_texture_format,
+                render_texture_format,
             );
 
         // Create the pixel buffer
@@ -232,18 +235,19 @@ impl<'req, 'dev, 'win, W: HasRawWindowHandle> PixelsBuilder<'req, 'dev, 'win, W>
             swap_chain,
             texture,
             texture_extent,
-            texture_format: self.texture_format,
-            texture_format_size: get_texture_format_size(self.texture_format),
+            texture_format,
+            texture_format_size: get_texture_format_size(texture_format),
             scaling_renderer,
         };
 
         Ok(Pixels {
             context,
+            pixel_aspect_ratio,
             surface_size,
             present_mode,
+            render_texture_format,
             pixels,
             scaling_matrix_inverse,
-            render_texture_format: self.render_texture_format,
         })
     }
 }
@@ -271,6 +275,7 @@ pub(crate) fn create_backing_texture(
     device: &wgpu::Device,
     width: u32,
     height: u32,
+    pixel_aspect_ratio: f32,
     backing_texture_format: wgpu::TextureFormat,
     surface_size: &SurfaceSize,
     render_texture_format: wgpu::TextureFormat,
@@ -282,7 +287,7 @@ pub(crate) fn create_backing_texture(
     usize,
 ) {
     let scaling_matrix_inverse = ScalingMatrix::new(
-        (width as f32, height as f32),
+        (width as f32, height as f32, pixel_aspect_ratio),
         (surface_size.width as f32, surface_size.height as f32),
     )
     .transform
@@ -309,6 +314,7 @@ pub(crate) fn create_backing_texture(
         device,
         &texture_view,
         &texture_extent,
+        pixel_aspect_ratio,
         surface_size,
         render_texture_format,
     );
