@@ -12,9 +12,12 @@ default = ["optimize"]
 [dependencies]
 env_logger = "0.8"
 imgui = "0.7"
-imgui-wgpu = "0.15.1"
 imgui-winit-support = { version = "0.7.1", default-features = false, features = ["winit-25"] }
 log = "0.4"
 pixels = { path = "../.." }
 winit = "0.25"
 winit_input_helper = "0.10"
+
+[dependencies.imgui-wgpu]
+git = "https://github.com/parasyte/imgui-wgpu-rs.git"
+rev = "b78c33e71da125180dcd9c7c73d693288101b72d"
