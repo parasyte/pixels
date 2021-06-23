@@ -23,7 +23,7 @@ pollster = "0.2"
 raw-window-handle = "0.3"
 thiserror = "1.0"
 ultraviolet = "0.8"
-wgpu = "0.8.1"
+wgpu = "0.9"
 
 [dev-dependencies]
 pixels-mocks = { path = "internals/pixels-mocks" }
