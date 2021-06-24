@@ -256,7 +256,7 @@ pub(crate) fn create_swap_chain(
     present_mode: wgpu::PresentMode,
 ) -> wgpu::SwapChain {
     device.create_swap_chain(
-        &surface,
+        surface,
         &wgpu::SwapChainDescriptor {
             usage: wgpu::TextureUsage::RENDER_ATTACHMENT,
             format,

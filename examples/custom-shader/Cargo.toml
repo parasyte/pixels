@@ -10,6 +10,7 @@ optimize = ["log/release_max_level_warn"]
 default = ["optimize"]
 
 [dependencies]
+bytemuck = "1.7"
 env_logger = "0.8"
 log = "0.4"
 pixels = { path = "../.." }

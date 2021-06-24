@@ -6,11 +6,13 @@ use wgpu::util::DeviceExt;
 /// The default renderer that scales your frame to the screen size.
 #[derive(Debug)]
 pub struct ScalingRenderer {
+    vertex_buffer: wgpu::Buffer,
     uniform_buffer: wgpu::Buffer,
     bind_group: wgpu::BindGroup,
     render_pipeline: wgpu::RenderPipeline,
     width: f32,
     height: f32,
+    clip_rect: (u32, u32, u32, u32),
     render_texture_format: wgpu::TextureFormat,
 }
 
@@ -45,6 +47,37 @@ impl ScalingRenderer {
             border_color: None,
         });
 
+        // Create vertex buffer; array-of-array of position and texture coordinates
+        let vertex_data: [[[f32; 2]; 2]; 3] = [
+            // One full-screen triangle
+            // See: https://github.com/parasyte/pixels/issues/180
+            [[-1.0, -1.0], [0.0, 0.0]],
+            [[3.0, -1.0], [2.0, 0.0]],
+            [[-1.0, 3.0], [0.0, 2.0]],
+        ];
+        let vertex_data_slice = bytemuck::cast_slice(&vertex_data);
+        let vertex_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
+            label: Some("pixels_scaling_renderer_vertex_buffer"),
+            contents: vertex_data_slice,
+            usage: wgpu::BufferUsage::VERTEX,
+        });
+        let vertex_buffer_layout = wgpu::VertexBufferLayout {
+            array_stride: (vertex_data_slice.len() / vertex_data.len()) as wgpu::BufferAddress,
+            step_mode: wgpu::InputStepMode::Vertex,
+            attributes: &[
+                wgpu::VertexAttribute {
+                    format: wgpu::VertexFormat::Float32x2,
+                    offset: 0,
+                    shader_location: 0,
+                },
+                wgpu::VertexAttribute {
+                    format: wgpu::VertexFormat::Float32x2,
+                    offset: 4 * 2,
+                    shader_location: 1,
+                },
+            ],
+        };
+
         // Create uniform buffer
         let matrix = ScalingMatrix::new(
             (texture_size.width as f32, texture_size.height as f32),
@@ -53,7 +86,7 @@ impl ScalingRenderer {
         let transform_bytes = matrix.as_bytes();
         let uniform_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
             label: Some("pixels_scaling_renderer_matrix_uniform_buffer"),
-            contents: &transform_bytes,
+            contents: transform_bytes,
             usage: wgpu::BufferUsage::UNIFORM | wgpu::BufferUsage::COPY_DST,
         });
 
@@ -127,7 +160,7 @@ impl ScalingRenderer {
             vertex: wgpu::VertexState {
                 module: &module,
                 entry_point: "vs_main",
-                buffers: &[],
+                buffers: &[vertex_buffer_layout],
             },
             primitive: wgpu::PrimitiveState::default(),
             depth_stencil: None,
@@ -146,18 +179,23 @@ impl ScalingRenderer {
             }),
         });
 
+        // Create clipping rectangle
+        let clip_rect = matrix.clip_rect();
+
         Self {
+            vertex_buffer,
             uniform_buffer,
             bind_group,
             render_pipeline,
             width: texture_size.width as f32,
             height: texture_size.height as f32,
+            clip_rect,
             render_texture_format,
         }
     }
 
+    /// Draw the pixel buffer to the render target.
     pub fn render(&self, encoder: &mut wgpu::CommandEncoder, render_target: &wgpu::TextureView) {
-        // Draw the updated texture to the render target
         let mut rpass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
             label: Some("pixels_scaling_renderer_render_pass"),
             color_attachments: &[wgpu::RenderPassColorAttachment {
@@ -172,27 +210,44 @@ impl ScalingRenderer {
         });
         rpass.set_pipeline(&self.render_pipeline);
         rpass.set_bind_group(0, &self.bind_group, &[]);
-        rpass.draw(0..6, 0..1);
+        rpass.set_vertex_buffer(0, self.vertex_buffer.slice(..));
+        rpass.set_scissor_rect(
+            self.clip_rect.0,
+            self.clip_rect.1,
+            self.clip_rect.2,
+            self.clip_rect.3,
+        );
+        rpass.draw(0..3, 0..1);
     }
 
-    pub(crate) fn resize(&self, queue: &wgpu::Queue, width: u32, height: u32) {
+    /// Get the clipping rectangle for the scaling renderer.
+    ///
+    /// This rectangle defines the inner bounds of the surface texture, without the border.
+    pub fn clip_rect(&self) -> (u32, u32, u32, u32) {
+        self.clip_rect
+    }
+
+    pub(crate) fn resize(&mut self, queue: &wgpu::Queue, width: u32, height: u32) {
         let matrix = ScalingMatrix::new((self.width, self.height), (width as f32, height as f32));
         let transform_bytes = matrix.as_bytes();
-        queue.write_buffer(&self.uniform_buffer, 0, &transform_bytes);
+        queue.write_buffer(&self.uniform_buffer, 0, transform_bytes);
+
+        self.clip_rect = matrix.clip_rect();
     }
 }
 
 #[derive(Debug)]
 pub(crate) struct ScalingMatrix {
     pub(crate) transform: Mat4,
+    clip_rect: (u32, u32, u32, u32),
 }
 
 impl ScalingMatrix {
     // texture_size is the dimensions of the drawing texture
     // screen_size is the dimensions of the surface being drawn to
     pub(crate) fn new(texture_size: (f32, f32), screen_size: (f32, f32)) -> ScalingMatrix {
-        let (screen_width, screen_height) = screen_size;
         let (texture_width, texture_height) = texture_size;
+        let (screen_width, screen_height) = screen_size;
 
         // Get smallest scale size
         let scale = (screen_width / texture_width)
@@ -200,9 +255,12 @@ impl ScalingMatrix {
             .max(1.0)
             .floor();
 
+        let scaled_width = texture_width * scale;
+        let scaled_height = texture_height * scale;
+
         // Update transformation matrix
-        let sw = texture_width * scale / screen_width;
-        let sh = texture_height * scale / screen_height;
+        let sw = scaled_width / screen_width;
+        let sh = scaled_height / screen_height;
         #[rustfmt::skip]
         let transform: [f32; 16] = [
             sw,  0.0, 0.0, 0.0,
@@ -211,12 +269,27 @@ impl ScalingMatrix {
             0.0, 0.0, 0.0, 1.0,
         ];
 
+        // Create a clipping rectangle
+        let x = (screen_width - scaled_width) / 2.0;
+        let y = (screen_height - scaled_height) / 2.0;
+        let clip_rect = (
+            x as u32,
+            y as u32,
+            scaled_width as u32,
+            scaled_height as u32,
+        );
+
         ScalingMatrix {
             transform: Mat4::from(transform),
+            clip_rect,
         }
     }
 
     fn as_bytes(&self) -> &[u8] {
         self.transform.as_byte_slice()
+    }
+
+    pub(crate) fn clip_rect(&self) -> (u32, u32, u32, u32) {
+        self.clip_rect
     }
 }
