@@ -1,5 +1,4 @@
 use pixels::wgpu::{self, util::DeviceExt};
-use std::borrow::Cow;
 
 pub(crate) struct NoiseRenderer {
     texture_view: wgpu::TextureView,
@@ -13,11 +12,7 @@ pub(crate) struct NoiseRenderer {
 
 impl NoiseRenderer {
     pub(crate) fn new(device: &wgpu::Device, width: u32, height: u32) -> Self {
-        let shader = wgpu::ShaderModuleDescriptor {
-            label: Some("custom_noise_shader"),
-            source: wgpu::ShaderSource::Wgsl(Cow::Borrowed(include_str!("../shaders/noise.wgsl"))),
-            flags: wgpu::ShaderFlags::VALIDATION,
-        };
+        let shader = wgpu::include_wgsl!("../shaders/noise.wgsl");
         let module = device.create_shader_module(&shader);
 
         // Create a texture view that will be used as input

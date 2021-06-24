@@ -1,5 +1,4 @@
 use crate::SurfaceSize;
-use std::borrow::Cow;
 use ultraviolet::Mat4;
 use wgpu::util::DeviceExt;
 
@@ -24,11 +23,7 @@ impl ScalingRenderer {
         surface_size: &SurfaceSize,
         render_texture_format: wgpu::TextureFormat,
     ) -> Self {
-        let shader = wgpu::ShaderModuleDescriptor {
-            label: Some("pixels_scaling_renderer_shader"),
-            source: wgpu::ShaderSource::Wgsl(Cow::Borrowed(include_str!("../shaders/scale.wgsl"))),
-            flags: wgpu::ShaderFlags::VALIDATION,
-        };
+        let shader = wgpu::include_wgsl!("../shaders/scale.wgsl");
         let module = device.create_shader_module(&shader);
 
         // Create a texture sampler with nearest neighbor
