@@ -49,7 +49,7 @@ impl Gui {
             texture_format,
             ..Default::default()
         };
-        let renderer = imgui_wgpu::Renderer::new(&mut imgui, &device, &queue, config);
+        let renderer = imgui_wgpu::Renderer::new(&mut imgui, device, queue, config);
 
         // Return GUI context
         Self {
