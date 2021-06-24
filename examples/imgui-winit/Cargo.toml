@@ -19,5 +19,5 @@ winit = "0.25"
 winit_input_helper = "0.10"
 
 [dependencies.imgui-wgpu]
-git = "https://github.com/parasyte/imgui-wgpu-rs.git"
-rev = "b78c33e71da125180dcd9c7c73d693288101b72d"
+git = "https://github.com/Yatekii/imgui-wgpu-rs.git"
+rev = "5980d8f3ebeda52310bb9f38d98ae1d513907e7f"
