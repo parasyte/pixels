@@ -5,35 +5,14 @@ struct VertexOutput {
     [[builtin(position)]] position: vec4<f32>;
 };
 
-let positions: array<vec2<f32>, 6> = array<vec2<f32>, 6>(
-    // Upper left triangle
-    vec2<f32>(-1.0, -1.0),
-    vec2<f32>(1.0, -1.0),
-    vec2<f32>(-1.0, 1.0),
-
-    // Lower right triangle
-    vec2<f32>(-1.0, 1.0),
-    vec2<f32>(1.0, -1.0),
-    vec2<f32>(1.0, 1.0),
-);
-
-let uv: array<vec2<f32>, 6> = array<vec2<f32>, 6>(
-    // Upper left triangle
-    vec2<f32>(0.0, 0.0),
-    vec2<f32>(1.0, 0.0),
-    vec2<f32>(0.0, 1.0),
-
-    // Lower right triangle
-    vec2<f32>(0.0, 1.0),
-    vec2<f32>(1.0, 0.0),
-    vec2<f32>(1.0, 1.0),
-);
-
 [[stage(vertex)]]
-fn vs_main([[builtin(vertex_index)]] vertex_index: u32) -> VertexOutput {
+fn vs_main(
+    [[location(0)]] position: vec2<f32>,
+    [[location(1)]] tex_coord: vec2<f32>,
+) -> VertexOutput {
     var out: VertexOutput;
-    out.tex_coord = uv[vertex_index];
-    out.position = vec4<f32>(positions[vertex_index], 0.0, 1.0);
+    out.tex_coord = tex_coord;
+    out.position = vec4<f32>(position, 0.0, 1.0);
     return out;
 }
 
@@ -64,10 +43,8 @@ fn random_vec2(st: vec2<f32>) -> f32 {
 
 [[stage(fragment)]]
 fn fs_main([[location(0)]] tex_coord: vec2<f32>) -> [[location(0)]] vec4<f32> {
-    let sampled_color: vec4<f32> = textureSample(r_tex_color, r_tex_sampler, tex_coord);
-    let noise_color: vec3<f32> = vec3<f32>(random_vec2(
-        tex_coord.xy * vec2<f32>(r_locals.time % tau + bias)
-    ));
+    let sampled_color = textureSample(r_tex_color, r_tex_sampler, tex_coord);
+    let noise_color = vec3<f32>(random_vec2(tex_coord.xy * vec2<f32>(r_locals.time % tau + bias)));
 
     return vec4<f32>(sampled_color.rgb * noise_color, sampled_color.a);
 }

@@ -3,7 +3,7 @@
 
 use crate::renderers::NoiseRenderer;
 use log::error;
-use pixels::{wgpu, Error, Pixels, SurfaceTexture};
+use pixels::{Error, Pixels, SurfaceTexture};
 use winit::dpi::LogicalSize;
 use winit::event::{Event, VirtualKeyCode};
 use winit::event_loop::{ControlFlow, EventLoop};
@@ -44,9 +44,8 @@ fn main() -> Result<(), Error> {
         Pixels::new(WIDTH, HEIGHT, surface_texture)?
     };
     let mut world = World::new();
-
     let mut time = 0.0;
-    let (scaled_texture, noise_renderer) = create_noise_renderer(&pixels);
+    let mut noise_renderer = NoiseRenderer::new(pixels.device(), WIDTH, HEIGHT);
 
     event_loop.run(move |event, _, control_flow| {
         // Draw the current frame
@@ -54,12 +53,13 @@ fn main() -> Result<(), Error> {
             world.draw(pixels.get_frame());
 
             let render_result = pixels.render_with(|encoder, render_target, context| {
-                context.scaling_renderer.render(encoder, &scaled_texture);
+                let noise_texture = noise_renderer.get_texture_view();
+                context.scaling_renderer.render(encoder, noise_texture);
 
                 noise_renderer.update(&context.queue, time);
                 time += 0.01;
 
-                noise_renderer.render(encoder, render_target);
+                noise_renderer.render(encoder, render_target, context.scaling_renderer.clip_rect());
             });
 
             if render_result
@@ -82,6 +82,7 @@ fn main() -> Result<(), Error> {
             // Resize the window
             if let Some(size) = input.window_resized() {
                 pixels.resize_surface(size.width, size.height);
+                noise_renderer.resize(pixels.device(), size.width, size.height);
             }
 
             // Update internal state and request a redraw
@@ -117,7 +118,7 @@ impl World {
 
     /// Draw the `World` state to the frame buffer.
     ///
-    /// Assumes the default texture format: [`wgpu::TextureFormat::Rgba8UnormSrgb`]
+    /// Assumes the default texture format: [`pixels::wgpu::TextureFormat::Rgba8UnormSrgb`]
     fn draw(&self, frame: &mut [u8]) {
         for (i, pixel) in frame.chunks_exact_mut(4).enumerate() {
             let x = (i % WIDTH as usize) as i16;
@@ -137,28 +138,4 @@ impl World {
             pixel.copy_from_slice(&rgba);
         }
     }
-}
-
-fn create_noise_renderer(pixels: &Pixels) -> (wgpu::TextureView, NoiseRenderer) {
-    let device = &pixels.device();
-
-    let texture_descriptor = wgpu::TextureDescriptor {
-        label: None,
-        size: pixels::wgpu::Extent3d {
-            width: WIDTH,
-            height: HEIGHT,
-            depth_or_array_layers: 1,
-        },
-        mip_level_count: 1,
-        sample_count: 1,
-        dimension: wgpu::TextureDimension::D2,
-        format: wgpu::TextureFormat::Bgra8UnormSrgb,
-        usage: wgpu::TextureUsage::SAMPLED | wgpu::TextureUsage::RENDER_ATTACHMENT,
-    };
-    let scaled_texture = device
-        .create_texture(&texture_descriptor)
-        .create_view(&wgpu::TextureViewDescriptor::default());
-    let noise_renderer = NoiseRenderer::new(device, &scaled_texture);
-
-    (scaled_texture, noise_renderer)
 }

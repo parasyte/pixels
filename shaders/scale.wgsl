@@ -10,35 +10,14 @@ struct VertexOutput {
 };
 [[group(0), binding(2)]] var r_locals: Locals;
 
-let positions: array<vec2<f32>, 6> = array<vec2<f32>, 6>(
-    // Upper left triangle
-    vec2<f32>(-1.0, -1.0),
-    vec2<f32>(1.0, -1.0),
-    vec2<f32>(-1.0, 1.0),
-
-    // Lower right triangle
-    vec2<f32>(-1.0, 1.0),
-    vec2<f32>(1.0, -1.0),
-    vec2<f32>(1.0, 1.0),
-);
-
-let uv: array<vec2<f32>, 6> = array<vec2<f32>, 6>(
-    // Upper left triangle
-    vec2<f32>(0.0, 0.0),
-    vec2<f32>(1.0, 0.0),
-    vec2<f32>(0.0, 1.0),
-
-    // Lower right triangle
-    vec2<f32>(0.0, 1.0),
-    vec2<f32>(1.0, 0.0),
-    vec2<f32>(1.0, 1.0),
-);
-
 [[stage(vertex)]]
-fn vs_main([[builtin(vertex_index)]] vertex_index: u32) -> VertexOutput {
+fn vs_main(
+    [[location(0)]] position: vec2<f32>,
+    [[location(1)]] tex_coord: vec2<f32>,
+) -> VertexOutput {
     var out: VertexOutput;
-    out.tex_coord = uv[vertex_index];
-    out.position = r_locals.transform * vec4<f32>(positions[vertex_index], 0.0, 1.0);
+    out.tex_coord = tex_coord;
+    out.position = r_locals.transform * vec4<f32>(position, 0.0, 1.0);
     return out;
 }
 

@@ -102,7 +102,7 @@ impl Collision {
 
             for (i, shield_rect) in shield_rects.iter().enumerate() {
                 // broad phase collision detection
-                if bullet_rect.intersects(&shield_rect) {
+                if bullet_rect.intersects(shield_rect) {
                     // TODO: Narrow phase (per-pixel) collision detection
                     // TODO: Break shield
 
@@ -163,7 +163,7 @@ impl Collision {
 
         for (i, shield_rect) in shield_rects.iter().enumerate() {
             // broad phase collision detection
-            if laser_rect.intersects(&shield_rect) {
+            if laser_rect.intersects(shield_rect) {
                 // TODO: Narrow phase (per-pixel) collision detection
                 // TODO: Break shield
 
