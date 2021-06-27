@@ -525,8 +525,16 @@ impl Pixels {
         &self.context.texture
     }
 
-    /// Provides access to the internal [`PixelsContext`]
+    /// Provides access to the internal [`PixelsContext`].
     pub fn context(&self) -> &PixelsContext {
         &self.context
+    }
+
+    /// Get the render texture format.
+    ///
+    /// This texture format may be chosen automatically by the swapchain. See
+    /// ['PixelsBuilder::render_texture_format`] for more information.
+    pub fn render_texture_format(&self) -> wgpu::TextureFormat {
+        self.render_texture_format
     }
 }

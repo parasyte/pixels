@@ -43,12 +43,7 @@ fn main() -> Result<(), Error> {
         let scale_factor = window.scale_factor();
         let surface_texture = SurfaceTexture::new(window_size.width, window_size.height, &window);
         let pixels = Pixels::new(WIDTH, HEIGHT, surface_texture)?;
-        let gui = Gui::new(
-            window_size.width,
-            window_size.height,
-            scale_factor,
-            pixels.context(),
-        );
+        let gui = Gui::new(window_size.width, window_size.height, scale_factor, &pixels);
 
         (pixels, gui)
     };

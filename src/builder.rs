@@ -15,7 +15,7 @@ pub struct PixelsBuilder<'req, 'dev, 'win, W: HasRawWindowHandle> {
     present_mode: wgpu::PresentMode,
     surface_texture: SurfaceTexture<'win, W>,
     texture_format: wgpu::TextureFormat,
-    render_texture_format: wgpu::TextureFormat,
+    render_texture_format: Option<wgpu::TextureFormat>,
 }
 
 impl<'req, 'dev, 'win, W: HasRawWindowHandle> PixelsBuilder<'req, 'dev, 'win, W> {
@@ -58,7 +58,7 @@ impl<'req, 'dev, 'win, W: HasRawWindowHandle> PixelsBuilder<'req, 'dev, 'win, W>
             present_mode: wgpu::PresentMode::Fifo,
             surface_texture,
             texture_format: wgpu::TextureFormat::Rgba8UnormSrgb,
-            render_texture_format: wgpu::TextureFormat::Bgra8UnormSrgb,
+            render_texture_format: None,
         }
     }
 
@@ -157,14 +157,15 @@ impl<'req, 'dev, 'win, W: HasRawWindowHandle> PixelsBuilder<'req, 'dev, 'win, W>
 
     /// Set the render texture format.
     ///
-    /// The default value is [`wgpu::TextureFormat::Bgra8UnormSrgb`], which is 4 unsigned bytes in
-    /// `BGRA` order using the SRGB color space. This format depends on the hardware/platform the
-    /// pixel buffer is rendered to/for.
+    /// The default value is chosen automatically by the swapchain (if it can) with a fallback to
+    /// [`wgpu::TextureFormat::Bgra8UnormSrgb`] (which is 4 unsigned bytes in `BGRA` order using the
+    /// SRGB color space). Setting this format correctly depends on the hardware/platform the pixel
+    /// buffer is rendered to/for.
     pub fn render_texture_format(
         mut self,
         texture_format: wgpu::TextureFormat,
     ) -> PixelsBuilder<'req, 'dev, 'win, W> {
-        self.render_texture_format = texture_format;
+        self.render_texture_format = Some(texture_format);
         self
     }
 
@@ -196,13 +197,18 @@ impl<'req, 'dev, 'win, W: HasRawWindowHandle> PixelsBuilder<'req, 'dev, 'win, W>
                 .map_err(Error::DeviceNotFound)?;
 
         let present_mode = self.present_mode;
+        let render_texture_format = self.render_texture_format.unwrap_or_else(|| {
+            adapter
+                .get_swap_chain_preferred_format(&surface)
+                .unwrap_or(wgpu::TextureFormat::Bgra8UnormSrgb)
+        });
 
         // Create swap chain
         let surface_size = self.surface_texture.size;
         let swap_chain = create_swap_chain(
             &mut device,
             &surface,
-            self.render_texture_format,
+            render_texture_format,
             &surface_size,
             present_mode,
         );
@@ -217,7 +223,7 @@ impl<'req, 'dev, 'win, W: HasRawWindowHandle> PixelsBuilder<'req, 'dev, 'win, W>
                 self.texture_format,
                 // Render texture values
                 &surface_size,
-                self.render_texture_format,
+                render_texture_format,
             );
 
         // Create the pixel buffer
@@ -243,7 +249,7 @@ impl<'req, 'dev, 'win, W: HasRawWindowHandle> PixelsBuilder<'req, 'dev, 'win, W>
             present_mode,
             pixels,
             scaling_matrix_inverse,
-            render_texture_format: self.render_texture_format,
+            render_texture_format,
         })
     }
 }

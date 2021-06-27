@@ -11,13 +11,14 @@ pub(crate) struct NoiseRenderer {
 }
 
 impl NoiseRenderer {
-    pub(crate) fn new(device: &wgpu::Device, width: u32, height: u32) -> Self {
+    pub(crate) fn new(pixels: &pixels::Pixels, width: u32, height: u32) -> Self {
+        let device = pixels.device();
         let shader = wgpu::include_wgsl!("../shaders/noise.wgsl");
         let module = device.create_shader_module(&shader);
 
         // Create a texture view that will be used as input
         // This will be used as the render target for the default scaling renderer
-        let texture_view = create_texture_view(device, width, height);
+        let texture_view = create_texture_view(pixels, width, height);
 
         // Create a texture sampler with nearest neighbor
         let sampler = device.create_sampler(&wgpu::SamplerDescriptor {
@@ -162,10 +163,10 @@ impl NoiseRenderer {
         &self.texture_view
     }
 
-    pub(crate) fn resize(&mut self, device: &wgpu::Device, width: u32, height: u32) {
-        self.texture_view = create_texture_view(device, width, height);
+    pub(crate) fn resize(&mut self, pixels: &pixels::Pixels, width: u32, height: u32) {
+        self.texture_view = create_texture_view(pixels, width, height);
         self.bind_group = create_bind_group(
-            device,
+            pixels.device(),
             &self.bind_group_layout,
             &self.texture_view,
             &self.sampler,
@@ -203,7 +204,8 @@ impl NoiseRenderer {
     }
 }
 
-fn create_texture_view(device: &wgpu::Device, width: u32, height: u32) -> wgpu::TextureView {
+fn create_texture_view(pixels: &pixels::Pixels, width: u32, height: u32) -> wgpu::TextureView {
+    let device = pixels.device();
     let texture_descriptor = wgpu::TextureDescriptor {
         label: None,
         size: pixels::wgpu::Extent3d {
@@ -214,7 +216,7 @@ fn create_texture_view(device: &wgpu::Device, width: u32, height: u32) -> wgpu::
         mip_level_count: 1,
         sample_count: 1,
         dimension: wgpu::TextureDimension::D2,
-        format: wgpu::TextureFormat::Bgra8UnormSrgb,
+        format: pixels.render_texture_format(),
         usage: wgpu::TextureUsage::SAMPLED | wgpu::TextureUsage::RENDER_ATTACHMENT,
     };
 
