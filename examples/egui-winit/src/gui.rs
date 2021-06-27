@@ -80,7 +80,7 @@ impl Gui {
 
     /// Create the UI using egui.
     fn ui(&mut self, ctx: &egui::CtxRef) {
-        egui::TopPanel::top("menubar_container").show(ctx, |ui| {
+        egui::TopBottomPanel::top("menubar_container").show(ctx, |ui| {
             egui::menu::bar(ui, |ui| {
                 egui::menu::menu(ui, "File", |ui| {
                     if ui.button("About...").clicked() {
