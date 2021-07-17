@@ -45,7 +45,7 @@ fn main() -> Result<(), Error> {
     };
     let mut world = World::new();
     let mut time = 0.0;
-    let mut noise_renderer = NoiseRenderer::new(pixels.device(), WIDTH, HEIGHT);
+    let mut noise_renderer = NoiseRenderer::new(&pixels, WIDTH, HEIGHT);
 
     event_loop.run(move |event, _, control_flow| {
         // Draw the current frame
@@ -82,7 +82,7 @@ fn main() -> Result<(), Error> {
             // Resize the window
             if let Some(size) = input.window_resized() {
                 pixels.resize_surface(size.width, size.height);
-                noise_renderer.resize(pixels.device(), size.width, size.height);
+                noise_renderer.resize(&pixels, size.width, size.height);
             }
 
             // Update internal state and request a redraw

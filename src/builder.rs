@@ -15,7 +15,7 @@ pub struct PixelsBuilder<'req, 'dev, 'win, W: HasRawWindowHandle> {
     present_mode: wgpu::PresentMode,
     surface_texture: SurfaceTexture<'win, W>,
     texture_format: wgpu::TextureFormat,
-    render_texture_format: wgpu::TextureFormat,
+    render_texture_format: Option<wgpu::TextureFormat>,
 }
 
 impl<'req, 'dev, 'win, W: HasRawWindowHandle> PixelsBuilder<'req, 'dev, 'win, W> {
@@ -58,7 +58,7 @@ impl<'req, 'dev, 'win, W: HasRawWindowHandle> PixelsBuilder<'req, 'dev, 'win, W>
             present_mode: wgpu::PresentMode::Fifo,
             surface_texture,
             texture_format: wgpu::TextureFormat::Rgba8UnormSrgb,
-            render_texture_format: wgpu::TextureFormat::Bgra8UnormSrgb,
+            render_texture_format: None,
         }
     }
 
@@ -82,8 +82,7 @@ impl<'req, 'dev, 'win, W: HasRawWindowHandle> PixelsBuilder<'req, 'dev, 'win, W>
 
     /// Set which backends wgpu will attempt to use.
     ///
-    /// The default value of this is [`wgpu::BackendBit::PRIMARY`], which enables
-    /// the well supported backends for wgpu.
+    /// The default value is `PRIMARY`, which enables the well supported backends for wgpu.
     pub fn wgpu_backend(mut self, backend: wgpu::BackendBit) -> PixelsBuilder<'req, 'dev, 'win, W> {
         self.backend = backend;
         self
@@ -144,9 +143,12 @@ impl<'req, 'dev, 'win, W: HasRawWindowHandle> PixelsBuilder<'req, 'dev, 'win, W>
 
     /// Set the texture format.
     ///
-    /// The default value is [`wgpu::TextureFormat::Rgba8UnormSrgb`], which is 4 unsigned bytes in
-    /// `RGBA` order using the SRGB color space. This is typically what you want when you are
-    /// working with color values from popular image editing tools or web apps.
+    /// The default value is `Rgba8UnormSrgb`, which is 4 unsigned bytes in `RGBA` order using the
+    /// sRGB color space. This is typically what you want when you are working with color values
+    /// from popular image editing tools or web apps.
+    ///
+    /// This is the pixel format of the texture that most applications will interact with directly.
+    /// The format influences the structure of byte data that is returned by [`Pixels::get_frame`].
     pub fn texture_format(
         mut self,
         texture_format: wgpu::TextureFormat,
@@ -157,14 +159,27 @@ impl<'req, 'dev, 'win, W: HasRawWindowHandle> PixelsBuilder<'req, 'dev, 'win, W>
 
     /// Set the render texture format.
     ///
-    /// The default value is [`wgpu::TextureFormat::Bgra8UnormSrgb`], which is 4 unsigned bytes in
-    /// `BGRA` order using the SRGB color space. This format depends on the hardware/platform the
-    /// pixel buffer is rendered to/for.
+    /// The default value is chosen automatically by the swapchain (if it can) with a fallback to
+    /// `Bgra8UnormSrgb` (which is 4 unsigned bytes in `BGRA` order using the sRGB color space).
+    /// Setting this format correctly depends on the hardware/platform the pixel buffer is rendered
+    /// to. The chosen format can be retrieved later with [`Pixels::render_texture_format`].
+    ///
+    /// This method controls the format of the swapchain frame buffer, which has strict texture
+    /// format requirements. Applications will never interact directly with the pixel data of this
+    /// texture, but a view is provided to the `render_function` closure by [`Pixels::render_with`].
+    /// The render texture can only be used as the final render target at the end of all
+    /// post-processing shaders.
+    ///
+    /// The [`ScalingRenderer`] also uses this format for its own render target. This is because it
+    /// assumes the render target is always the swapchain current frame. This needs to be kept in
+    /// mind when writing custom shaders for post-processing effects. There is a full example of a
+    /// [custom-shader](https://github.com/parasyte/pixels/tree/master/examples/custom-shader)
+    /// available that demonstrates how to deal with this.
     pub fn render_texture_format(
         mut self,
         texture_format: wgpu::TextureFormat,
     ) -> PixelsBuilder<'req, 'dev, 'win, W> {
-        self.render_texture_format = texture_format;
+        self.render_texture_format = Some(texture_format);
         self
     }
 
@@ -196,13 +211,18 @@ impl<'req, 'dev, 'win, W: HasRawWindowHandle> PixelsBuilder<'req, 'dev, 'win, W>
                 .map_err(Error::DeviceNotFound)?;
 
         let present_mode = self.present_mode;
+        let render_texture_format = self.render_texture_format.unwrap_or_else(|| {
+            adapter
+                .get_swap_chain_preferred_format(&surface)
+                .unwrap_or(wgpu::TextureFormat::Bgra8UnormSrgb)
+        });
 
         // Create swap chain
         let surface_size = self.surface_texture.size;
         let swap_chain = create_swap_chain(
             &mut device,
             &surface,
-            self.render_texture_format,
+            render_texture_format,
             &surface_size,
             present_mode,
         );
@@ -217,7 +237,7 @@ impl<'req, 'dev, 'win, W: HasRawWindowHandle> PixelsBuilder<'req, 'dev, 'win, W>
                 self.texture_format,
                 // Render texture values
                 &surface_size,
-                self.render_texture_format,
+                render_texture_format,
             );
 
         // Create the pixel buffer
@@ -241,9 +261,9 @@ impl<'req, 'dev, 'win, W: HasRawWindowHandle> PixelsBuilder<'req, 'dev, 'win, W>
             context,
             surface_size,
             present_mode,
+            render_texture_format,
             pixels,
             scaling_matrix_inverse,
-            render_texture_format: self.render_texture_format,
         })
     }
 }

@@ -19,7 +19,7 @@ pub(crate) struct Gui {
 
 impl Gui {
     /// Create egui.
-    pub(crate) fn new(width: u32, height: u32, scale_factor: f64, context: &PixelsContext) -> Self {
+    pub(crate) fn new(width: u32, height: u32, scale_factor: f64, pixels: &pixels::Pixels) -> Self {
         let platform = Platform::new(PlatformDescriptor {
             physical_width: width,
             physical_height: height,
@@ -32,7 +32,7 @@ impl Gui {
             physical_height: height,
             scale_factor: scale_factor as f32,
         };
-        let rpass = RenderPass::new(&context.device, wgpu::TextureFormat::Bgra8UnormSrgb, 1);
+        let rpass = RenderPass::new(pixels.device(), pixels.render_texture_format(), 1);
 
         Self {
             start_time: Instant::now(),
