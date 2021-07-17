@@ -138,7 +138,7 @@ impl NoiseRenderer {
                 module: &module,
                 entry_point: "fs_main",
                 targets: &[wgpu::ColorTargetState {
-                    format: wgpu::TextureFormat::Bgra8UnormSrgb,
+                    format: pixels.render_texture_format(),
                     blend: Some(wgpu::BlendState {
                         color: wgpu::BlendComponent::REPLACE,
                         alpha: wgpu::BlendComponent::REPLACE,

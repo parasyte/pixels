@@ -533,7 +533,7 @@ impl Pixels {
     /// Get the render texture format.
     ///
     /// This texture format may be chosen automatically by the swapchain. See
-    /// ['PixelsBuilder::render_texture_format`] for more information.
+    /// [`PixelsBuilder::render_texture_format`] for more information.
     pub fn render_texture_format(&self) -> wgpu::TextureFormat {
         self.render_texture_format
     }
