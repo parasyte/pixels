@@ -13,7 +13,7 @@ default = ["optimize"]
 egui = "0.13"
 egui_wgpu_backend = "0.10"
 egui_winit_platform = { version = "0.9", features = ["webbrowser"] }
-env_logger = "0.8"
+env_logger = "0.9"
 log = "0.4"
 pixels = { path = "../.." }
 winit = "0.25"
