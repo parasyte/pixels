@@ -59,7 +59,7 @@ fn main() -> Result<(), Error> {
             world.draw(pixels.get_frame());
 
             // Prepare egui
-            gui.prepare();
+            gui.prepare(&window);
 
             // Render everything together
             let render_result = pixels.render_with(|encoder, render_target, context| {
@@ -67,7 +67,8 @@ fn main() -> Result<(), Error> {
                 context.scaling_renderer.render(encoder, render_target);
 
                 // Render egui
-                gui.render(encoder, render_target, context);
+                gui.render(encoder, render_target, context)
+                    .expect("egui render error");
             });
 
             // Basic error handling

@@ -31,11 +31,10 @@
 pub use crate::builder::PixelsBuilder;
 pub use crate::renderers::ScalingRenderer;
 pub use raw_window_handle;
-use std::num::NonZeroU32;
-pub use wgpu;
-
 use raw_window_handle::HasRawWindowHandle;
+use std::num::NonZeroU32;
 use thiserror::Error;
+pub use wgpu;
 
 mod builder;
 mod renderers;
@@ -67,7 +66,6 @@ pub struct PixelsContext {
     pub queue: wgpu::Queue,
 
     surface: wgpu::Surface,
-    swap_chain: wgpu::SwapChain,
 
     /// This is the texture that your raw data is copied to by [`Pixels::render`] or
     /// [`Pixels::render_with`].
@@ -114,9 +112,9 @@ pub enum Error {
     /// Equivalent to [`wgpu::RequestDeviceError`]
     #[error("No wgpu::Device found.")]
     DeviceNotFound(wgpu::RequestDeviceError),
-    /// Equivalent to [`wgpu::SwapChainError`]
-    #[error("The GPU failed to acquire a swapchain frame.")]
-    Swapchain(wgpu::SwapChainError),
+    /// Equivalent to [`wgpu::SurfaceError`]
+    #[error("The GPU failed to acquire a surface frame.")]
+    Swapchain(wgpu::SurfaceError),
 }
 
 impl<'win, W: HasRawWindowHandle> SurfaceTexture<'win, W> {
@@ -266,7 +264,7 @@ impl Pixels {
         .inversed();
 
         // Recreate the swap chain
-        self.recreate_swap_chain();
+        self.reconfigure_surface();
 
         // Update state for all render passes
         self.context
@@ -348,14 +346,14 @@ impl Pixels {
     {
         let frame = self
             .context
-            .swap_chain
+            .surface
             .get_current_frame()
             .or_else(|err| match err {
-                wgpu::SwapChainError::Outdated => {
+                wgpu::SurfaceError::Outdated => {
                     // Recreate the swap chain to mitigate race condition on drawing surface resize.
                     // See https://github.com/parasyte/pixels/issues/121
-                    self.recreate_swap_chain();
-                    self.context.swap_chain.get_current_frame()
+                    self.reconfigure_surface();
+                    self.context.surface.get_current_frame()
                 }
                 err => Err(err),
             })
@@ -375,6 +373,7 @@ impl Pixels {
                 texture: &self.context.texture,
                 mip_level: 0,
                 origin: wgpu::Origin3d { x: 0, y: 0, z: 0 },
+                aspect: wgpu::TextureAspect::All,
             },
             &self.pixels,
             wgpu::ImageDataLayout {
@@ -385,8 +384,13 @@ impl Pixels {
             self.context.texture_extent,
         );
 
+        let view = frame
+            .output
+            .texture
+            .create_view(&wgpu::TextureViewDescriptor::default());
+
         // Call the users render function.
-        (render_function)(&mut encoder, &frame.output.view, &self.context);
+        (render_function)(&mut encoder, &view, &self.context);
 
         self.context.queue.submit(Some(encoder.finish()));
         Ok(())
@@ -395,9 +399,9 @@ impl Pixels {
     /// Recreate the swap chain.
     ///
     /// Call this when the surface or presentation mode needs to be changed.
-    pub(crate) fn recreate_swap_chain(&mut self) {
-        self.context.swap_chain = builder::create_swap_chain(
-            &mut self.context.device,
+    pub(crate) fn reconfigure_surface(&self) {
+        builder::configure_surface(
+            &self.context.device,
             &self.context.surface,
             self.render_texture_format,
             &self.surface_size,

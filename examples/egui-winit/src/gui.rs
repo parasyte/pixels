@@ -1,8 +1,9 @@
 use egui::{ClippedMesh, FontDefinitions};
-use egui_wgpu_backend::{RenderPass, ScreenDescriptor};
+use egui_wgpu_backend::{BackendError, RenderPass, ScreenDescriptor};
 use egui_winit_platform::{Platform, PlatformDescriptor};
 use pixels::{wgpu, PixelsContext};
 use std::time::Instant;
+use winit::window::Window;
 
 /// Manages all state required for rendering egui over `Pixels`.
 pub(crate) struct Gui {
@@ -63,7 +64,7 @@ impl Gui {
     }
 
     /// Prepare egui.
-    pub(crate) fn prepare(&mut self) {
+    pub(crate) fn prepare(&mut self, window: &Window) {
         self.platform
             .update_time(self.start_time.elapsed().as_secs_f64());
 
@@ -74,7 +75,7 @@ impl Gui {
         self.ui(&self.platform.context());
 
         // End the egui frame and create all paint jobs to prepare for rendering.
-        let (_output, paint_commands) = self.platform.end_frame();
+        let (_output, paint_commands) = self.platform.end_frame(Some(window));
         self.paint_jobs = self.platform.context().tessellate(paint_commands);
     }
 
@@ -112,7 +113,7 @@ impl Gui {
         encoder: &mut wgpu::CommandEncoder,
         render_target: &wgpu::TextureView,
         context: &PixelsContext,
-    ) {
+    ) -> Result<(), BackendError> {
         // Upload all resources to the GPU.
         self.rpass.update_texture(
             &context.device,
@@ -135,6 +136,6 @@ impl Gui {
             &self.paint_jobs,
             &self.screen_descriptor,
             None,
-        );
+        )
     }
 }
