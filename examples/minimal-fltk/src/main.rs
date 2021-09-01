@@ -5,12 +5,10 @@
 use fltk::{app, enums::Event, prelude::*, window::Window};
 use log::error;
 use pixels::{Error, Pixels, SurfaceTexture};
-use std::{thread, time::Duration};
 
 const WIDTH: u32 = 600;
 const HEIGHT: u32 = 400;
 const CIRCLE_RADIUS: i16 = 64;
-const SLEEP: u64 = 16;
 
 /// Representation of the application state. In this example, a circle will bounce around the screen.
 struct World {
@@ -59,10 +57,9 @@ fn main() -> Result<(), Error> {
         {
             app.quit();
         }
-        win.redraw();
 
-        // Calls to redraw in the event loop require an explicit sleep
-        thread::sleep(Duration::from_millis(SLEEP));
+        app::flush();
+        app::awake();
     }
 
     Ok(())
