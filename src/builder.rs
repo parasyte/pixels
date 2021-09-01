@@ -159,19 +159,19 @@ impl<'req, 'dev, 'win, W: HasRawWindowHandle> PixelsBuilder<'req, 'dev, 'win, W>
 
     /// Set the render texture format.
     ///
-    /// The default value is chosen automatically by the swapchain (if it can) with a fallback to
+    /// The default value is chosen automatically by the surface (if it can) with a fallback to
     /// `Bgra8UnormSrgb` (which is 4 unsigned bytes in `BGRA` order using the sRGB color space).
     /// Setting this format correctly depends on the hardware/platform the pixel buffer is rendered
     /// to. The chosen format can be retrieved later with [`Pixels::render_texture_format`].
     ///
-    /// This method controls the format of the swapchain frame buffer, which has strict texture
+    /// This method controls the format of the surface frame buffer, which has strict texture
     /// format requirements. Applications will never interact directly with the pixel data of this
     /// texture, but a view is provided to the `render_function` closure by [`Pixels::render_with`].
     /// The render texture can only be used as the final render target at the end of all
     /// post-processing shaders.
     ///
     /// The [`ScalingRenderer`] also uses this format for its own render target. This is because it
-    /// assumes the render target is always the swapchain current frame. This needs to be kept in
+    /// assumes the render target is always the surface current frame. This needs to be kept in
     /// mind when writing custom shaders for post-processing effects. There is a full example of a
     /// [custom-shader](https://github.com/parasyte/pixels/tree/master/examples/custom-shader)
     /// available that demonstrates how to deal with this.
@@ -217,17 +217,8 @@ impl<'req, 'dev, 'win, W: HasRawWindowHandle> PixelsBuilder<'req, 'dev, 'win, W>
                 .unwrap_or(wgpu::TextureFormat::Bgra8UnormSrgb)
         });
 
-        // Create swap chain
-        let surface_size = self.surface_texture.size;
-        configure_surface(
-            &device,
-            &surface,
-            render_texture_format,
-            &surface_size,
-            present_mode,
-        );
-
         // Create the backing texture
+        let surface_size = self.surface_texture.size;
         let (scaling_matrix_inverse, texture_extent, texture, scaling_renderer, pixels_buffer_size) =
             create_backing_texture(
                 &device,
@@ -256,34 +247,18 @@ impl<'req, 'dev, 'win, W: HasRawWindowHandle> PixelsBuilder<'req, 'dev, 'win, W>
             scaling_renderer,
         };
 
-        Ok(Pixels {
+        let pixels = Pixels {
             context,
             surface_size,
             present_mode,
             render_texture_format,
             pixels,
             scaling_matrix_inverse,
-        })
-    }
-}
+        };
+        pixels.reconfigure_surface();
 
-pub(crate) fn configure_surface(
-    device: &wgpu::Device,
-    surface: &wgpu::Surface,
-    format: wgpu::TextureFormat,
-    surface_size: &SurfaceSize,
-    present_mode: wgpu::PresentMode,
-) {
-    surface.configure(
-        device,
-        &wgpu::SurfaceConfiguration {
-            usage: wgpu::TextureUsages::RENDER_ATTACHMENT,
-            format,
-            width: surface_size.width,
-            height: surface_size.height,
-            present_mode,
-        },
-    );
+        Ok(pixels)
+    }
 }
 
 pub(crate) fn create_backing_texture(
