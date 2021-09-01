@@ -8,7 +8,7 @@ use std::env;
 pub struct PixelsBuilder<'req, 'dev, 'win, W: HasRawWindowHandle> {
     request_adapter_options: Option<wgpu::RequestAdapterOptions<'req>>,
     device_descriptor: wgpu::DeviceDescriptor<'dev>,
-    backend: wgpu::BackendBit,
+    backend: wgpu::Backends,
     width: u32,
     height: u32,
     _pixel_aspect_ratio: f64,
@@ -51,7 +51,7 @@ impl<'req, 'dev, 'win, W: HasRawWindowHandle> PixelsBuilder<'req, 'dev, 'win, W>
         PixelsBuilder {
             request_adapter_options: None,
             device_descriptor: wgpu::DeviceDescriptor::default(),
-            backend: wgpu::BackendBit::PRIMARY,
+            backend: wgpu::Backends::PRIMARY,
             width,
             height,
             _pixel_aspect_ratio: 1.0,
@@ -83,7 +83,7 @@ impl<'req, 'dev, 'win, W: HasRawWindowHandle> PixelsBuilder<'req, 'dev, 'win, W>
     /// Set which backends wgpu will attempt to use.
     ///
     /// The default value is `PRIMARY`, which enables the well supported backends for wgpu.
-    pub fn wgpu_backend(mut self, backend: wgpu::BackendBit) -> PixelsBuilder<'req, 'dev, 'win, W> {
+    pub fn wgpu_backend(mut self, backend: wgpu::Backends) -> PixelsBuilder<'req, 'dev, 'win, W> {
         self.backend = backend;
         self
     }
@@ -159,19 +159,19 @@ impl<'req, 'dev, 'win, W: HasRawWindowHandle> PixelsBuilder<'req, 'dev, 'win, W>
 
     /// Set the render texture format.
     ///
-    /// The default value is chosen automatically by the swapchain (if it can) with a fallback to
+    /// The default value is chosen automatically by the surface (if it can) with a fallback to
     /// `Bgra8UnormSrgb` (which is 4 unsigned bytes in `BGRA` order using the sRGB color space).
     /// Setting this format correctly depends on the hardware/platform the pixel buffer is rendered
     /// to. The chosen format can be retrieved later with [`Pixels::render_texture_format`].
     ///
-    /// This method controls the format of the swapchain frame buffer, which has strict texture
+    /// This method controls the format of the surface frame buffer, which has strict texture
     /// format requirements. Applications will never interact directly with the pixel data of this
     /// texture, but a view is provided to the `render_function` closure by [`Pixels::render_with`].
     /// The render texture can only be used as the final render target at the end of all
     /// post-processing shaders.
     ///
     /// The [`ScalingRenderer`] also uses this format for its own render target. This is because it
-    /// assumes the render target is always the swapchain current frame. This needs to be kept in
+    /// assumes the render target is always the surface current frame. This needs to be kept in
     /// mind when writing custom shaders for post-processing effects. There is a full example of a
     /// [custom-shader](https://github.com/parasyte/pixels/tree/master/examples/custom-shader)
     /// available that demonstrates how to deal with this.
@@ -206,28 +206,19 @@ impl<'req, 'dev, 'win, W: HasRawWindowHandle> PixelsBuilder<'req, 'dev, 'win, W>
         ));
         let adapter = pollster::block_on(adapter).ok_or(Error::AdapterNotFound)?;
 
-        let (mut device, queue) =
+        let (device, queue) =
             pollster::block_on(adapter.request_device(&self.device_descriptor, None))
                 .map_err(Error::DeviceNotFound)?;
 
         let present_mode = self.present_mode;
         let render_texture_format = self.render_texture_format.unwrap_or_else(|| {
-            adapter
-                .get_swap_chain_preferred_format(&surface)
+            surface
+                .get_preferred_format(&adapter)
                 .unwrap_or(wgpu::TextureFormat::Bgra8UnormSrgb)
         });
 
-        // Create swap chain
-        let surface_size = self.surface_texture.size;
-        let swap_chain = create_swap_chain(
-            &mut device,
-            &surface,
-            render_texture_format,
-            &surface_size,
-            present_mode,
-        );
-
         // Create the backing texture
+        let surface_size = self.surface_texture.size;
         let (scaling_matrix_inverse, texture_extent, texture, scaling_renderer, pixels_buffer_size) =
             create_backing_texture(
                 &device,
@@ -249,7 +240,6 @@ impl<'req, 'dev, 'win, W: HasRawWindowHandle> PixelsBuilder<'req, 'dev, 'win, W>
             device,
             queue,
             surface,
-            swap_chain,
             texture,
             texture_extent,
             texture_format: self.texture_format,
@@ -257,34 +247,18 @@ impl<'req, 'dev, 'win, W: HasRawWindowHandle> PixelsBuilder<'req, 'dev, 'win, W>
             scaling_renderer,
         };
 
-        Ok(Pixels {
+        let pixels = Pixels {
             context,
             surface_size,
             present_mode,
             render_texture_format,
             pixels,
             scaling_matrix_inverse,
-        })
-    }
-}
+        };
+        pixels.reconfigure_surface();
 
-pub(crate) fn create_swap_chain(
-    device: &mut wgpu::Device,
-    surface: &wgpu::Surface,
-    format: wgpu::TextureFormat,
-    surface_size: &SurfaceSize,
-    present_mode: wgpu::PresentMode,
-) -> wgpu::SwapChain {
-    device.create_swap_chain(
-        surface,
-        &wgpu::SwapChainDescriptor {
-            usage: wgpu::TextureUsage::RENDER_ATTACHMENT,
-            format,
-            width: surface_size.width,
-            height: surface_size.height,
-            present_mode,
-        },
-    )
+        Ok(pixels)
+    }
 }
 
 pub(crate) fn create_backing_texture(
@@ -321,7 +295,7 @@ pub(crate) fn create_backing_texture(
         sample_count: 1,
         dimension: wgpu::TextureDimension::D2,
         format: backing_texture_format,
-        usage: wgpu::TextureUsage::SAMPLED | wgpu::TextureUsage::COPY_DST,
+        usage: wgpu::TextureUsages::TEXTURE_BINDING | wgpu::TextureUsages::COPY_DST,
     });
     let texture_view = texture.create_view(&wgpu::TextureViewDescriptor::default());
 
@@ -366,7 +340,8 @@ const fn get_texture_format_size(texture_format: wgpu::TextureFormat) -> f32 {
         | Rg8Unorm
         | Rg8Snorm
         | Rg8Uint
-        | Rg8Sint => 2.0, // 16.0 / 8.0
+        | Rg8Sint
+        | Rgb9e5Ufloat => 2.0, // 16.0 / 8.0
 
         // 32-bit formats, 8 bits per component
         R32Uint
@@ -426,10 +401,8 @@ const fn get_texture_format_size(texture_format: wgpu::TextureFormat) -> f32 {
         | Bc6hRgbSfloat
         | Bc7RgbaUnorm
         | Bc7RgbaUnormSrgb
-        | Etc2RgbA8Unorm
-        | Etc2RgbA8UnormSrgb
-        | EtcRgUnorm
-        | EtcRgSnorm
+        | EacRgUnorm
+        | EacRgSnorm
         | Astc4x4RgbaUnorm
         | Astc4x4RgbaUnormSrgb => 1.0, // 4.0 * 4.0 / 16.0
 
