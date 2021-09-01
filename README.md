@@ -19,7 +19,8 @@ The Minimum Supported Rust Version for `pixels` will always be made available in
 
 ## Features
 
-- Built on modern graphics APIs powered by [`wgpu`](https://crates.io/crates/wgpu): DirectX 12, Vulkan, Metal. OpenGL support is a work in progress.
+- Built on modern graphics APIs powered by [`wgpu`](https://crates.io/crates/wgpu): Vulkan, Metal, DirectX 12, OpenGL ES3.
+    - DirectX 11, WebGL2, and WebGPU support are a work in progress.
 - Use your own custom shaders for special effects.
 - Hardware accelerated scaling on perfect pixel boundaries.
 - Supports non-square pixel aspect ratios. (WIP)
@@ -37,6 +38,16 @@ The Minimum Supported Rust Version for `pixels` will always be made available in
 - [`raqote` example](./examples/raqote-winit)
 
 ## Troubleshooting
+
+### Cargo resolver
+
+Starting with [`wgpu` 0.10](https://github.com/gfx-rs/wgpu/blob/06316c1bac8b78ac04d762cfb1a886bd1d453b30/CHANGELOG.md#v010-2021-08-18), the [resolver version](https://doc.rust-lang.org/cargo/reference/resolver.html#resolver-versions) needs to be set in your `Cargo.toml` to avoid build errors:
+
+```toml
+resolver = "2"
+```
+
+### Driver issues
 
 The most common issue is having an outdated graphics driver installed on the host machine. `pixels`
 requests a low power (aka integrated) GPU by default. If the examples are not working for any reason, you may try setting the `PIXELS_HIGH_PERF` environment variable (the value does not matter, e.g. `PIXELS_HIGH_PERF=1` is fine) to see if that addresses the issue on your host machine.
