@@ -3,6 +3,7 @@ name = "custom-shader"
 version = "0.1.0"
 authors = ["Jay Oster <jay@kodewerx.org>"]
 edition = "2018"
+resolver = "2"
 publish = false
 
 [features]
