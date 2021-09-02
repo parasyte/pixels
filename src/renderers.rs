@@ -253,26 +253,28 @@ impl ScalingMatrix {
         let scaled_width = texture_width * scale;
         let scaled_height = texture_height * scale;
 
-        // Update transformation matrix
+        // Create a transformation matrix
         let sw = scaled_width / screen_width;
         let sh = scaled_height / screen_height;
+        let tx = (texture_width / screen_width - 1.0).max(0.0);
+        let ty = (1.0 - texture_height / screen_height).min(0.0);
         #[rustfmt::skip]
         let transform: [f32; 16] = [
             sw,  0.0, 0.0, 0.0,
             0.0, -sh, 0.0, 0.0,
             0.0, 0.0, 1.0, 0.0,
-            0.0, 0.0, 0.0, 1.0,
+            tx,  ty, 0.0, 1.0,
         ];
 
         // Create a clipping rectangle
-        let x = (screen_width - scaled_width) / 2.0;
-        let y = (screen_height - scaled_height) / 2.0;
-        let clip_rect = (
-            x as u32,
-            y as u32,
-            scaled_width as u32,
-            scaled_height as u32,
-        );
+        let clip_rect = {
+            let scaled_width = scaled_width.min(screen_width);
+            let scaled_height = scaled_height.min(screen_height);
+            let x = ((screen_width - scaled_width) / 2.0) as u32;
+            let y = ((screen_height - scaled_height) / 2.0) as u32;
+
+            (x, y, scaled_width as u32, scaled_height as u32)
+        };
 
         ScalingMatrix {
             transform: Mat4::from(transform),
