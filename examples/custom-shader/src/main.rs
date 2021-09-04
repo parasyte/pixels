@@ -60,6 +60,8 @@ fn main() -> Result<(), Error> {
                 time += 0.01;
 
                 noise_renderer.render(encoder, render_target, context.scaling_renderer.clip_rect());
+
+                Ok(())
             });
 
             if render_result

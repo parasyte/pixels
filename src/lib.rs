@@ -115,6 +115,9 @@ pub enum Error {
     /// Equivalent to [`wgpu::SurfaceError`]
     #[error("The GPU failed to acquire a surface frame.")]
     Surface(wgpu::SurfaceError),
+    /// User-defined error
+    #[error("User-defined error.")]
+    UserDefined(#[from] Box<dyn std::error::Error>),
 }
 
 impl<'win, W: HasRawWindowHandle> SurfaceTexture<'win, W> {
@@ -302,6 +305,8 @@ impl Pixels {
     pub fn render(&mut self) -> Result<(), Error> {
         self.render_with(|encoder, render_target, context| {
             context.scaling_renderer.render(encoder, render_target);
+
+            Ok(())
         })
     }
 
@@ -342,7 +347,11 @@ impl Pixels {
     /// ```
     pub fn render_with<F>(&mut self, render_function: F) -> Result<(), Error>
     where
-        F: FnOnce(&mut wgpu::CommandEncoder, &wgpu::TextureView, &PixelsContext),
+        F: FnOnce(
+            &mut wgpu::CommandEncoder,
+            &wgpu::TextureView,
+            &PixelsContext,
+        ) -> Result<(), Box<dyn std::error::Error>>,
     {
         let frame = self
             .context
@@ -390,7 +399,7 @@ impl Pixels {
             .create_view(&wgpu::TextureViewDescriptor::default());
 
         // Call the users render function.
-        (render_function)(&mut encoder, &view, &self.context);
+        (render_function)(&mut encoder, &view, &self.context)?;
 
         self.context.queue.submit(Some(encoder.finish()));
         Ok(())

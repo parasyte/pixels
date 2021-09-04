@@ -67,8 +67,9 @@ fn main() -> Result<(), Error> {
                 context.scaling_renderer.render(encoder, render_target);
 
                 // Render egui
-                gui.render(encoder, render_target, context)
-                    .expect("egui render error");
+                gui.render(encoder, render_target, context)?;
+
+                Ok(())
             });
 
             // Basic error handling
