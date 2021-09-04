@@ -12,19 +12,22 @@
 //!
 //! # Environment variables
 //!
-//! * `PIXELS_HIGH_PERF`: Switch the default adapter to high performance.
-//! * `PIXELS_LOW_POWER`: Switch the default adapter to low power.
+//! Pixels will default to selecting the most powerful GPU and most modern graphics API available on
+//! the system, and these choices can be overridden with environment variables. These are the same
+//! vars supported by the [`wgpu` examples](https://github.com/gfx-rs/wgpu/tree/v0.10/wgpu#usage).
 //!
-//! These variables change the default adapter to request either high performance or low power.
-//! (I.e. discrete or integrated GPUs.) The value is not checked, only the existence
-//! of the variable is relevant.
+//! * `WGPU_BACKEND`: Select the backend (aka graphics API).
+//!     * Supported values: `vulkan`, `metal`, `dx11`, `dx12`, `gl`, `webgpu`
+//!     * The default depends on capabilities of the host system, with `vulkan` being preferred on
+//!       Linux and Windows, and `metal` preferred on macOS.
+//! * `WGPU_ADAPTER_NAME`: Select an adapter (aka GPU) with substring matching.
+//!     * E.g. `1080` will match `NVIDIA GeForce 1080ti`
+//! * `WGPU_POWER_PREF`: Select an adapter (aka GPU) that meets the given power profile.
+//!     * Supported values: `low`, `high`
+//!     * The default is `low`. I.e. an integrated GPU will be preferred over a discrete GPU.
 //!
-//! The order of precedence for choosing a power preference is:
-//!
-//! 1. Application's specific adapter request through [`PixelsBuilder::request_adapter_options`]
-//! 2. `PIXELS_HIGH_PERF`
-//! 3. `PIXELS_LOW_POWER`
-//! 4. `wgpu` default power preference (usually low power)
+//! Note that `WGPU_ADAPTER_NAME` and `WGPU_POWER_PREF` are mutually exclusive and that
+//! `WGPU_ADAPTER_NAME` takes precedence.
 
 #![deny(clippy::all)]
 
