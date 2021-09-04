@@ -70,8 +70,9 @@ fn main() -> Result<(), Error> {
                 context.scaling_renderer.render(encoder, render_target);
 
                 // Render Dear ImGui
-                gui.render(&window, encoder, render_target, context)
-                    .expect("gui.render() failed");
+                gui.render(&window, encoder, render_target, context)?;
+
+                Ok(())
             });
 
             // Basic error handling

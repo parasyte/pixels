@@ -115,6 +115,9 @@ pub enum Error {
     /// Equivalent to [`wgpu::SurfaceError`]
     #[error("The GPU failed to acquire a surface frame.")]
     Surface(wgpu::SurfaceError),
+    /// User-defined error from custom render function
+    #[error("User-defined error.")]
+    UserDefined(#[from] Box<dyn std::error::Error>),
 }
 
 impl<'win, W: HasRawWindowHandle> SurfaceTexture<'win, W> {
@@ -296,12 +299,14 @@ impl Pixels {
     /// }
     ///
     /// // Draw it to the `SurfaceTexture`
-    /// pixels.render();
+    /// pixels.render()?;
     /// # Ok::<(), pixels::Error>(())
     /// ```
     pub fn render(&mut self) -> Result<(), Error> {
         self.render_with(|encoder, render_target, context| {
             context.scaling_renderer.render(encoder, render_target);
+
+            Ok(())
         })
     }
 
@@ -312,9 +317,14 @@ impl Pixels {
     /// which you can use to render to the screen, and a [`PixelsContext`] with all of the internal
     /// `wgpu` context.
     ///
+    /// The render function must return a `Result`. This allows fallible render functions to be
+    /// handled gracefully. The boxed `Error` will be made available in the [`Error::UserDefined`]
+    /// variant returned by `render_with()`.
+    ///
     /// # Errors
     ///
-    /// Returns an error when [`wgpu::Surface::get_current_frame`] fails.
+    /// Returns an error when either [`wgpu::Surface::get_current_frame`] or the provided render
+    /// function fails.
     ///
     /// # Example
     ///
@@ -337,12 +347,17 @@ impl Pixels {
     /// pixels.render_with(|encoder, render_target, context| {
     ///     context.scaling_renderer.render(encoder, render_target);
     ///     // etc...
-    /// });
+    ///     Ok(())
+    /// })?;
     /// # Ok::<(), pixels::Error>(())
     /// ```
     pub fn render_with<F>(&mut self, render_function: F) -> Result<(), Error>
     where
-        F: FnOnce(&mut wgpu::CommandEncoder, &wgpu::TextureView, &PixelsContext),
+        F: FnOnce(
+            &mut wgpu::CommandEncoder,
+            &wgpu::TextureView,
+            &PixelsContext,
+        ) -> Result<(), Box<dyn std::error::Error>>,
     {
         let frame = self
             .context
@@ -389,8 +404,8 @@ impl Pixels {
             .texture
             .create_view(&wgpu::TextureViewDescriptor::default());
 
-        // Call the users render function.
-        (render_function)(&mut encoder, &view, &self.context);
+        // Call the user's render function.
+        (render_function)(&mut encoder, &view, &self.context)?;
 
         self.context.queue.submit(Some(encoder.finish()));
         Ok(())
