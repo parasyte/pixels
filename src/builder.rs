@@ -2,7 +2,6 @@ use crate::renderers::{ScalingMatrix, ScalingRenderer};
 use crate::SurfaceSize;
 use crate::{Error, Pixels, PixelsContext, SurfaceTexture};
 use raw_window_handle::HasRawWindowHandle;
-use std::env;
 
 /// A builder to help create customized pixel buffers.
 pub struct PixelsBuilder<'req, 'dev, 'win, W: HasRawWindowHandle> {
@@ -51,7 +50,7 @@ impl<'req, 'dev, 'win, W: HasRawWindowHandle> PixelsBuilder<'req, 'dev, 'win, W>
         PixelsBuilder {
             request_adapter_options: None,
             device_descriptor: wgpu::DeviceDescriptor::default(),
-            backend: wgpu::Backends::PRIMARY,
+            backend: wgpu::util::backend_bits_from_env().unwrap_or(wgpu::Backends::PRIMARY),
             width,
             height,
             _pixel_aspect_ratio: 1.0,
@@ -194,17 +193,25 @@ impl<'req, 'dev, 'win, W: HasRawWindowHandle> PixelsBuilder<'req, 'dev, 'win, W>
         // TODO: Use `options.pixel_aspect_ratio` to stretch the scaled texture
         let surface = unsafe { instance.create_surface(self.surface_texture.window) };
         let compatible_surface = Some(&surface);
-        let adapter = instance.request_adapter(&self.request_adapter_options.map_or_else(
-            || wgpu::RequestAdapterOptions {
-                compatible_surface,
-                power_preference: get_default_power_preference(),
-            },
-            |rao| wgpu::RequestAdapterOptions {
-                compatible_surface: rao.compatible_surface.or(compatible_surface),
-                power_preference: rao.power_preference,
-            },
-        ));
-        let adapter = pollster::block_on(adapter).ok_or(Error::AdapterNotFound)?;
+        let request_adapter_options = &self.request_adapter_options;
+        let adapter =
+            wgpu::util::initialize_adapter_from_env(&instance, self.backend).or_else(|| {
+                let future =
+                    instance.request_adapter(&request_adapter_options.as_ref().map_or_else(
+                        || wgpu::RequestAdapterOptions {
+                            compatible_surface,
+                            power_preference:
+                                wgpu::util::power_preference_from_env().unwrap_or_default(),
+                        },
+                        |rao| wgpu::RequestAdapterOptions {
+                            compatible_surface: rao.compatible_surface.or(compatible_surface),
+                            power_preference: rao.power_preference,
+                        },
+                    ));
+
+                pollster::block_on(future)
+            });
+        let adapter = adapter.ok_or(Error::AdapterNotFound)?;
 
         let (device, queue) =
             pollster::block_on(adapter.request_device(&self.device_descriptor, None))
@@ -458,15 +465,4 @@ const fn get_texture_format_size(texture_format: wgpu::TextureFormat) -> f32 {
         Astc12x12RgbaUnorm
         | Astc12x12RgbaUnormSrgb => 9.0, // 12.0 * 12.0 / 16.0
     }
-}
-
-fn get_default_power_preference() -> wgpu::PowerPreference {
-    env::var("PIXELS_HIGH_PERF").map_or_else(
-        |_| {
-            env::var("PIXELS_LOW_POWER").map_or(wgpu::PowerPreference::default(), |_| {
-                wgpu::PowerPreference::LowPower
-            })
-        },
-        |_| wgpu::PowerPreference::HighPerformance,
-    )
 }

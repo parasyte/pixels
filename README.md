@@ -50,7 +50,7 @@ resolver = "2"
 ### Driver issues
 
 The most common issue is having an outdated graphics driver installed on the host machine. `pixels`
-requests a low power (aka integrated) GPU by default. If the examples are not working for any reason, you may try setting the `PIXELS_HIGH_PERF` environment variable (the value does not matter, e.g. `PIXELS_HIGH_PERF=1` is fine) to see if that addresses the issue on your host machine.
+requests a low power (aka integrated) GPU by default. If the examples are not working for any reason, you may try setting the `WGPU_POWER_PREF=high` environment variable to see if that addresses the issue on your host machine.
 
 You should also try to keep your graphics drivers up-to-date, especially if you have an old Intel integrated GPU. Keep in mind that some drivers and GPUs are EOL and will not be supported.
 
