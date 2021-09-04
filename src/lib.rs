@@ -117,8 +117,10 @@ pub enum Error {
     Surface(wgpu::SurfaceError),
     /// User-defined error from custom render function
     #[error("User-defined error.")]
-    UserDefined(#[from] Box<dyn std::error::Error>),
+    UserDefined(#[from] DynError),
 }
+
+type DynError = Box<dyn std::error::Error + Send + Sync + 'static>;
 
 impl<'win, W: HasRawWindowHandle> SurfaceTexture<'win, W> {
     /// Create a logical texture for a window surface.
@@ -357,7 +359,7 @@ impl Pixels {
             &mut wgpu::CommandEncoder,
             &wgpu::TextureView,
             &PixelsContext,
-        ) -> Result<(), Box<dyn std::error::Error>>,
+        ) -> Result<(), DynError>,
     {
         let frame = self
             .context
