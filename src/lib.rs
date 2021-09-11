@@ -444,10 +444,6 @@ impl Pixels {
     ///
     /// This function will fail if the internal pixels array is not 4-byte
     /// aligned, which should always be the case.
-    ///
-    /// The pixel channels order is 0xAABBGGRRu32.  For example, 0x12345678u32
-    /// will produce an alpha of 0x12, a blue of 0x34, a green of 0x56 and a red
-    /// of 0x78.
     pub fn get_frame_u32(&mut self) -> &mut [u32] {
         let result = bytemuck::try_cast_slice_mut::<u8, u32>(&mut self.pixels);
 
