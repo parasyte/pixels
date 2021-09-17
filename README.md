@@ -5,7 +5,7 @@
 
 ![Pixels Logo](img/pixels.png)
 
-A tiny hardware-accelerated pixel frame buffer. :crab:
+A tiny hardware-accelerated pixel frame buffer. 🦀
 
 ## But why?
 
