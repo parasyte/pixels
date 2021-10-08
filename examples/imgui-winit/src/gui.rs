@@ -93,8 +93,8 @@ impl Gui {
         // Draw windows and GUI elements here
         let mut about_open = false;
         ui.main_menu_bar(|| {
-            ui.menu(imgui::im_str!("Help"), true, || {
-                about_open = imgui::MenuItem::new(imgui::im_str!("About...")).build(&ui);
+            ui.menu("Help", || {
+                about_open = imgui::MenuItem::new("About...").build(&ui);
             });
         });
         if about_open {

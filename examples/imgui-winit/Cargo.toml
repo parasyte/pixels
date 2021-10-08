@@ -12,9 +12,9 @@ default = ["optimize"]
 
 [dependencies]
 env_logger = "0.9"
-imgui = "0.7"
-imgui-wgpu = "0.17"
-imgui-winit-support = { version = "0.7.1", default-features = false, features = ["winit-25"] }
+imgui = "0.8"
+imgui-wgpu = "0.18"
+imgui-winit-support = { version = "0.8", default-features = false, features = ["winit-25"] }
 log = "0.4"
 pixels = { path = "../.." }
 winit = "0.25"

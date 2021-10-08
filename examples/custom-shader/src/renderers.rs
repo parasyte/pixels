@@ -246,11 +246,7 @@ fn create_bind_group(
             },
             wgpu::BindGroupEntry {
                 binding: 2,
-                resource: wgpu::BindingResource::Buffer(wgpu::BufferBinding {
-                    buffer: time_buffer,
-                    offset: 0,
-                    size: None,
-                }),
+                resource: time_buffer.as_entire_binding(),
             },
         ],
     })
