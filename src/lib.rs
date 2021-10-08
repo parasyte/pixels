@@ -284,7 +284,7 @@ impl Pixels {
     ///
     /// # Errors
     ///
-    /// Returns an error when [`wgpu::Surface::get_current_frame`] fails.
+    /// Returns an error when [`wgpu::Surface::get_current_texture`] fails.
     ///
     /// # Example
     ///
@@ -328,7 +328,7 @@ impl Pixels {
     ///
     /// # Errors
     ///
-    /// Returns an error when either [`wgpu::Surface::get_current_frame`] or the provided render
+    /// Returns an error when either [`wgpu::Surface::get_current_texture`] or the provided render
     /// function fails.
     ///
     /// # Example
