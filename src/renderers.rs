@@ -12,7 +12,6 @@ pub struct ScalingRenderer {
     width: f32,
     height: f32,
     clip_rect: (u32, u32, u32, u32),
-    render_texture_format: wgpu::TextureFormat,
 }
 
 impl ScalingRenderer {
@@ -181,7 +180,6 @@ impl ScalingRenderer {
             width: texture_size.width as f32,
             height: texture_size.height as f32,
             clip_rect,
-            render_texture_format,
         }
     }
 
