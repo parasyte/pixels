@@ -114,7 +114,7 @@ impl ScalingRenderer {
                     ty: wgpu::BindingType::Buffer {
                         ty: wgpu::BufferBindingType::Uniform,
                         has_dynamic_offset: false,
-                        min_binding_size: None,
+                        min_binding_size: None, // TODO: More efficent to specify this
                     },
                     count: None,
                 },
@@ -134,11 +134,7 @@ impl ScalingRenderer {
                 },
                 wgpu::BindGroupEntry {
                     binding: 2,
-                    resource: wgpu::BindingResource::Buffer(wgpu::BufferBinding {
-                        buffer: &uniform_buffer,
-                        offset: 0,
-                        size: None,
-                    }),
+                    resource: uniform_buffer.as_entire_binding(),
                 },
             ],
         });

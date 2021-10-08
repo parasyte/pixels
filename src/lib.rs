@@ -367,13 +367,13 @@ impl Pixels {
         let frame = self
             .context
             .surface
-            .get_current_frame()
+            .get_current_texture()
             .or_else(|err| match err {
                 wgpu::SurfaceError::Outdated => {
                     // Reconfigure the surface to mitigate race condition on window resize.
                     // See https://github.com/parasyte/pixels/issues/121
                     self.reconfigure_surface();
-                    self.context.surface.get_current_frame()
+                    self.context.surface.get_current_texture()
                 }
                 err => Err(err),
             })
@@ -405,7 +405,6 @@ impl Pixels {
         );
 
         let view = frame
-            .output
             .texture
             .create_view(&wgpu::TextureViewDescriptor::default());
 
@@ -413,6 +412,7 @@ impl Pixels {
         (render_function)(&mut encoder, &view, &self.context)?;
 
         self.context.queue.submit(Some(encoder.finish()));
+        frame.present();
         Ok(())
     }
 

@@ -23,7 +23,7 @@ fn vs_main(
 [[block]] struct Locals {
     time: f32;
 };
-[[group(0), binding(2)]] var r_locals: Locals;
+[[group(0), binding(2)]] var<uniform> r_locals: Locals;
 
 let tau: f32 = 6.283185307179586476925286766559;
 let bias: f32 = 0.2376; // Offset the circular time input so it is never 0

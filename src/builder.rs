@@ -200,11 +200,13 @@ impl<'req, 'dev, 'win, W: HasRawWindowHandle> PixelsBuilder<'req, 'dev, 'win, W>
                     instance.request_adapter(&request_adapter_options.as_ref().map_or_else(
                         || wgpu::RequestAdapterOptions {
                             compatible_surface,
+                            force_fallback_adapter: false,
                             power_preference:
                                 wgpu::util::power_preference_from_env().unwrap_or_default(),
                         },
                         |rao| wgpu::RequestAdapterOptions {
                             compatible_surface: rao.compatible_surface.or(compatible_surface),
+                            force_fallback_adapter: false,
                             power_preference: rao.power_preference,
                         },
                     ));
