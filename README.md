@@ -47,6 +47,8 @@ Starting with [`wgpu` 0.10](https://github.com/gfx-rs/wgpu/blob/06316c1bac8b78ac
 resolver = "2"
 ```
 
+Perhaps a better alternative is specifying [`edition = "2021"`](https://doc.rust-lang.org/edition-guide/rust-2021/default-cargo-resolver.html), especially if you are starting a new project with Rust `1.56.0` or later.
+
 ### Driver issues
 
 The most common issue is having an outdated graphics driver installed on the host machine. `pixels`
