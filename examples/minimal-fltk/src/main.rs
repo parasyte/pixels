@@ -19,7 +19,9 @@ struct World {
 }
 
 fn main() -> Result<(), Error> {
+    #[cfg(debug_assertions)]
     env_logger::init();
+
     let app = app::App::default();
     let mut win = Window::default()
         .with_size(WIDTH as i32, HEIGHT as i32)
