@@ -1,7 +1,7 @@
 #![deny(clippy::all)]
 #![forbid(unsafe_code)]
 
-use crate::gui::Gui;
+use crate::gui::Framework;
 use log::error;
 use pixels::{Error, Pixels, SurfaceTexture};
 use winit::dpi::LogicalSize;
@@ -38,50 +38,19 @@ fn main() -> Result<(), Error> {
             .unwrap()
     };
 
-    let (mut pixels, mut gui) = {
+    let (mut pixels, mut framework) = {
         let window_size = window.inner_size();
-        let scale_factor = window.scale_factor();
+        let scale_factor = window.scale_factor() as f32;
         let surface_texture = SurfaceTexture::new(window_size.width, window_size.height, &window);
         let pixels = Pixels::new(WIDTH, HEIGHT, surface_texture)?;
-        let gui = Gui::new(window_size.width, window_size.height, scale_factor, &pixels);
+        let framework =
+            Framework::new(window_size.width, window_size.height, scale_factor, &pixels);
 
-        (pixels, gui)
+        (pixels, framework)
     };
     let mut world = World::new();
 
     event_loop.run(move |event, _, control_flow| {
-        // Update egui inputs
-        gui.handle_event(&event);
-
-        // Draw the current frame
-        if let Event::RedrawRequested(_) = event {
-            // Draw the world
-            world.draw(pixels.get_frame());
-
-            // Prepare egui
-            gui.prepare(&window);
-
-            // Render everything together
-            let render_result = pixels.render_with(|encoder, render_target, context| {
-                // Render the world texture
-                context.scaling_renderer.render(encoder, render_target);
-
-                // Render egui
-                gui.render(encoder, render_target, context)?;
-
-                Ok(())
-            });
-
-            // Basic error handling
-            if render_result
-                .map_err(|e| error!("pixels.render() failed: {}", e))
-                .is_err()
-            {
-                *control_flow = ControlFlow::Exit;
-                return;
-            }
-        }
-
         // Handle input events
         if input.update(&event) {
             // Close events
@@ -92,18 +61,53 @@ fn main() -> Result<(), Error> {
 
             // Update the scale factor
             if let Some(scale_factor) = input.scale_factor() {
-                gui.scale_factor(scale_factor);
+                framework.scale_factor(scale_factor);
             }
 
             // Resize the window
             if let Some(size) = input.window_resized() {
                 pixels.resize_surface(size.width, size.height);
-                gui.resize(size.width, size.height);
+                framework.resize(size.width, size.height);
             }
 
             // Update internal state and request a redraw
             world.update();
             window.request_redraw();
+        }
+
+        match event {
+            Event::WindowEvent { event, .. } => {
+                // Update egui inputs
+                framework.handle_event(&event);
+            }
+            // Draw the current frame
+            Event::RedrawRequested(_) => {
+                // Draw the world
+                world.draw(pixels.get_frame());
+
+                // Prepare egui
+                framework.prepare(&window);
+
+                // Render everything together
+                let render_result = pixels.render_with(|encoder, render_target, context| {
+                    // Render the world texture
+                    context.scaling_renderer.render(encoder, render_target);
+
+                    // Render egui
+                    framework.render(encoder, render_target, context)?;
+
+                    Ok(())
+                });
+
+                // Basic error handling
+                if render_result
+                    .map_err(|e| error!("pixels.render() failed: {}", e))
+                    .is_err()
+                {
+                    *control_flow = ControlFlow::Exit;
+                }
+            }
+            _ => (),
         }
     });
 }

@@ -1,13 +1,13 @@
 # Egui Example
 
-![Egui Example](../../img/egui-winit.png)
+![Egui Example](../../img/minimal-egui.png)
 
 Minimal example with `egui` and `winit`.
 
 ## Running
 
 ```bash
-cargo run --release --package egui-winit
+cargo run --release --package minimal-egui
 ```
 
 ## About
