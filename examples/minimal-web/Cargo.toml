@@ -1,0 +1,22 @@
+[package]
+name = "minimal-web"
+version = "0.1.0"
+authors = ["Jay Oster <jay@kodewerx.org>"]
+edition = "2018"
+resolver = "2"
+publish = false
+
+[features]
+optimize = ["log/release_max_level_warn"]
+web = ["wgpu/webgl", "winit/web-sys"]
+default = ["optimize", "web"]
+
+[dependencies]
+console_error_panic_hook = "0.1"
+console_log = "0.2"
+log = "0.4"
+pixels = { path = "../.." }
+wasm-bindgen-futures = "0.4"
+web-sys = "0.3"
+wgpu = "0.11"
+winit = "0.25"

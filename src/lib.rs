@@ -131,6 +131,9 @@ impl<'win, W: HasRawWindowHandle> SurfaceTexture<'win, W> {
     /// It is recommended (but not required) that the `width` and `height` are equivalent to the
     /// physical dimensions of the `surface`. E.g. scaled by the HiDPI factor.
     ///
+    /// This method blocks the current thread, making it unusable on Web targets. Use
+    /// [`PixelsBuilder::build_async`] for a non-blocking alternative.
+    ///
     /// # Examples
     ///
     /// ```no_run

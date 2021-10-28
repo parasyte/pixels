@@ -1,0 +1,138 @@
+#![deny(clippy::all)]
+#![forbid(unsafe_code)]
+
+use log::error;
+use pixels::{PixelsBuilder, SurfaceTexture};
+use winit::dpi::LogicalSize;
+use winit::event::Event;
+use winit::event_loop::{ControlFlow, EventLoop};
+use winit::window::WindowBuilder;
+
+#[cfg(target_arch = "wasm32")]
+use winit::platform::web::WindowExtWebSys;
+
+const WIDTH: u32 = 320;
+const HEIGHT: u32 = 240;
+const BOX_SIZE: i16 = 64;
+
+/// Representation of the application state. In this example, a box will bounce around the screen.
+struct World {
+    box_x: i16,
+    box_y: i16,
+    velocity_x: i16,
+    velocity_y: i16,
+}
+
+fn main() {
+    std::panic::set_hook(Box::new(console_error_panic_hook::hook));
+    console_log::init_with_level(log::Level::Trace).expect("error initializing logger");
+
+    wasm_bindgen_futures::spawn_local(run());
+}
+
+async fn run() {
+    let event_loop = EventLoop::new();
+    let window = {
+        let size = LogicalSize::new(WIDTH as f64, HEIGHT as f64);
+        WindowBuilder::new()
+            .with_title("Hello Pixels + Web")
+            .with_inner_size(size)
+            .build(&event_loop)
+            .expect("WindowBuilder error")
+    };
+
+    #[cfg(target_arch = "wasm32")]
+    web_sys::window()
+        .and_then(|win| win.document())
+        .and_then(|doc| doc.body())
+        .and_then(|body| {
+            body.append_child(&web_sys::Element::from(window.canvas()))
+                .ok()
+        })
+        .expect("couldn't append canvas to document body");
+
+    let mut pixels = {
+        let window_size = window.inner_size();
+        let surface_texture = SurfaceTexture::new(window_size.width, window_size.height, &window);
+        PixelsBuilder::new(WIDTH, HEIGHT, surface_texture)
+            .wgpu_backend(pixels::wgpu::Backends::all())
+            .device_descriptor(pixels::wgpu::DeviceDescriptor {
+                limits: pixels::wgpu::Limits::downlevel_webgl2_defaults(),
+                ..Default::default()
+            })
+            .build_async()
+            .await
+            .expect("Pixels error")
+    };
+    let mut world = World::new();
+
+    event_loop.run(move |event, _, control_flow| {
+        match event {
+            Event::MainEventsCleared => {
+                // Update internal state and request a redraw
+                world.update();
+                window.request_redraw();
+            }
+            Event::RedrawRequested(_) => {
+                // Draw the current frame
+                world.draw(pixels.get_frame());
+                if pixels
+                    .render()
+                    .map_err(|e| error!("pixels.render() failed: {}", e))
+                    .is_err()
+                {
+                    *control_flow = ControlFlow::Exit;
+                }
+            }
+            _ => (),
+        }
+    });
+}
+
+impl World {
+    /// Create a new `World` instance that can draw a moving box.
+    fn new() -> Self {
+        Self {
+            box_x: 24,
+            box_y: 16,
+            velocity_x: 1,
+            velocity_y: 1,
+        }
+    }
+
+    /// Update the `World` internal state; bounce the box around the screen.
+    fn update(&mut self) {
+        if self.box_x <= 0 || self.box_x + BOX_SIZE > WIDTH as i16 {
+            self.velocity_x *= -1;
+        }
+        if self.box_y <= 0 || self.box_y + BOX_SIZE > HEIGHT as i16 {
+            self.velocity_y *= -1;
+        }
+
+        self.box_x += self.velocity_x;
+        self.box_y += self.velocity_y;
+    }
+
+    /// Draw the `World` state to the frame buffer.
+    ///
+    /// Assumes the default texture format: `wgpu::TextureFormat::Rgba8UnormSrgb`
+    fn draw(&self, frame: &mut [u8]) {
+        for (i, pixel) in frame.chunks_exact_mut(4).enumerate() {
+            let x = (i % WIDTH as usize) as i16;
+            let y = (i / WIDTH as usize) as i16;
+
+            let inside_the_box = x >= self.box_x
+                && x < self.box_x + BOX_SIZE
+                && y >= self.box_y
+                && y < self.box_y + BOX_SIZE;
+
+            let rgba = if inside_the_box {
+                [0x5e, 0x48, 0xe8, 0xff]
+            } else {
+                [0x48, 0xb2, 0xe8, 0xff]
+            };
+
+            pixel.copy_from_slice(&rgba);
+        }
+    }
+}
