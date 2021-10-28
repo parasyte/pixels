@@ -48,6 +48,7 @@ async fn run() {
         WindowBuilder::new()
             .with_title("Hello Pixels + Web")
             .with_inner_size(size)
+            .with_min_inner_size(size)
             .build(&event_loop)
             .expect("WindowBuilder error")
     };
@@ -63,7 +64,6 @@ async fn run() {
         .expect("couldn't append canvas to document body");
 
     let mut input = WinitInputHelper::new();
-
     let mut pixels = {
         let window_size = window.inner_size();
         let surface_texture = SurfaceTexture::new(window_size.width, window_size.height, &window);

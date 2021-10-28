@@ -284,6 +284,7 @@ impl<'req, 'dev, 'win, W: HasRawWindowHandle> PixelsBuilder<'req, 'dev, 'win, W>
     /// # Errors
     ///
     /// Returns an error when a [`wgpu::Adapter`] cannot be found.
+    #[cfg(not(target_arch = "wasm32"))]
     pub fn build(self) -> Result<Pixels, Error> {
         pollster::block_on(self.build_impl())
     }

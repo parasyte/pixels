@@ -13,7 +13,7 @@ rustup target add wasm32-unknown-unknown
 cargo install --locked wasm-bindgen-cli just miniserve
 ```
 
-## Running
+## Running on the Web
 
 Build the project and start a local server to host it:
 

@@ -193,6 +193,7 @@ impl Pixels {
     /// # Panics
     ///
     /// Panics when `width` or `height` are 0.
+    #[cfg(not(target_arch = "wasm32"))]
     pub fn new<W: HasRawWindowHandle>(
         width: u32,
         height: u32,
