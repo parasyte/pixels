@@ -2,7 +2,7 @@
 
 ![Hello Pixels + Web](../../img/minimal-web.png)
 
-Minimal example with WebGL2.
+Minimal example for WebGL2.
 
 ## Install build dependencies
 
