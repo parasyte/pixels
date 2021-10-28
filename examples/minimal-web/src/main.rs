@@ -4,9 +4,10 @@
 use log::error;
 use pixels::{PixelsBuilder, SurfaceTexture};
 use winit::dpi::LogicalSize;
-use winit::event::Event;
+use winit::event::{Event, VirtualKeyCode};
 use winit::event_loop::{ControlFlow, EventLoop};
 use winit::window::WindowBuilder;
+use winit_input_helper::WinitInputHelper;
 
 #[cfg(target_arch = "wasm32")]
 use winit::platform::web::WindowExtWebSys;
@@ -24,10 +25,20 @@ struct World {
 }
 
 fn main() {
-    std::panic::set_hook(Box::new(console_error_panic_hook::hook));
-    console_log::init_with_level(log::Level::Trace).expect("error initializing logger");
+    #[cfg(target_arch = "wasm32")]
+    {
+        std::panic::set_hook(Box::new(console_error_panic_hook::hook));
+        console_log::init_with_level(log::Level::Trace).expect("error initializing logger");
 
-    wasm_bindgen_futures::spawn_local(run());
+        wasm_bindgen_futures::spawn_local(run());
+    }
+
+    #[cfg(not(target_arch = "wasm32"))]
+    {
+        env_logger::init();
+
+        pollster::block_on(run());
+    }
 }
 
 async fn run() {
@@ -51,6 +62,8 @@ async fn run() {
         })
         .expect("couldn't append canvas to document body");
 
+    let mut input = WinitInputHelper::new();
+
     let mut pixels = {
         let window_size = window.inner_size();
         let surface_texture = SurfaceTexture::new(window_size.width, window_size.height, &window);
@@ -67,24 +80,35 @@ async fn run() {
     let mut world = World::new();
 
     event_loop.run(move |event, _, control_flow| {
-        match event {
-            Event::MainEventsCleared => {
-                // Update internal state and request a redraw
-                world.update();
-                window.request_redraw();
+        // Draw the current frame
+        if let Event::RedrawRequested(_) = event {
+            world.draw(pixels.get_frame());
+            if pixels
+                .render()
+                .map_err(|e| error!("pixels.render() failed: {}", e))
+                .is_err()
+            {
+                *control_flow = ControlFlow::Exit;
+                return;
             }
-            Event::RedrawRequested(_) => {
-                // Draw the current frame
-                world.draw(pixels.get_frame());
-                if pixels
-                    .render()
-                    .map_err(|e| error!("pixels.render() failed: {}", e))
-                    .is_err()
-                {
-                    *control_flow = ControlFlow::Exit;
-                }
+        }
+
+        // Handle input events
+        if input.update(&event) {
+            // Close events
+            if input.key_pressed(VirtualKeyCode::Escape) || input.quit() {
+                *control_flow = ControlFlow::Exit;
+                return;
             }
-            _ => (),
+
+            // Resize the window
+            if let Some(size) = input.window_resized() {
+                pixels.resize_surface(size.width, size.height);
+            }
+
+            // Update internal state and request a redraw
+            world.update();
+            window.request_redraw();
         }
     });
 }

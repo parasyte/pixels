@@ -16,7 +16,14 @@ console_error_panic_hook = "0.1"
 console_log = "0.2"
 log = "0.4"
 pixels = { path = "../.." }
-wasm-bindgen-futures = "0.4"
-web-sys = "0.3"
 wgpu = "0.11"
 winit = "0.25"
+winit_input_helper = "0.10"
+
+[target.'cfg(target_arch = "wasm32")'.dependencies]
+wasm-bindgen-futures = "0.4"
+web-sys = "0.3"
+
+[target.'cfg(not(target_arch = "wasm32"))'.dependencies]
+env_logger = "0.9"
+pollster = "0.2"
