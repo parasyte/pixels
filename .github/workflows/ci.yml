@@ -98,10 +98,6 @@ jobs:
     needs: [checks, lints]
     strategy:
       matrix:
-        rust:
-          - stable
-          - beta
-          - 1.52.0
         example:
           - minimal-web
     steps:
@@ -115,7 +111,7 @@ jobs:
         uses: actions-rs/toolchain@v1
         with:
           profile: minimal
-          toolchain: ${{ matrix.rust }}
+          toolchain: stable
           target: wasm32-unknown-unknown
           override: true
       - name: Install tools
