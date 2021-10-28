@@ -9,7 +9,7 @@ publish = false
 [features]
 optimize = ["log/release_max_level_warn"]
 web = ["wgpu/webgl", "winit/web-sys"]
-default = ["optimize", "web"]
+default = ["optimize"]
 
 [dependencies]
 console_error_panic_hook = "0.1"

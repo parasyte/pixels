@@ -31,6 +31,12 @@ just build minimal-web
 
 The build files are stored in `./target/minimal-web/`.
 
+## Running on native targets
+
+```bash
+cargo run --release --package minimal-web
+```
+
 ## About
 
 This example is based on `minimal-winit`, demonstrating how to build your app for WebGL2 targets.
