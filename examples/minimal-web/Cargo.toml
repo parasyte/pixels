@@ -21,6 +21,7 @@ winit = "0.25"
 winit_input_helper = "0.10"
 
 [target.'cfg(target_arch = "wasm32")'.dependencies]
+wasm-bindgen = "0.2.78"
 wasm-bindgen-futures = "0.4"
 web-sys = "0.3"
 
