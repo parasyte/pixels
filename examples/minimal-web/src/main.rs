@@ -63,7 +63,7 @@ async fn run() {
             let client_window = web_sys::window().unwrap();
             LogicalSize::new(
                 client_window.inner_width().unwrap().as_f64().unwrap(),
-                client_window.inner_height().unwrap().as_f64().unwrap()
+                client_window.inner_height().unwrap().as_f64().unwrap(),
             )
         };
 
@@ -74,7 +74,7 @@ async fn run() {
 
         let client_window = web_sys::window().unwrap();
 
-        // Attach winit canvas to body element 
+        // Attach winit canvas to body element
         web_sys::window()
             .and_then(|win| win.document())
             .and_then(|doc| doc.body())
@@ -83,7 +83,7 @@ async fn run() {
                     .ok()
             })
             .expect("couldn't append canvas to document body");
-        
+
         // Listen for resize event on browser client. Adjust winit window dimensions
         // on event trigger
         let closure = wasm_bindgen::closure::Closure::wrap(Box::new(move |_e: web_sys::Event| {
@@ -99,7 +99,8 @@ async fn run() {
     let mut input = WinitInputHelper::new();
     let mut pixels = {
         let window_size = window.inner_size();
-        let surface_texture = SurfaceTexture::new(window_size.width, window_size.height, window.as_ref());
+        let surface_texture =
+            SurfaceTexture::new(window_size.width, window_size.height, window.as_ref());
         PixelsBuilder::new(WIDTH, HEIGHT, surface_texture)
             .wgpu_backend(pixels::wgpu::Backends::all())
             .device_descriptor(pixels::wgpu::DeviceDescriptor {
