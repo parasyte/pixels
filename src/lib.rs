@@ -51,7 +51,7 @@ pub struct SurfaceTexture<'win, W: HasRawWindowHandle> {
 
 /// A logical texture size for a window surface.
 #[derive(Debug)]
-pub struct SurfaceSize {
+struct SurfaceSize {
     width: u32,
     height: u32,
 }
