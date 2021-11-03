@@ -56,7 +56,7 @@ fn main() -> Result<(), Error> {
                 let noise_texture = noise_renderer.get_texture_view();
                 context.scaling_renderer.render(encoder, noise_texture);
 
-                noise_renderer.update(&context.queue, time);
+                noise_renderer.update(context.queue, time);
                 time += 0.01;
 
                 noise_renderer.render(encoder, render_target, context.scaling_renderer.clip_rect());
