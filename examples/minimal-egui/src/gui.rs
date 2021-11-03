@@ -88,12 +88,12 @@ impl Framework {
     ) -> Result<(), BackendError> {
         // Upload all resources to the GPU.
         self.rpass
-            .update_texture(&context.device, &context.queue, &self.egui_ctx.texture());
+            .update_texture(context.device, context.queue, &self.egui_ctx.texture());
         self.rpass
-            .update_user_textures(&context.device, &context.queue);
+            .update_user_textures(context.device, context.queue);
         self.rpass.update_buffers(
-            &context.device,
-            &context.queue,
+            context.device,
+            context.queue,
             &self.paint_jobs,
             &self.screen_descriptor,
         );

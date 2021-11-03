@@ -1,6 +1,5 @@
 use crate::renderers::{ScalingMatrix, ScalingRenderer};
-use crate::SurfaceSize;
-use crate::{Error, Pixels, PixelsContext, SurfaceTexture};
+use crate::{Borrower, Error, Pixels, PixelsInternalContext, SurfaceSize, SurfaceTexture};
 use raw_window_handle::HasRawWindowHandle;
 
 /// A builder to help create customized pixel buffers.
@@ -183,12 +182,64 @@ impl<'req, 'dev, 'win, W: HasRawWindowHandle> PixelsBuilder<'req, 'dev, 'win, W>
         self
     }
 
+    fn build_impl<'pixels>(
+        self,
+        device: Borrower<'pixels, wgpu::Device>,
+        queue: Borrower<'pixels, wgpu::Queue>,
+        surface: Borrower<'pixels, wgpu::Surface>,
+        render_texture_format: wgpu::TextureFormat,
+    ) -> Pixels<'pixels> {
+        let present_mode = self.present_mode;
+
+        // Create the backing texture
+        let surface_size = self.surface_texture.size;
+        let (scaling_matrix_inverse, texture_extent, texture, scaling_renderer, pixels_buffer_size) =
+            create_backing_texture(
+                &device,
+                // Backing texture values
+                self.width,
+                self.height,
+                self.texture_format,
+                // Render texture values
+                &surface_size,
+                render_texture_format,
+            );
+
+        // Create the pixel buffer
+        let mut pixels = Vec::with_capacity(pixels_buffer_size);
+        pixels.resize_with(pixels_buffer_size, Default::default);
+
+        // Instantiate the Pixels struct
+        let context = PixelsInternalContext {
+            device,
+            queue,
+            surface,
+            texture,
+            texture_extent,
+            texture_format: self.texture_format,
+            texture_format_size: get_texture_format_size(self.texture_format),
+            scaling_renderer,
+        };
+
+        let pixels = Pixels {
+            context,
+            surface_size,
+            present_mode,
+            render_texture_format,
+            pixels,
+            scaling_matrix_inverse,
+        };
+        pixels.reconfigure_surface();
+
+        pixels
+    }
+
     /// Create a pixel buffer from the options builder.
     ///
     /// # Errors
     ///
     /// Returns an error when a [`wgpu::Adapter`] cannot be found.
-    pub fn build(self) -> Result<Pixels, Error> {
+    pub fn build<'pixels>(self) -> Result<Pixels<'pixels>, Error> {
         let instance = wgpu::Instance::new(self.backend);
 
         // TODO: Use `options.pixel_aspect_ratio` to stretch the scaled texture
@@ -216,58 +267,49 @@ impl<'req, 'dev, 'win, W: HasRawWindowHandle> PixelsBuilder<'req, 'dev, 'win, W>
             });
         let adapter = adapter.ok_or(Error::AdapterNotFound)?;
 
-        let (device, queue) =
-            pollster::block_on(adapter.request_device(&self.device_descriptor, None))
-                .map_err(Error::DeviceNotFound)?;
-
-        let present_mode = self.present_mode;
         let render_texture_format = self.render_texture_format.unwrap_or_else(|| {
             surface
                 .get_preferred_format(&adapter)
                 .unwrap_or(wgpu::TextureFormat::Bgra8UnormSrgb)
         });
 
-        // Create the backing texture
-        let surface_size = self.surface_texture.size;
-        let (scaling_matrix_inverse, texture_extent, texture, scaling_renderer, pixels_buffer_size) =
-            create_backing_texture(
-                &device,
-                // Backing texture values
-                self.width,
-                self.height,
-                self.texture_format,
-                // Render texture values
-                &surface_size,
-                render_texture_format,
-            );
+        let (device, queue) =
+            pollster::block_on(adapter.request_device(&self.device_descriptor, None))
+                .map_err(Error::DeviceNotFound)?;
 
-        // Create the pixel buffer
-        let mut pixels = Vec::with_capacity(pixels_buffer_size);
-        pixels.resize_with(pixels_buffer_size, Default::default);
-
-        // Instantiate the Pixels struct
-        let context = PixelsContext {
-            device,
-            queue,
-            surface,
-            texture,
-            texture_extent,
-            texture_format: self.texture_format,
-            texture_format_size: get_texture_format_size(self.texture_format),
-            scaling_renderer,
-        };
-
-        let pixels = Pixels {
-            context,
-            surface_size,
-            present_mode,
+        let pixels = self.build_impl(
+            Borrower::Owned(device),
+            Borrower::Owned(queue),
+            Borrower::Owned(surface),
             render_texture_format,
-            pixels,
-            scaling_matrix_inverse,
-        };
-        pixels.reconfigure_surface();
+        );
 
         Ok(pixels)
+    }
+
+    /// Create a pixel buffer from the options builder and existing `wgpu` references.
+    ///
+    /// Use this builder method when integrating `Pixels` into an application that already uses
+    /// `wgpu`.
+    pub fn build_from_wgpu<'wgpu>(
+        self,
+        surface: &'wgpu wgpu::Surface,
+        adapter: &'wgpu wgpu::Adapter,
+        device: &'wgpu wgpu::Device,
+        queue: &'wgpu wgpu::Queue,
+    ) -> Pixels<'wgpu> {
+        let render_texture_format = self.render_texture_format.unwrap_or_else(|| {
+            surface
+                .get_preferred_format(adapter)
+                .unwrap_or(wgpu::TextureFormat::Bgra8UnormSrgb)
+        });
+
+        self.build_impl(
+            Borrower::Borrowed(device),
+            Borrower::Borrowed(queue),
+            Borrower::Borrowed(surface),
+            render_texture_format,
+        )
     }
 }
 

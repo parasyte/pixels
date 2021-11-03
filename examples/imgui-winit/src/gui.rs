@@ -120,7 +120,7 @@ impl Gui {
         });
 
         self.renderer
-            .render(ui.render(), &context.queue, &context.device, &mut rpass)
+            .render(ui.render(), context.queue, context.device, &mut rpass)
     }
 
     /// Handle any outstanding events.

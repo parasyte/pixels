@@ -36,11 +36,30 @@ pub use crate::renderers::ScalingRenderer;
 pub use raw_window_handle;
 use raw_window_handle::HasRawWindowHandle;
 use std::num::NonZeroU32;
+use std::ops::Deref;
 use thiserror::Error;
 pub use wgpu;
 
 mod builder;
 mod renderers;
+
+/// A container like [`std::borrow::Cow`] except it doesn't implement [`Clone`] or [`ToOwned`].
+#[derive(Debug)]
+enum Borrower<'a, T> {
+    Owned(T),
+    Borrowed(&'a T),
+}
+
+impl<T> Deref for Borrower<'_, T> {
+    type Target = T;
+
+    fn deref(&self) -> &Self::Target {
+        match self {
+            Borrower::Owned(value) => value,
+            Borrower::Borrowed(value) => value,
+        }
+    }
+}
 
 /// A logical texture for a window surface.
 #[derive(Debug)]
@@ -58,24 +77,23 @@ struct SurfaceSize {
 
 /// Provides the internal state for custom shaders.
 ///
-/// A reference to this struct is given to the `render_function` closure when using
-/// [`Pixels::render_with`].
+/// This struct is given to the `render_function` closure when using [`Pixels::render_with`].
 #[derive(Debug)]
-pub struct PixelsContext {
+pub struct PixelsContext<'ctx> {
     /// The `Device` allows creating GPU resources.
-    pub device: wgpu::Device,
+    pub device: &'ctx wgpu::Device,
 
     /// The `Queue` provides access to the GPU command queue.
-    pub queue: wgpu::Queue,
-
-    surface: wgpu::Surface,
+    pub queue: &'ctx wgpu::Queue,
 
     /// This is the texture that your raw data is copied to by [`Pixels::render`] or
     /// [`Pixels::render_with`].
-    pub texture: wgpu::Texture,
+    pub texture: &'ctx wgpu::Texture,
 
     /// Provides access to the texture size.
     pub texture_extent: wgpu::Extent3d,
+
+    /// Provides the texture's format.
     pub texture_format: wgpu::TextureFormat,
 
     /// Defines the "data rate" for the raw texture data. This is effectively the "bytes per pixel"
@@ -85,15 +103,44 @@ pub struct PixelsContext {
     pub texture_format_size: f32,
 
     /// A default renderer to scale the input texture to the screen size.
-    pub scaling_renderer: ScalingRenderer,
+    pub scaling_renderer: &'ctx ScalingRenderer,
+}
+
+/// The internal pixels context owns or borrows `wgpu` state for [`Pixels`]. A view of this context
+/// is provided to callers of [`Pixels::render_with`] via [`PixelsInternalContext::as_view`].
+#[derive(Debug)]
+struct PixelsInternalContext<'wgpu> {
+    device: Borrower<'wgpu, wgpu::Device>,
+    queue: Borrower<'wgpu, wgpu::Queue>,
+    surface: Borrower<'wgpu, wgpu::Surface>,
+    texture: wgpu::Texture,
+    texture_extent: wgpu::Extent3d,
+    texture_format: wgpu::TextureFormat,
+    texture_format_size: f32,
+    scaling_renderer: ScalingRenderer,
+}
+
+impl<'ctx> PixelsInternalContext<'ctx> {
+    /// Create a [`PixelsContext`] from this internal context.
+    fn as_view(&'ctx self) -> PixelsContext<'ctx> {
+        PixelsContext {
+            device: &self.device,
+            queue: &self.queue,
+            texture: &self.texture,
+            texture_extent: self.texture_extent,
+            texture_format: self.texture_format,
+            texture_format_size: self.texture_format_size,
+            scaling_renderer: &self.scaling_renderer,
+        }
+    }
 }
 
 /// Represents a 2D pixel buffer with an explicit image resolution.
 ///
 /// See [`PixelsBuilder`] for building a customized pixel buffer.
 #[derive(Debug)]
-pub struct Pixels {
-    context: PixelsContext,
+pub struct Pixels<'wgpu> {
+    context: PixelsInternalContext<'wgpu>,
     surface_size: SurfaceSize,
     present_mode: wgpu::PresentMode,
     render_texture_format: wgpu::TextureFormat,
@@ -162,7 +209,7 @@ impl<'win, W: HasRawWindowHandle> SurfaceTexture<'win, W> {
     }
 }
 
-impl Pixels {
+impl<'wgpu> Pixels<'wgpu> {
     /// Create a pixel buffer instance with default options.
     ///
     /// Any ratio differences between the pixel buffer texture size and surface texture size will
@@ -194,7 +241,7 @@ impl Pixels {
         width: u32,
         height: u32,
         surface_texture: SurfaceTexture<'_, W>,
-    ) -> Result<Pixels, Error> {
+    ) -> Result<Pixels<'wgpu>, Error> {
         PixelsBuilder::new(width, height, surface_texture).build()
     }
 
@@ -361,7 +408,7 @@ impl Pixels {
         F: FnOnce(
             &mut wgpu::CommandEncoder,
             &wgpu::TextureView,
-            &PixelsContext,
+            PixelsContext,
         ) -> Result<(), DynError>,
     {
         let frame = self
@@ -409,7 +456,7 @@ impl Pixels {
             .create_view(&wgpu::TextureViewDescriptor::default());
 
         // Call the user's render function.
-        (render_function)(&mut encoder, &view, &self.context)?;
+        (render_function)(&mut encoder, &view, self.context.as_view())?;
 
         self.context.queue.submit(Some(encoder.finish()));
         frame.present();
@@ -551,8 +598,8 @@ impl Pixels {
     }
 
     /// Provides access to the internal [`PixelsContext`].
-    pub fn context(&self) -> &PixelsContext {
-        &self.context
+    pub fn context(&self) -> PixelsContext {
+        self.context.as_view()
     }
 
     /// Get the render texture format.
