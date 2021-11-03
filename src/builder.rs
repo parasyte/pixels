@@ -23,12 +23,14 @@ impl<'req, 'dev, 'win, W: HasRawWindowHandle> PixelsBuilder<'req, 'dev, 'win, W>
     /// # Examples
     ///
     /// ```no_run
+    /// use pixels::wgpu::{PowerPreference, RequestAdapterOptions};
+    ///
     /// # use pixels::PixelsBuilder;
     /// # let window = pixels_mocks::Rwh;
-    /// # let surface_texture = pixels::SurfaceTexture::new(1024, 768, &window);
+    /// # let surface_texture = pixels::SurfaceTexture::new(256, 240, &window);
     /// let mut pixels = PixelsBuilder::new(256, 240, surface_texture)
-    ///     .request_adapter_options(wgpu::RequestAdapterOptions {
-    ///         power_preference: wgpu::PowerPreference::HighPerformance,
+    ///     .request_adapter_options(RequestAdapterOptions {
+    ///         power_preference: PowerPreference::HighPerformance,
     ///         force_fallback_adapter: false,
     ///         compatible_surface: None,
     ///     })
@@ -297,14 +299,16 @@ impl<'req, 'dev, 'win, W: HasRawWindowHandle> PixelsBuilder<'req, 'dev, 'win, W>
     /// # Examples
     ///
     /// ```no_run
+    /// use pixels::wgpu::{Backends, DeviceDescriptor, Limits};
+    ///
     /// # async fn test() -> Result<(), pixels::Error> {
     /// # use pixels::PixelsBuilder;
     /// # let window = pixels_mocks::Rwh;
-    /// let surface_texture = pixels::SurfaceTexture::new(256, 240, &window);
+    /// # let surface_texture = pixels::SurfaceTexture::new(256, 240, &window);
     /// let mut pixels = PixelsBuilder::new(256, 240, surface_texture)
-    ///     .wgpu_backend(pixels::wgpu::Backends::all())
-    ///     .device_descriptor(pixels::wgpu::DeviceDescriptor {
-    ///         limits: pixels::wgpu::Limits::downlevel_webgl2_defaults(),
+    ///     .wgpu_backend(Backends::all())
+    ///     .device_descriptor(DeviceDescriptor {
+    ///         limits: Limits::downlevel_webgl2_defaults(),
     ///         ..Default::default()
     ///     })
     ///     .build_async()

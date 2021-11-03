@@ -131,9 +131,6 @@ impl<'win, W: HasRawWindowHandle> SurfaceTexture<'win, W> {
     /// It is recommended (but not required) that the `width` and `height` are equivalent to the
     /// physical dimensions of the `surface`. E.g. scaled by the HiDPI factor.
     ///
-    /// This method blocks the current thread, making it unusable on Web targets. Use
-    /// [`PixelsBuilder::build_async`] for a non-blocking alternative.
-    ///
     /// # Examples
     ///
     /// ```no_run
@@ -145,10 +142,7 @@ impl<'win, W: HasRawWindowHandle> SurfaceTexture<'win, W> {
     /// let window = Window::new(&event_loop).unwrap();
     /// let size = window.inner_size();
     ///
-    /// let width = size.width;
-    /// let height = size.height;
-    ///
-    /// let surface_texture = SurfaceTexture::new(width, height, &window);
+    /// let surface_texture = SurfaceTexture::new(size.width, size.height, &window);
     /// # Ok::<(), pixels::Error>(())
     /// ```
     ///
@@ -176,12 +170,15 @@ impl Pixels {
     /// `320x240`, `640x480`, `960x720`, etc. without adding a border because these are exactly
     /// 1x, 2x, and 3x scales, respectively.
     ///
+    /// This method blocks the current thread, making it unusable on Web targets. Use
+    /// [`PixelsBuilder::build_async`] for a non-blocking alternative.
+    ///
     /// # Examples
     ///
     /// ```no_run
     /// # use pixels::Pixels;
     /// # let window = pixels_mocks::Rwh;
-    /// # let surface_texture = pixels::SurfaceTexture::new(1024, 768, &window);
+    /// # let surface_texture = pixels::SurfaceTexture::new(320, 240, &window);
     /// let mut pixels = Pixels::new(320, 240, surface_texture)?;
     /// # Ok::<(), pixels::Error>(())
     /// ```
@@ -295,7 +292,7 @@ impl Pixels {
     /// ```no_run
     /// # use pixels::Pixels;
     /// # let window = pixels_mocks::Rwh;
-    /// # let surface_texture = pixels::SurfaceTexture::new(1024, 768, &window);
+    /// # let surface_texture = pixels::SurfaceTexture::new(320, 240, &window);
     /// let mut pixels = Pixels::new(320, 240, surface_texture)?;
     ///
     /// // Clear the pixel buffer
@@ -340,7 +337,7 @@ impl Pixels {
     /// ```no_run
     /// # use pixels::Pixels;
     /// # let window = pixels_mocks::Rwh;
-    /// # let surface_texture = pixels::SurfaceTexture::new(1024, 768, &window);
+    /// # let surface_texture = pixels::SurfaceTexture::new(320, 240, &window);
     /// let mut pixels = Pixels::new(320, 240, surface_texture)?;
     ///
     /// // Clear the pixel buffer
@@ -453,16 +450,15 @@ impl Pixels {
     /// the screen, using isize instead of usize.
     ///
     /// ```no_run
+    /// use winit::dpi::PhysicalPosition;
+    ///
     /// # use pixels::Pixels;
     /// # let window = pixels_mocks::Rwh;
-    /// # let surface_texture = pixels::SurfaceTexture::new(1024, 768, &window);
-    /// const WIDTH:  u32 = 320;
-    /// const HEIGHT: u32 = 240;
-    ///
-    /// let mut pixels = Pixels::new(WIDTH, HEIGHT, surface_texture)?;
+    /// # let surface_texture = pixels::SurfaceTexture::new(320, 240, &window);
+    /// let mut pixels = Pixels::new(320, 240, surface_texture)?;
     ///
     /// // A cursor position in physical units
-    /// let cursor_position: (f32, f32) = winit::dpi::PhysicalPosition::new(0.0, 0.0).into();
+    /// let cursor_position: (f32, f32) = PhysicalPosition::new(0.0, 0.0).into();
     ///
     /// // Convert it to a pixel location
     /// let pixel_position: (usize, usize) = pixels.window_pos_to_pixel(cursor_position)
@@ -513,11 +509,8 @@ impl Pixels {
     /// ```no_run
     /// # use pixels::Pixels;
     /// # let window = pixels_mocks::Rwh;
-    /// # let surface_texture = pixels::SurfaceTexture::new(1024, 768, &window);
-    /// const WIDTH:  u32 = 320;
-    /// const HEIGHT: u32 = 240;
-    ///
-    /// let mut pixels = Pixels::new(WIDTH, HEIGHT, surface_texture)?;
+    /// # let surface_texture = pixels::SurfaceTexture::new(320, 240, &window);
+    /// let mut pixels = Pixels::new(320, 240, surface_texture)?;
     ///
     /// let pixel_pos = pixels.clamp_pixel_pos((-19, 20));
     /// assert_eq!(pixel_pos, (0, 20));
