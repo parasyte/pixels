@@ -16,6 +16,8 @@ pub(crate) struct Gui {
 
     // State for the demo app.
     window_open: bool,
+    pixels_texture_id: egui::TextureId,
+    pixels_texture_size: egui::Vec2,
 }
 
 impl Gui {
@@ -33,7 +35,13 @@ impl Gui {
             physical_height: height,
             scale_factor: scale_factor as f32,
         };
-        let rpass = RenderPass::new(pixels.device(), pixels.render_texture_format(), 1);
+        let mut rpass = RenderPass::new(pixels.device(), pixels.render_texture_format(), 1);
+        let pixels_texture_id = rpass.egui_texture_from_wgpu_texture(
+            pixels.device(),
+            pixels.texture(),
+            wgpu::FilterMode::Nearest,
+        );
+        let pixels_texture_size = egui::Vec2::new(width as f32, height as f32);
 
         Self {
             start_time: Instant::now(),
@@ -41,6 +49,8 @@ impl Gui {
             screen_descriptor,
             rpass,
             paint_jobs: Vec::new(),
+            pixels_texture_id,
+            pixels_texture_size,
             window_open: true,
         }
     }
@@ -64,7 +74,9 @@ impl Gui {
     }
 
     /// Prepare egui.
-    pub(crate) fn prepare(&mut self, window: &Window) {
+    ///
+    /// Returns the menubar height.
+    pub(crate) fn prepare(&mut self, window: &Window) -> f32 {
         self.platform
             .update_time(self.start_time.elapsed().as_secs_f64());
 
@@ -72,16 +84,20 @@ impl Gui {
         self.platform.begin_frame();
 
         // Draw the demo application.
-        self.ui(&self.platform.context());
+        let menubar_height = self.ui(&self.platform.context());
 
         // End the egui frame and create all paint jobs to prepare for rendering.
         let (_output, paint_commands) = self.platform.end_frame(Some(window));
         self.paint_jobs = self.platform.context().tessellate(paint_commands);
+
+        menubar_height
     }
 
     /// Create the UI using egui.
-    fn ui(&mut self, ctx: &egui::CtxRef) {
-        egui::TopBottomPanel::top("menubar_container").show(ctx, |ui| {
+    ///
+    /// Returns the menubar height.
+    fn ui(&mut self, ctx: &egui::CtxRef) -> f32 {
+        let inner_response = egui::TopBottomPanel::top("menubar_container").show(ctx, |ui| {
             egui::menu::bar(ui, |ui| {
                 egui::menu::menu(ui, "File", |ui| {
                     if ui.button("About...").clicked() {
@@ -89,6 +105,15 @@ impl Gui {
                     }
                 })
             });
+        });
+        let menubar_height = inner_response.response.rect.height();
+
+        let frame = egui::Frame {
+            fill: ctx.style().visuals.window_fill(),
+            ..egui::Frame::default()
+        };
+        egui::CentralPanel::default().frame(frame).show(ctx, |ui| {
+            ui.image(self.pixels_texture_id, self.pixels_texture_size);
         });
 
         egui::Window::new("Hello, egui!")
@@ -105,6 +130,8 @@ impl Gui {
                     ui.hyperlink("https://docs.rs/egui");
                 });
             });
+
+        menubar_height
     }
 
     /// Render egui.

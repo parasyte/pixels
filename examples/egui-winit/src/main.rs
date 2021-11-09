@@ -48,6 +48,7 @@ fn main() -> Result<(), Error> {
         (pixels, gui)
     };
     let mut world = World::new();
+    let mut menubar_height = 0.0;
 
     event_loop.run(move |event, _, control_flow| {
         // Update egui inputs
@@ -59,13 +60,22 @@ fn main() -> Result<(), Error> {
             world.draw(pixels.get_frame());
 
             // Prepare egui
-            gui.prepare(&window);
+            let new_menubar_height = gui.prepare(&window);
+            if new_menubar_height != menubar_height {
+                menubar_height = new_menubar_height;
+
+                println!("New menubar height: {}", menubar_height);
+
+                // You should probably set your window size to account for the menubar height.
+                // In this example, we only adjust the minimum size, and allow the user to
+                // resize the window however they want.
+                let size = LogicalSize::new(WIDTH as f32, HEIGHT as f32 + menubar_height);
+                window.set_inner_size(size);
+                window.set_min_inner_size(Some(size));
+            }
 
             // Render everything together
             let render_result = pixels.render_with(|encoder, render_target, context| {
-                // Render the world texture
-                context.scaling_renderer.render(encoder, render_target);
-
                 // Render egui
                 gui.render(encoder, render_target, context)?;
 
