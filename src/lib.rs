@@ -307,7 +307,7 @@ impl Pixels {
     /// pixels.render()?;
     /// # Ok::<(), pixels::Error>(())
     /// ```
-    pub fn render(&mut self) -> Result<(), Error> {
+    pub fn render(&self) -> Result<(), Error> {
         self.render_with(|encoder, render_target, context| {
             context.scaling_renderer.render(encoder, render_target);
 
@@ -356,7 +356,7 @@ impl Pixels {
     /// })?;
     /// # Ok::<(), pixels::Error>(())
     /// ```
-    pub fn render_with<F>(&mut self, render_function: F) -> Result<(), Error>
+    pub fn render_with<F>(&self, render_function: F) -> Result<(), Error>
     where
         F: FnOnce(
             &mut wgpu::CommandEncoder,
