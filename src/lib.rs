@@ -152,13 +152,13 @@ impl<'win, W: HasRawWindowHandle> SurfaceTexture<'win, W> {
     /// # Panics
     ///
     /// Panics when `width` or `height` are 0.
-    pub fn new(width: u32, height: u32, window: &'win W) -> SurfaceTexture<'win, W> {
+    pub fn new(width: u32, height: u32, window: &'win W) -> Self {
         assert!(width > 0);
         assert!(height > 0);
 
         let size = SurfaceSize { width, height };
 
-        SurfaceTexture { window, size }
+        Self { window, size }
     }
 }
 
@@ -194,7 +194,7 @@ impl Pixels {
         width: u32,
         height: u32,
         surface_texture: SurfaceTexture<'_, W>,
-    ) -> Result<Pixels, Error> {
+    ) -> Result<Self, Error> {
         PixelsBuilder::new(width, height, surface_texture).build()
     }
 
