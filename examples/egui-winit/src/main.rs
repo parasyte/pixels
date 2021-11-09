@@ -61,7 +61,7 @@ fn main() -> Result<(), Error> {
 
             // Prepare egui
             let new_menubar_height = gui.prepare(&window);
-            if new_menubar_height != menubar_height {
+            if (new_menubar_height - menubar_height).abs() > f32::EPSILON {
                 menubar_height = new_menubar_height;
 
                 println!("New menubar height: {}", menubar_height);
