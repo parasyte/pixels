@@ -3,7 +3,7 @@ use crate::{Borrower, Error, Pixels, PixelsInternalContext, SurfaceSize, Surface
 use raw_window_handle::HasRawWindowHandle;
 
 /// A builder to help create customized pixel buffers.
-pub struct PixelsBuilder<'req, 'dev, 'win, W: HasRawWindowHandle> {
+pub struct PixelsBuilder<'wgpu, 'req, 'dev, 'win, W: HasRawWindowHandle> {
     request_adapter_options: Option<wgpu::RequestAdapterOptions<'req>>,
     device_descriptor: wgpu::DeviceDescriptor<'dev>,
     backend: wgpu::Backends,
@@ -14,9 +14,17 @@ pub struct PixelsBuilder<'req, 'dev, 'win, W: HasRawWindowHandle> {
     surface_texture: SurfaceTexture<'win, W>,
     texture_format: wgpu::TextureFormat,
     render_texture_format: Option<wgpu::TextureFormat>,
+    borrowed_wgpu: Option<BorrowedWgpu<'wgpu>>,
 }
 
-impl<'req, 'dev, 'win, W: HasRawWindowHandle> PixelsBuilder<'req, 'dev, 'win, W> {
+struct BorrowedWgpu<'wgpu> {
+    surface: Borrower<'wgpu, wgpu::Surface>,
+    adapter: Borrower<'wgpu, wgpu::Adapter>,
+    device: Borrower<'wgpu, wgpu::Device>,
+    queue: Borrower<'wgpu, wgpu::Queue>,
+}
+
+impl<'wgpu, 'req, 'dev, 'win, W: HasRawWindowHandle> PixelsBuilder<'wgpu, 'req, 'dev, 'win, W> {
     /// Create a builder that can be finalized into a [`Pixels`] pixel buffer.
     ///
     /// # Examples
@@ -39,15 +47,11 @@ impl<'req, 'dev, 'win, W: HasRawWindowHandle> PixelsBuilder<'req, 'dev, 'win, W>
     /// # Panics
     ///
     /// Panics when `width` or `height` are 0.
-    pub fn new(
-        width: u32,
-        height: u32,
-        surface_texture: SurfaceTexture<'win, W>,
-    ) -> PixelsBuilder<'req, 'dev, 'win, W> {
+    pub fn new(width: u32, height: u32, surface_texture: SurfaceTexture<'win, W>) -> Self {
         assert!(width > 0);
         assert!(height > 0);
 
-        PixelsBuilder {
+        Self {
             request_adapter_options: None,
             device_descriptor: wgpu::DeviceDescriptor::default(),
             backend: wgpu::util::backend_bits_from_env().unwrap_or(wgpu::Backends::PRIMARY),
@@ -58,6 +62,7 @@ impl<'req, 'dev, 'win, W: HasRawWindowHandle> PixelsBuilder<'req, 'dev, 'win, W>
             surface_texture,
             texture_format: wgpu::TextureFormat::Rgba8UnormSrgb,
             render_texture_format: None,
+            borrowed_wgpu: None,
         }
     }
 
@@ -65,16 +70,13 @@ impl<'req, 'dev, 'win, W: HasRawWindowHandle> PixelsBuilder<'req, 'dev, 'win, W>
     pub fn request_adapter_options(
         mut self,
         request_adapter_options: wgpu::RequestAdapterOptions<'req>,
-    ) -> PixelsBuilder<'req, 'dev, 'win, W> {
+    ) -> Self {
         self.request_adapter_options = Some(request_adapter_options);
         self
     }
 
     /// Add options for requesting a [`wgpu::Device`].
-    pub fn device_descriptor(
-        mut self,
-        device_descriptor: wgpu::DeviceDescriptor<'dev>,
-    ) -> PixelsBuilder<'req, 'dev, 'win, W> {
+    pub fn device_descriptor(mut self, device_descriptor: wgpu::DeviceDescriptor<'dev>) -> Self {
         self.device_descriptor = device_descriptor;
         self
     }
@@ -82,7 +84,7 @@ impl<'req, 'dev, 'win, W: HasRawWindowHandle> PixelsBuilder<'req, 'dev, 'win, W>
     /// Set which backends wgpu will attempt to use.
     ///
     /// The default value is `PRIMARY`, which enables the well supported backends for wgpu.
-    pub fn wgpu_backend(mut self, backend: wgpu::Backends) -> PixelsBuilder<'req, 'dev, 'win, W> {
+    pub fn wgpu_backend(mut self, backend: wgpu::Backends) -> Self {
         self.backend = backend;
         self
     }
@@ -102,10 +104,7 @@ impl<'req, 'dev, 'win, W: HasRawWindowHandle> PixelsBuilder<'req, 'dev, 'win, W>
     ///
     /// This documentation is hidden because support for pixel aspect ratio is incomplete.
     #[doc(hidden)]
-    pub fn pixel_aspect_ratio(
-        mut self,
-        pixel_aspect_ratio: f64,
-    ) -> PixelsBuilder<'req, 'dev, 'win, W> {
+    pub fn pixel_aspect_ratio(mut self, pixel_aspect_ratio: f64) -> Self {
         assert!(pixel_aspect_ratio > 0.0);
 
         self._pixel_aspect_ratio = pixel_aspect_ratio;
@@ -119,7 +118,7 @@ impl<'req, 'dev, 'win, W: HasRawWindowHandle> PixelsBuilder<'req, 'dev, 'win, W>
     /// The `wgpu` present mode will be set to `Fifo` when Vsync is enabled, or `Immediate` when
     /// Vsync is disabled. To set the present mode to `Mailbox` or another value, use the
     /// [`PixelsBuilder::present_mode`] method.
-    pub fn enable_vsync(mut self, enable_vsync: bool) -> PixelsBuilder<'req, 'dev, 'win, W> {
+    pub fn enable_vsync(mut self, enable_vsync: bool) -> Self {
         self.present_mode = if enable_vsync {
             wgpu::PresentMode::Fifo
         } else {
@@ -132,10 +131,7 @@ impl<'req, 'dev, 'win, W: HasRawWindowHandle> PixelsBuilder<'req, 'dev, 'win, W>
     ///
     /// This differs from [`PixelsBuilder::enable_vsync`] by allowing the present mode to be set to
     /// any value.
-    pub fn present_mode(
-        mut self,
-        present_mode: wgpu::PresentMode,
-    ) -> PixelsBuilder<'req, 'dev, 'win, W> {
+    pub fn present_mode(mut self, present_mode: wgpu::PresentMode) -> Self {
         self.present_mode = present_mode;
         self
     }
@@ -148,10 +144,7 @@ impl<'req, 'dev, 'win, W: HasRawWindowHandle> PixelsBuilder<'req, 'dev, 'win, W>
     ///
     /// This is the pixel format of the texture that most applications will interact with directly.
     /// The format influences the structure of byte data that is returned by [`Pixels::get_frame`].
-    pub fn texture_format(
-        mut self,
-        texture_format: wgpu::TextureFormat,
-    ) -> PixelsBuilder<'req, 'dev, 'win, W> {
+    pub fn texture_format(mut self, texture_format: wgpu::TextureFormat) -> Self {
         self.texture_format = texture_format;
         self
     }
@@ -174,22 +167,53 @@ impl<'req, 'dev, 'win, W: HasRawWindowHandle> PixelsBuilder<'req, 'dev, 'win, W>
     /// mind when writing custom shaders for post-processing effects. There is a full example of a
     /// [custom-shader](https://github.com/parasyte/pixels/tree/master/examples/custom-shader)
     /// available that demonstrates how to deal with this.
-    pub fn render_texture_format(
-        mut self,
-        texture_format: wgpu::TextureFormat,
-    ) -> PixelsBuilder<'req, 'dev, 'win, W> {
+    pub fn render_texture_format(mut self, texture_format: wgpu::TextureFormat) -> Self {
         self.render_texture_format = Some(texture_format);
         self
     }
 
-    fn build_impl<'pixels>(
+    /// Borrow the given `wgpu` state.
+    ///
+    /// [`Pixels`] owns `wgpu` state by default. This method allows it to borrow state. Use this
+    /// when integrating `pixels` into an application that already uses `wgpu`.
+    ///
+    /// Note that the following builder methods will become no-ops after this method is called:
+    ///
+    /// - [`PixelsBuilder::request_adapter_options`]
+    /// - [`PixelsBuilder::device_descriptor`]
+    /// - [`PixelsBuilder::wgpu_backend`]
+    pub fn with_borrowed_wgpu(
+        mut self,
+        surface: &'wgpu wgpu::Surface,
+        adapter: &'wgpu wgpu::Adapter,
+        device: &'wgpu wgpu::Device,
+        queue: &'wgpu wgpu::Queue,
+    ) -> Self {
+        self.borrowed_wgpu = Some(BorrowedWgpu {
+            surface: Borrower::Borrowed(surface),
+            adapter: Borrower::Borrowed(adapter),
+            device: Borrower::Borrowed(device),
+            queue: Borrower::Borrowed(queue),
+        });
+
+        self
+    }
+
+    /// Internal builder implementation shared between borrowed and owned `wgpu` state.
+    fn build_shared(
         self,
-        device: Borrower<'pixels, wgpu::Device>,
-        queue: Borrower<'pixels, wgpu::Queue>,
-        surface: Borrower<'pixels, wgpu::Surface>,
-        render_texture_format: wgpu::TextureFormat,
-    ) -> Pixels<'pixels> {
+        surface: Borrower<'wgpu, wgpu::Surface>,
+        adapter: Borrower<'wgpu, wgpu::Adapter>,
+        device: Borrower<'wgpu, wgpu::Device>,
+        queue: Borrower<'wgpu, wgpu::Queue>,
+    ) -> Pixels<'wgpu> {
         let present_mode = self.present_mode;
+
+        let render_texture_format = self.render_texture_format.unwrap_or_else(|| {
+            surface
+                .get_preferred_format(&adapter)
+                .unwrap_or(wgpu::TextureFormat::Bgra8UnormSrgb)
+        });
 
         // Create the backing texture
         let surface_size = self.surface_texture.size;
@@ -234,12 +258,8 @@ impl<'req, 'dev, 'win, W: HasRawWindowHandle> PixelsBuilder<'req, 'dev, 'win, W>
         pixels
     }
 
-    /// Create a pixel buffer from the options builder.
-    ///
-    /// # Errors
-    ///
-    /// Returns an error when a [`wgpu::Adapter`] cannot be found.
-    pub fn build<'pixels>(self) -> Result<Pixels<'pixels>, Error> {
+    /// Internal builder implementation specific to owned `wgpu` state.
+    fn build_owned_wgpu(self) -> Result<Pixels<'wgpu>, Error> {
         let instance = wgpu::Instance::new(self.backend);
 
         // TODO: Use `options.pixel_aspect_ratio` to stretch the scaled texture
@@ -267,49 +287,35 @@ impl<'req, 'dev, 'win, W: HasRawWindowHandle> PixelsBuilder<'req, 'dev, 'win, W>
             });
         let adapter = adapter.ok_or(Error::AdapterNotFound)?;
 
-        let render_texture_format = self.render_texture_format.unwrap_or_else(|| {
-            surface
-                .get_preferred_format(&adapter)
-                .unwrap_or(wgpu::TextureFormat::Bgra8UnormSrgb)
-        });
-
         let (device, queue) =
             pollster::block_on(adapter.request_device(&self.device_descriptor, None))
                 .map_err(Error::DeviceNotFound)?;
 
-        let pixels = self.build_impl(
+        let pixels = self.build_shared(
+            Borrower::Owned(surface),
+            Borrower::Owned(adapter),
             Borrower::Owned(device),
             Borrower::Owned(queue),
-            Borrower::Owned(surface),
-            render_texture_format,
         );
 
         Ok(pixels)
     }
 
-    /// Create a pixel buffer from the options builder and existing `wgpu` references.
+    /// Create a pixel buffer from the options builder.
     ///
-    /// Use this builder method when integrating `Pixels` into an application that already uses
-    /// `wgpu`.
-    pub fn build_from_wgpu<'wgpu>(
-        self,
-        surface: &'wgpu wgpu::Surface,
-        adapter: &'wgpu wgpu::Adapter,
-        device: &'wgpu wgpu::Device,
-        queue: &'wgpu wgpu::Queue,
-    ) -> Pixels<'wgpu> {
-        let render_texture_format = self.render_texture_format.unwrap_or_else(|| {
-            surface
-                .get_preferred_format(adapter)
-                .unwrap_or(wgpu::TextureFormat::Bgra8UnormSrgb)
-        });
-
-        self.build_impl(
-            Borrower::Borrowed(device),
-            Borrower::Borrowed(queue),
-            Borrower::Borrowed(surface),
-            render_texture_format,
-        )
+    /// # Errors
+    ///
+    /// Returns an error when a [`wgpu::Adapter`] or [`wgpu::Device`] cannot be found.
+    pub fn build(mut self) -> Result<Pixels<'wgpu>, Error> {
+        match self.borrowed_wgpu.take() {
+            None => self.build_owned_wgpu(),
+            Some(BorrowedWgpu {
+                surface,
+                adapter,
+                device,
+                queue,
+            }) => Ok(self.build_shared(surface, adapter, device, queue)),
+        }
     }
 }
 
