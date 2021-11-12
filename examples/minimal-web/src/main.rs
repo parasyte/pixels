@@ -103,10 +103,6 @@ async fn run() {
             SurfaceTexture::new(window_size.width, window_size.height, window.as_ref());
         PixelsBuilder::new(WIDTH, HEIGHT, surface_texture)
             .wgpu_backend(pixels::wgpu::Backends::all())
-            .device_descriptor(pixels::wgpu::DeviceDescriptor {
-                limits: pixels::wgpu::Limits::downlevel_webgl2_defaults(),
-                ..Default::default()
-            })
             .build_async()
             .await
             .expect("Pixels error")

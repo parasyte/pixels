@@ -277,8 +277,8 @@ impl<'req, 'dev, 'win, W: HasRawWindowHandle> PixelsBuilder<'req, 'dev, 'win, W>
 
     /// Create a pixel buffer from the options builder without blocking the current thread.
     ///
-    /// On Web targets, the `wgpu` backends and device descriptor must be set appropriately, as
-    /// shown in the following example.
+    /// On Web targets, the `wgpu` backends must be set appropriately, as shown in the following
+    /// example.
     ///
     /// # Examples
     ///
@@ -291,10 +291,6 @@ impl<'req, 'dev, 'win, W: HasRawWindowHandle> PixelsBuilder<'req, 'dev, 'win, W>
     /// # let surface_texture = pixels::SurfaceTexture::new(256, 240, &window);
     /// let mut pixels = PixelsBuilder::new(256, 240, surface_texture)
     ///     .wgpu_backend(Backends::all())
-    ///     .device_descriptor(DeviceDescriptor {
-    ///         limits: Limits::downlevel_webgl2_defaults(),
-    ///         ..Default::default()
-    ///     })
     ///     .build_async()
     ///     .await?;
     /// # Ok::<(), pixels::Error>(())
