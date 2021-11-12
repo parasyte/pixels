@@ -46,7 +46,10 @@ impl<'req, 'dev, 'win, W: HasRawWindowHandle> PixelsBuilder<'req, 'dev, 'win, W>
 
         Self {
             request_adapter_options: None,
-            device_descriptor: wgpu::DeviceDescriptor::default(),
+            device_descriptor: wgpu::DeviceDescriptor {
+                limits: wgpu::Limits::downlevel_webgl2_defaults(),
+                ..wgpu::DeviceDescriptor::default()
+            },
             backend: wgpu::util::backend_bits_from_env().unwrap_or(wgpu::Backends::PRIMARY),
             width,
             height,
