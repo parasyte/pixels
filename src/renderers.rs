@@ -234,7 +234,7 @@ pub(crate) struct ScalingMatrix {
 impl ScalingMatrix {
     // texture_size is the dimensions of the drawing texture
     // screen_size is the dimensions of the surface being drawn to
-    pub(crate) fn new(texture_size: (f32, f32), screen_size: (f32, f32)) -> ScalingMatrix {
+    pub(crate) fn new(texture_size: (f32, f32), screen_size: (f32, f32)) -> Self {
         let (texture_width, texture_height) = texture_size;
         let (screen_width, screen_height) = screen_size;
 
@@ -270,7 +270,7 @@ impl ScalingMatrix {
             (x, y, scaled_width as u32, scaled_height as u32)
         };
 
-        ScalingMatrix {
+        Self {
             transform: Mat4::from(transform),
             clip_rect,
         }

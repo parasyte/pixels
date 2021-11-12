@@ -51,7 +51,7 @@ pub struct SurfaceTexture<'win, W: HasRawWindowHandle> {
 
 /// A logical texture size for a window surface.
 #[derive(Debug)]
-pub struct SurfaceSize {
+struct SurfaceSize {
     width: u32,
     height: u32,
 }
@@ -149,13 +149,13 @@ impl<'win, W: HasRawWindowHandle> SurfaceTexture<'win, W> {
     /// # Panics
     ///
     /// Panics when `width` or `height` are 0.
-    pub fn new(width: u32, height: u32, window: &'win W) -> SurfaceTexture<'win, W> {
+    pub fn new(width: u32, height: u32, window: &'win W) -> Self {
         assert!(width > 0);
         assert!(height > 0);
 
         let size = SurfaceSize { width, height };
 
-        SurfaceTexture { window, size }
+        Self { window, size }
     }
 }
 
@@ -195,7 +195,7 @@ impl Pixels {
         width: u32,
         height: u32,
         surface_texture: SurfaceTexture<'_, W>,
-    ) -> Result<Pixels, Error> {
+    ) -> Result<Self, Error> {
         PixelsBuilder::new(width, height, surface_texture).build()
     }
 
@@ -308,7 +308,7 @@ impl Pixels {
     /// pixels.render()?;
     /// # Ok::<(), pixels::Error>(())
     /// ```
-    pub fn render(&mut self) -> Result<(), Error> {
+    pub fn render(&self) -> Result<(), Error> {
         self.render_with(|encoder, render_target, context| {
             context.scaling_renderer.render(encoder, render_target);
 
@@ -357,7 +357,7 @@ impl Pixels {
     /// })?;
     /// # Ok::<(), pixels::Error>(())
     /// ```
-    pub fn render_with<F>(&mut self, render_function: F) -> Result<(), Error>
+    pub fn render_with<F>(&self, render_function: F) -> Result<(), Error>
     where
         F: FnOnce(
             &mut wgpu::CommandEncoder,

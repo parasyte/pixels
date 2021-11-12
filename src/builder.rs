@@ -42,17 +42,16 @@ impl<'req, 'dev, 'win, W: HasRawWindowHandle> PixelsBuilder<'req, 'dev, 'win, W>
     /// # Panics
     ///
     /// Panics when `width` or `height` are 0.
-    pub fn new(
-        width: u32,
-        height: u32,
-        surface_texture: SurfaceTexture<'win, W>,
-    ) -> PixelsBuilder<'req, 'dev, 'win, W> {
+    pub fn new(width: u32, height: u32, surface_texture: SurfaceTexture<'win, W>) -> Self {
         assert!(width > 0);
         assert!(height > 0);
 
-        PixelsBuilder {
+        Self {
             request_adapter_options: None,
-            device_descriptor: wgpu::DeviceDescriptor::default(),
+            device_descriptor: wgpu::DeviceDescriptor {
+                limits: wgpu::Limits::downlevel_webgl2_defaults(),
+                ..wgpu::DeviceDescriptor::default()
+            },
             backend: wgpu::util::backend_bits_from_env().unwrap_or(wgpu::Backends::PRIMARY),
             width,
             height,
@@ -68,16 +67,13 @@ impl<'req, 'dev, 'win, W: HasRawWindowHandle> PixelsBuilder<'req, 'dev, 'win, W>
     pub fn request_adapter_options(
         mut self,
         request_adapter_options: wgpu::RequestAdapterOptions<'req>,
-    ) -> PixelsBuilder<'req, 'dev, 'win, W> {
+    ) -> Self {
         self.request_adapter_options = Some(request_adapter_options);
         self
     }
 
     /// Add options for requesting a [`wgpu::Device`].
-    pub fn device_descriptor(
-        mut self,
-        device_descriptor: wgpu::DeviceDescriptor<'dev>,
-    ) -> PixelsBuilder<'req, 'dev, 'win, W> {
+    pub fn device_descriptor(mut self, device_descriptor: wgpu::DeviceDescriptor<'dev>) -> Self {
         self.device_descriptor = device_descriptor;
         self
     }
@@ -85,7 +81,7 @@ impl<'req, 'dev, 'win, W: HasRawWindowHandle> PixelsBuilder<'req, 'dev, 'win, W>
     /// Set which backends wgpu will attempt to use.
     ///
     /// The default value is `PRIMARY`, which enables the well supported backends for wgpu.
-    pub fn wgpu_backend(mut self, backend: wgpu::Backends) -> PixelsBuilder<'req, 'dev, 'win, W> {
+    pub fn wgpu_backend(mut self, backend: wgpu::Backends) -> Self {
         self.backend = backend;
         self
     }
@@ -105,10 +101,7 @@ impl<'req, 'dev, 'win, W: HasRawWindowHandle> PixelsBuilder<'req, 'dev, 'win, W>
     ///
     /// This documentation is hidden because support for pixel aspect ratio is incomplete.
     #[doc(hidden)]
-    pub fn pixel_aspect_ratio(
-        mut self,
-        pixel_aspect_ratio: f64,
-    ) -> PixelsBuilder<'req, 'dev, 'win, W> {
+    pub fn pixel_aspect_ratio(mut self, pixel_aspect_ratio: f64) -> Self {
         assert!(pixel_aspect_ratio > 0.0);
 
         self._pixel_aspect_ratio = pixel_aspect_ratio;
@@ -122,7 +115,7 @@ impl<'req, 'dev, 'win, W: HasRawWindowHandle> PixelsBuilder<'req, 'dev, 'win, W>
     /// The `wgpu` present mode will be set to `Fifo` when Vsync is enabled, or `Immediate` when
     /// Vsync is disabled. To set the present mode to `Mailbox` or another value, use the
     /// [`PixelsBuilder::present_mode`] method.
-    pub fn enable_vsync(mut self, enable_vsync: bool) -> PixelsBuilder<'req, 'dev, 'win, W> {
+    pub fn enable_vsync(mut self, enable_vsync: bool) -> Self {
         self.present_mode = if enable_vsync {
             wgpu::PresentMode::Fifo
         } else {
@@ -135,10 +128,7 @@ impl<'req, 'dev, 'win, W: HasRawWindowHandle> PixelsBuilder<'req, 'dev, 'win, W>
     ///
     /// This differs from [`PixelsBuilder::enable_vsync`] by allowing the present mode to be set to
     /// any value.
-    pub fn present_mode(
-        mut self,
-        present_mode: wgpu::PresentMode,
-    ) -> PixelsBuilder<'req, 'dev, 'win, W> {
+    pub fn present_mode(mut self, present_mode: wgpu::PresentMode) -> Self {
         self.present_mode = present_mode;
         self
     }
@@ -151,10 +141,7 @@ impl<'req, 'dev, 'win, W: HasRawWindowHandle> PixelsBuilder<'req, 'dev, 'win, W>
     ///
     /// This is the pixel format of the texture that most applications will interact with directly.
     /// The format influences the structure of byte data that is returned by [`Pixels::get_frame`].
-    pub fn texture_format(
-        mut self,
-        texture_format: wgpu::TextureFormat,
-    ) -> PixelsBuilder<'req, 'dev, 'win, W> {
+    pub fn texture_format(mut self, texture_format: wgpu::TextureFormat) -> Self {
         self.texture_format = texture_format;
         self
     }
@@ -177,10 +164,7 @@ impl<'req, 'dev, 'win, W: HasRawWindowHandle> PixelsBuilder<'req, 'dev, 'win, W>
     /// mind when writing custom shaders for post-processing effects. There is a full example of a
     /// [custom-shader](https://github.com/parasyte/pixels/tree/master/examples/custom-shader)
     /// available that demonstrates how to deal with this.
-    pub fn render_texture_format(
-        mut self,
-        texture_format: wgpu::TextureFormat,
-    ) -> PixelsBuilder<'req, 'dev, 'win, W> {
+    pub fn render_texture_format(mut self, texture_format: wgpu::TextureFormat) -> Self {
         self.render_texture_format = Some(texture_format);
         self
     }
