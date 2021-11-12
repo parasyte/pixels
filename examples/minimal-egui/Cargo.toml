@@ -12,7 +12,7 @@ default = ["optimize"]
 
 [dependencies]
 egui = "0.15"
-egui_wgpu_backend = { git = "https://github.com/hasenbanck/egui_wgpu_backend.git", rev = "961125e7bd2c71c5ead1d61a7ca7ffa8c0d17f48" }
+egui_wgpu_backend = "0.14"
 egui-winit = { version = "0.15", default-features = false, features = ["links"] }
 env_logger = "0.9"
 log = "0.4"
