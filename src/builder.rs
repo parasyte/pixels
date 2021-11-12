@@ -52,7 +52,17 @@ impl<'req, 'dev, 'win, W: HasRawWindowHandle> PixelsBuilder<'req, 'dev, 'win, W>
                 limits: wgpu::Limits::downlevel_webgl2_defaults(),
                 ..wgpu::DeviceDescriptor::default()
             },
-            backend: wgpu::util::backend_bits_from_env().unwrap_or(wgpu::Backends::PRIMARY),
+            backend: wgpu::util::backend_bits_from_env().unwrap_or({
+                #[cfg(not(target_arch = "wasm32"))]
+                {
+                    wgpu::Backends::PRIMARY
+                }
+
+                #[cfg(target_arch = "wasm32")]
+                {
+                    wgpu::Backends::all()
+                }
+            }),
             width,
             height,
             _pixel_aspect_ratio: 1.0,

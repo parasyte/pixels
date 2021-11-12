@@ -2,7 +2,7 @@
 #![forbid(unsafe_code)]
 
 use log::error;
-use pixels::{PixelsBuilder, SurfaceTexture};
+use pixels::{Pixels, SurfaceTexture};
 use std::rc::Rc;
 use winit::dpi::LogicalSize;
 use winit::event::{Event, VirtualKeyCode};
@@ -101,9 +101,7 @@ async fn run() {
         let window_size = window.inner_size();
         let surface_texture =
             SurfaceTexture::new(window_size.width, window_size.height, window.as_ref());
-        PixelsBuilder::new(WIDTH, HEIGHT, surface_texture)
-            .wgpu_backend(pixels::wgpu::Backends::all())
-            .build_async()
+        Pixels::new_async(WIDTH, HEIGHT, surface_texture)
             .await
             .expect("Pixels error")
     };

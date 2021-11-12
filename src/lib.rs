@@ -171,7 +171,7 @@ impl Pixels {
     /// 1x, 2x, and 3x scales, respectively.
     ///
     /// This method blocks the current thread, making it unusable on Web targets. Use
-    /// [`PixelsBuilder::build_async`] for a non-blocking alternative.
+    /// [`Pixels::new_async`] for a non-blocking alternative.
     ///
     /// # Examples
     ///
@@ -197,6 +197,39 @@ impl Pixels {
         surface_texture: SurfaceTexture<'_, W>,
     ) -> Result<Self, Error> {
         PixelsBuilder::new(width, height, surface_texture).build()
+    }
+
+    /// Asynchronously create a pixel buffer instance with default options.
+    ///
+    /// See [`Pixels::new`] for more information.
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// # async fn test() -> Result<(), pixels::Error> {
+    /// # use pixels::Pixels;
+    /// # let window = pixels_mocks::Rwh;
+    /// # let surface_texture = pixels::SurfaceTexture::new(320, 240, &window);
+    /// let mut pixels = Pixels::new_async(320, 240, surface_texture).await?;
+    /// # Ok::<(), pixels::Error>(())
+    /// # }
+    /// ```
+    ///
+    /// # Errors
+    ///
+    /// Returns an error when a [`wgpu::Adapter`] cannot be found.
+    ///
+    /// # Panics
+    ///
+    /// Panics when `width` or `height` are 0.
+    pub async fn new_async<W: HasRawWindowHandle>(
+        width: u32,
+        height: u32,
+        surface_texture: SurfaceTexture<'_, W>,
+    ) -> Result<Self, Error> {
+        PixelsBuilder::new(width, height, surface_texture)
+            .build_async()
+            .await
     }
 
     /// Resize the pixel buffer.
