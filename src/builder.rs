@@ -279,16 +279,13 @@ impl<'req, 'dev, 'win, W: HasRawWindowHandle> PixelsBuilder<'req, 'dev, 'win, W>
     ///
     /// # Errors
     ///
-    /// Returns an error when a [`wgpu::Adapter`] cannot be found.
+    /// Returns an error when a [`wgpu::Adapter`] or [`wgpu::Device`] cannot be found.
     #[cfg(not(target_arch = "wasm32"))]
     pub fn build(self) -> Result<Pixels, Error> {
         pollster::block_on(self.build_impl())
     }
 
     /// Create a pixel buffer from the options builder without blocking the current thread.
-    ///
-    /// On Web targets, the `wgpu` backends must be set appropriately, as shown in the following
-    /// example.
     ///
     /// # Examples
     ///
@@ -300,7 +297,7 @@ impl<'req, 'dev, 'win, W: HasRawWindowHandle> PixelsBuilder<'req, 'dev, 'win, W>
     /// # let window = pixels_mocks::Rwh;
     /// # let surface_texture = pixels::SurfaceTexture::new(256, 240, &window);
     /// let mut pixels = PixelsBuilder::new(256, 240, surface_texture)
-    ///     .wgpu_backend(Backends::all())
+    ///     .enable_vsync(false)
     ///     .build_async()
     ///     .await?;
     /// # Ok::<(), pixels::Error>(())
@@ -309,7 +306,7 @@ impl<'req, 'dev, 'win, W: HasRawWindowHandle> PixelsBuilder<'req, 'dev, 'win, W>
     ///
     /// # Errors
     ///
-    /// Returns an error when a [`wgpu::Adapter`] cannot be found.
+    /// Returns an error when a [`wgpu::Adapter`] or [`wgpu::Device`] cannot be found.
     pub async fn build_async(self) -> Result<Pixels, Error> {
         self.build_impl().await
     }
