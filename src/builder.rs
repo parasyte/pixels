@@ -6,7 +6,7 @@ use raw_window_handle::HasRawWindowHandle;
 /// A builder to help create customized pixel buffers.
 pub struct PixelsBuilder<'req, 'dev, 'win, W: HasRawWindowHandle> {
     request_adapter_options: Option<wgpu::RequestAdapterOptions<'req>>,
-    device_descriptor: wgpu::DeviceDescriptor<'dev>,
+    device_descriptor: Option<wgpu::DeviceDescriptor<'dev>>,
     backend: wgpu::Backends,
     width: u32,
     height: u32,
@@ -46,10 +46,7 @@ impl<'req, 'dev, 'win, W: HasRawWindowHandle> PixelsBuilder<'req, 'dev, 'win, W>
 
         Self {
             request_adapter_options: None,
-            device_descriptor: wgpu::DeviceDescriptor {
-                limits: wgpu::Limits::downlevel_webgl2_defaults(),
-                ..wgpu::DeviceDescriptor::default()
-            },
+            device_descriptor: None,
             backend: wgpu::util::backend_bits_from_env().unwrap_or(wgpu::Backends::PRIMARY),
             width,
             height,
@@ -72,7 +69,7 @@ impl<'req, 'dev, 'win, W: HasRawWindowHandle> PixelsBuilder<'req, 'dev, 'win, W>
 
     /// Add options for requesting a [`wgpu::Device`].
     pub fn device_descriptor(mut self, device_descriptor: wgpu::DeviceDescriptor<'dev>) -> Self {
-        self.device_descriptor = device_descriptor;
+        self.device_descriptor = Some(device_descriptor);
         self
     }
 
@@ -200,9 +197,15 @@ impl<'req, 'dev, 'win, W: HasRawWindowHandle> PixelsBuilder<'req, 'dev, 'win, W>
             });
         let adapter = adapter.ok_or(Error::AdapterNotFound)?;
 
-        let (device, queue) =
-            pollster::block_on(adapter.request_device(&self.device_descriptor, None))
-                .map_err(Error::DeviceNotFound)?;
+        let device_descriptor = self
+            .device_descriptor
+            .unwrap_or_else(|| wgpu::DeviceDescriptor {
+                limits: adapter.limits(),
+                ..wgpu::DeviceDescriptor::default()
+            });
+
+        let (device, queue) = pollster::block_on(adapter.request_device(&device_descriptor, None))
+            .map_err(Error::DeviceNotFound)?;
 
         let present_mode = self.present_mode;
         let render_texture_format = self.render_texture_format.unwrap_or_else(|| {
