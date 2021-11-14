@@ -1,7 +1,8 @@
-[![Documentation](https://docs.rs/pixels/badge.svg)](https://docs.rs/pixels "Documentation")
-[![CI](https://github.com/parasyte/pixels/workflows/CI/badge.svg)](https://github.com/parasyte/pixels "CI")
-[![Average time to resolve an issue](http://isitmaintained.com/badge/resolution/parasyte/pixels.svg)](http://isitmaintained.com/project/parasyte/pixels "Average time to resolve an issue")
-[![Percentage of issues still open](http://isitmaintained.com/badge/open/parasyte/pixels.svg)](http://isitmaintained.com/project/parasyte/pixels "Percentage of issues still open")
+[![Crates.io](https://img.shields.io/crates/v/pixels)](https://crates.io/crates/pixels "Crates.io version")
+[![Documentation](https://img.shields.io/docsrs/pixels)](https://docs.rs/pixels "Documentation")
+[![GitHub actions](https://img.shields.io/github/workflow/status/parasyte/pixels/CI)](https://github.com/parasyte/pixels/actions "CI")
+[![GitHub activity](https://img.shields.io/github/last-commit/parasyte/pixels)](https://github.com/parasyte/pixels/commits "Commit activity")
+[![GitHub Sponsors](https://img.shields.io/github/sponsors/parasyte)](https://github.com/sponsors/parasyte "Sponsors")
 
 ![Pixels Logo](img/pixels.png)
 
