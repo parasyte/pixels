@@ -198,7 +198,7 @@ impl Pixels {
         PixelsBuilder::new(width, height, surface_texture).build()
     }
 
-    /// Resize the pixel buffer.
+    /// Resize the pixel buffer and zero its contents.
     ///
     /// This does not resize the surface upon which the pixel buffer texture is rendered. Use
     /// [`Pixels::resize_surface`] to change the size of the surface texture.
