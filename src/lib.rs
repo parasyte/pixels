@@ -232,7 +232,7 @@ impl Pixels {
             .await
     }
 
-    /// Resize the pixel buffer.
+    /// Resize the pixel buffer and zero its contents.
     ///
     /// This does not resize the surface upon which the pixel buffer texture is rendered. Use
     /// [`Pixels::resize_surface`] to change the size of the surface texture.
