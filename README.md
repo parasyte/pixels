@@ -32,6 +32,7 @@ The Minimum Supported Rust Version for `pixels` will always be made available in
 - [Custom Shader](./examples/custom-shader)
 - [Dear ImGui example with `winit`](./examples/imgui-winit)
 - [Egui example with `winit`](./examples/minimal-egui)
+- [Minimal example for WebGL2](./examples/minimal-web)
 - [Minimal example with SDL2](./examples/minimal-sdl2)
 - [Minimal example with `winit`](./examples/minimal-winit)
 - [Minimal example with `fltk`](./examples/minimal-fltk)
