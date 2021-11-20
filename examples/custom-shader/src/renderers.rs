@@ -37,12 +37,12 @@ impl NoiseRenderer {
         });
 
         // Create vertex buffer; array-of-array of position and texture coordinates
-        let vertex_data: [[[f32; 2]; 2]; 3] = [
+        let vertex_data: [[f32; 2]; 3] = [
             // One full-screen triangle
             // See: https://github.com/parasyte/pixels/issues/180
-            [[-1.0, -1.0], [0.0, 0.0]],
-            [[3.0, -1.0], [2.0, 0.0]],
-            [[-1.0, 3.0], [0.0, 2.0]],
+            [-1.0, -1.0],
+            [3.0, -1.0],
+            [-1.0, 3.0],
         ];
         let vertex_data_slice = bytemuck::cast_slice(&vertex_data);
         let vertex_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
@@ -53,18 +53,11 @@ impl NoiseRenderer {
         let vertex_buffer_layout = wgpu::VertexBufferLayout {
             array_stride: (vertex_data_slice.len() / vertex_data.len()) as wgpu::BufferAddress,
             step_mode: wgpu::VertexStepMode::Vertex,
-            attributes: &[
-                wgpu::VertexAttribute {
-                    format: wgpu::VertexFormat::Float32x2,
-                    offset: 0,
-                    shader_location: 0,
-                },
-                wgpu::VertexAttribute {
-                    format: wgpu::VertexFormat::Float32x2,
-                    offset: 4 * 2,
-                    shader_location: 1,
-                },
-            ],
+            attributes: &[wgpu::VertexAttribute {
+                format: wgpu::VertexFormat::Float32x2,
+                offset: 0,
+                shader_location: 0,
+            }],
         };
 
         // Create uniform buffer

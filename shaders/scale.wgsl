@@ -13,10 +13,9 @@ struct VertexOutput {
 [[stage(vertex)]]
 fn vs_main(
     [[location(0)]] position: vec2<f32>,
-    [[location(1)]] tex_coord: vec2<f32>,
 ) -> VertexOutput {
     var out: VertexOutput;
-    out.tex_coord = tex_coord;
+    out.tex_coord = position * vec2<f32>(0.5, -0.5) + 0.5;
     out.position = r_locals.transform * vec4<f32>(position, 0.0, 1.0);
     return out;
 }
