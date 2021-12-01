@@ -2,8 +2,7 @@
 name = "minimal-egui"
 version = "0.1.0"
 authors = ["Jay Oster <jay@kodewerx.org>"]
-edition = "2018"
-resolver = "2"
+edition = "2021"
 publish = false
 
 [features]
