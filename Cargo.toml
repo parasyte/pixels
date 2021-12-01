@@ -30,7 +30,7 @@ pollster = "0.2"
 
 [dev-dependencies]
 pixels-mocks = { path = "internals/pixels-mocks" }
-winit = "0.25"
+winit = "0.26"
 
 [workspace]
 resolver = "2"
