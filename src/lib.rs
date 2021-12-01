@@ -521,7 +521,7 @@ impl Pixels {
         let offset_height = pixels_height.min(physical_height) / 2.0;
 
         let pixel_x = (pos.x / pos.w + offset_width).floor() as isize;
-        let pixel_y = (-pos.y / pos.w + offset_height).floor() as isize;
+        let pixel_y = (pos.y / pos.w + offset_height).floor() as isize;
 
         if pixel_x < 0
             || pixel_x >= self.context.texture_extent.width as isize
