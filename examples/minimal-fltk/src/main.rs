@@ -98,12 +98,13 @@ impl World {
         for (i, pixel) in frame.chunks_exact_mut(4).enumerate() {
             let x = (i % WIDTH as usize) as i16;
             let y = (i / WIDTH as usize) as i16;
-            let d = {
-                let xd = x as i32 - self.circle_x as i32;
-                let yd = y as i32 - self.circle_y as i32;
-                ((xd.pow(2) + yd.pow(2)) as f64).sqrt().powi(2)
+            let length = {
+                let x = (x - self.circle_x) as f64;
+                let y = (y - self.circle_y) as f64;
+
+                x.powf(2.0) + y.powf(2.0)
             };
-            let inside_the_circle = d < (CIRCLE_RADIUS as f64).powi(2);
+            let inside_the_circle = length < (CIRCLE_RADIUS as f64).powi(2);
 
             let rgba = if inside_the_circle {
                 [0xac, 0x00, 0xe6, 0xff]

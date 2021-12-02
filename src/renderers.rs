@@ -9,8 +9,7 @@ pub struct ScalingRenderer {
     uniform_buffer: wgpu::Buffer,
     bind_group: wgpu::BindGroup,
     render_pipeline: wgpu::RenderPipeline,
-    width: f32,
-    height: f32,
+    texture_size: (f32, f32, f32),
     clip_rect: (u32, u32, u32, u32),
 }
 
@@ -19,11 +18,18 @@ impl ScalingRenderer {
         device: &wgpu::Device,
         texture_view: &wgpu::TextureView,
         texture_size: &wgpu::Extent3d,
+        pixel_aspect_ratio: f32,
         surface_size: &SurfaceSize,
         render_texture_format: wgpu::TextureFormat,
     ) -> Self {
         let shader = wgpu::include_wgsl!("../shaders/scale.wgsl");
         let module = device.create_shader_module(&shader);
+
+        let texture_size = (
+            texture_size.width as f32,
+            texture_size.height as f32,
+            pixel_aspect_ratio,
+        );
 
         // Create a texture sampler with nearest neighbor
         let sampler = device.create_sampler(&wgpu::SamplerDescriptor {
@@ -67,7 +73,7 @@ impl ScalingRenderer {
 
         // Create uniform buffer
         let matrix = ScalingMatrix::new(
-            (texture_size.width as f32, texture_size.height as f32),
+            texture_size,
             (surface_size.width as f32, surface_size.height as f32),
         );
         let transform_bytes = matrix.as_bytes();
@@ -170,8 +176,7 @@ impl ScalingRenderer {
             uniform_buffer,
             bind_group,
             render_pipeline,
-            width: texture_size.width as f32,
-            height: texture_size.height as f32,
+            texture_size,
             clip_rect,
         }
     }
@@ -210,7 +215,7 @@ impl ScalingRenderer {
     }
 
     pub(crate) fn resize(&mut self, queue: &wgpu::Queue, width: u32, height: u32) {
-        let matrix = ScalingMatrix::new((self.width, self.height), (width as f32, height as f32));
+        let matrix = ScalingMatrix::new(self.texture_size, (width as f32, height as f32));
         let transform_bytes = matrix.as_bytes();
         queue.write_buffer(&self.uniform_buffer, 0, transform_bytes);
 
@@ -218,6 +223,8 @@ impl ScalingRenderer {
     }
 }
 
+/// The scaling matrix is used by the default `ScalingRenderer` to add a border which maintains the
+/// texture aspect ratio and integer scaling.
 #[derive(Debug)]
 pub(crate) struct ScalingMatrix {
     pub(crate) transform: Mat4,
@@ -225,11 +232,17 @@ pub(crate) struct ScalingMatrix {
 }
 
 impl ScalingMatrix {
-    // texture_size is the dimensions of the drawing texture
-    // screen_size is the dimensions of the surface being drawn to
-    pub(crate) fn new(texture_size: (f32, f32), screen_size: (f32, f32)) -> Self {
-        let (texture_width, texture_height) = texture_size;
+    /// Create a new `ScalingMatrix`.
+    ///
+    /// Takes two sizes: pixel buffer texture size and surface texture size. Both are defined in
+    /// physical pixel units. The pixel buffer texture size also expects the pixel aspect ratio as
+    /// the third field. The PAR allows the pixel buffer texture to be rendered with non-square
+    /// pixels.
+    pub(crate) fn new(texture_size: (f32, f32, f32), screen_size: (f32, f32)) -> Self {
+        let (texture_width, texture_height, pixel_aspect_ratio) = texture_size;
         let (screen_width, screen_height) = screen_size;
+
+        let texture_width = texture_width * pixel_aspect_ratio;
 
         // Get smallest scale size
         let scale = (screen_width / texture_width)
@@ -269,6 +282,7 @@ impl ScalingMatrix {
         }
     }
 
+    /// Get a byte slice representation of the matrix suitable for copying to a `wgpu` buffer.
     fn as_bytes(&self) -> &[u8] {
         self.transform.as_byte_slice()
     }
