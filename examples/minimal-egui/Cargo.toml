@@ -1,5 +1,5 @@
 [package]
-name = "conway"
+name = "minimal-egui"
 version = "0.1.0"
 authors = ["Jay Oster <jay@kodewerx.org>"]
 edition = "2018"
@@ -11,12 +11,11 @@ optimize = ["log/release_max_level_warn"]
 default = ["optimize"]
 
 [dependencies]
-byteorder = "1.3"
+egui = "0.15"
+egui_wgpu_backend = "0.14"
+egui-winit = { version = "0.15", default-features = false, features = ["links"] }
 env_logger = "0.9"
-getrandom = "0.2"
-line_drawing = "1.0"
 log = "0.4"
 pixels = { path = "../.." }
-randomize = "3.0"
 winit = "0.25"
 winit_input_helper = "0.10"

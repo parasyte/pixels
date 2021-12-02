@@ -3,6 +3,7 @@ name = "raqote-winit"
 version = "0.1.0"
 authors = ["Jay Oster <jay@kodewerx.org>"]
 edition = "2018"
+resolver = "2"
 publish = false
 
 [features]
@@ -10,10 +11,14 @@ optimize = ["log/release_max_level_warn"]
 default = ["optimize"]
 
 [dependencies]
-env_logger = "0.8"
+env_logger = "0.9"
 euclid = "0.22"
 log = "0.4"
 pixels = { path = "../.." }
-raqote = { git = "https://github.com/jrmuizel/raqote.git", rev = "74f0afa2be54561c1a9928e885ab95e8a4c5322d", default-features = false }
-winit = "0.24"
-winit_input_helper = "0.9"
+winit = "0.25"
+winit_input_helper = "0.10"
+
+[dependencies.raqote]
+git = "https://github.com/jrmuizel/raqote.git"
+rev = "dea376474966fe91f0fa3c5115171e0df86bac22"
+default-features = false

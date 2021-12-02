@@ -1,11 +1,12 @@
-[![Documentation](https://docs.rs/pixels/badge.svg)](https://docs.rs/pixels "Documentation")
-[![CI](https://github.com/parasyte/pixels/workflows/CI/badge.svg)](https://github.com/parasyte/pixels "CI")
-[![Average time to resolve an issue](http://isitmaintained.com/badge/resolution/parasyte/pixels.svg)](http://isitmaintained.com/project/parasyte/pixels "Average time to resolve an issue")
-[![Percentage of issues still open](http://isitmaintained.com/badge/open/parasyte/pixels.svg)](http://isitmaintained.com/project/parasyte/pixels "Percentage of issues still open")
+[![Crates.io](https://img.shields.io/crates/v/pixels)](https://crates.io/crates/pixels "Crates.io version")
+[![Documentation](https://img.shields.io/docsrs/pixels)](https://docs.rs/pixels "Documentation")
+[![GitHub actions](https://img.shields.io/github/workflow/status/parasyte/pixels/CI)](https://github.com/parasyte/pixels/actions "CI")
+[![GitHub activity](https://img.shields.io/github/last-commit/parasyte/pixels)](https://github.com/parasyte/pixels/commits "Commit activity")
+[![GitHub Sponsors](https://img.shields.io/github/sponsors/parasyte)](https://github.com/sponsors/parasyte "Sponsors")
 
 ![Pixels Logo](img/pixels.png)
 
-A tiny hardware-accelerated pixel frame buffer. :crab:
+A tiny hardware-accelerated pixel frame buffer. 🦀
 
 ## But why?
 
@@ -19,7 +20,8 @@ The Minimum Supported Rust Version for `pixels` will always be made available in
 
 ## Features
 
-- Built on modern graphics APIs powered by [`wgpu`](https://crates.io/crates/wgpu): DirectX 12, Vulkan, Metal. OpenGL support is a work in progress.
+- Built on modern graphics APIs powered by [`wgpu`](https://crates.io/crates/wgpu): Vulkan, Metal, DirectX 12, OpenGL ES3.
+    - DirectX 11, WebGL2, and WebGPU support are a work in progress.
 - Use your own custom shaders for special effects.
 - Hardware accelerated scaling on perfect pixel boundaries.
 - Supports non-square pixel aspect ratios.
@@ -29,7 +31,8 @@ The Minimum Supported Rust Version for `pixels` will always be made available in
 - [Conway's Game of Life](./examples/conway)
 - [Custom Shader](./examples/custom-shader)
 - [Dear ImGui example with `winit`](./examples/imgui-winit)
-- [Egui example with `winit`](./examples/egui-winit)
+- [Egui example with `winit`](./examples/minimal-egui)
+- [Minimal example for WebGL2](./examples/minimal-web)
 - [Minimal example with SDL2](./examples/minimal-sdl2)
 - [Minimal example with `winit`](./examples/minimal-winit)
 - [Minimal example with `fltk`](./examples/minimal-fltk)
@@ -39,8 +42,20 @@ The Minimum Supported Rust Version for `pixels` will always be made available in
 
 ## Troubleshooting
 
+### Cargo resolver
+
+Starting with [`wgpu` 0.10](https://github.com/gfx-rs/wgpu/blob/06316c1bac8b78ac04d762cfb1a886bd1d453b30/CHANGELOG.md#v010-2021-08-18), the [resolver version](https://doc.rust-lang.org/cargo/reference/resolver.html#resolver-versions) needs to be set in your `Cargo.toml` to avoid build errors:
+
+```toml
+resolver = "2"
+```
+
+Perhaps a better alternative is specifying [`edition = "2021"`](https://doc.rust-lang.org/edition-guide/rust-2021/default-cargo-resolver.html), especially if you are starting a new project with Rust `1.56.0` or later.
+
+### Driver issues
+
 The most common issue is having an outdated graphics driver installed on the host machine. `pixels`
-requests a low power (aka integrated) GPU by default. If the examples are not working for any reason, you may try setting the `PIXELS_HIGH_PERF` environment variable (the value does not matter, e.g. `PIXELS_HIGH_PERF=1` is fine) to see if that addresses the issue on your host machine.
+requests a low power (aka integrated) GPU by default. If the examples are not working for any reason, you may try setting the `WGPU_POWER_PREF=high` environment variable to see if that addresses the issue on your host machine.
 
 You should also try to keep your graphics drivers up-to-date, especially if you have an old Intel integrated GPU. Keep in mind that some drivers and GPUs are EOL and will not be supported.
 
@@ -55,13 +70,7 @@ $ RUST_LOG=trace cargo run --package minimal-winit
 And also on release builds when default features are disabled:
 
 ```
-$ RUST_LOG=trace cargo run --release --manifest-path examples/minimal-winit/Cargo.toml --no-default-features
-```
-
-Alternatively, nightly Cargo allows using the `--no-default-features` flag directly from the top-level directory in combination with the unstable `-Zpackage-features` flag:
-
-```
-$ RUST_LOG=trace cargo run --release --package minimal-winit -Zpackage-features --no-default-features
+$ RUST_LOG=trace cargo run --package minimal-winit --release --no-default-features
 ```
 
 ## Comparison with `minifb`

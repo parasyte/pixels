@@ -2,20 +2,19 @@ use crate::renderers::{ScalingMatrix, ScalingRenderer};
 use crate::SurfaceSize;
 use crate::{Error, Pixels, PixelsContext, SurfaceTexture};
 use raw_window_handle::HasRawWindowHandle;
-use std::env;
 
 /// A builder to help create customized pixel buffers.
 pub struct PixelsBuilder<'req, 'dev, 'win, W: HasRawWindowHandle> {
     request_adapter_options: Option<wgpu::RequestAdapterOptions<'req>>,
-    device_descriptor: wgpu::DeviceDescriptor<'dev>,
-    backend: wgpu::BackendBit,
+    device_descriptor: Option<wgpu::DeviceDescriptor<'dev>>,
+    backend: wgpu::Backends,
     width: u32,
     height: u32,
     pixel_aspect_ratio: f32,
     present_mode: wgpu::PresentMode,
     surface_texture: SurfaceTexture<'win, W>,
     texture_format: wgpu::TextureFormat,
-    render_texture_format: wgpu::TextureFormat,
+    render_texture_format: Option<wgpu::TextureFormat>,
 }
 
 impl<'req, 'dev, 'win, W: HasRawWindowHandle> PixelsBuilder<'req, 'dev, 'win, W> {
@@ -24,12 +23,15 @@ impl<'req, 'dev, 'win, W: HasRawWindowHandle> PixelsBuilder<'req, 'dev, 'win, W>
     /// # Examples
     ///
     /// ```no_run
+    /// use pixels::wgpu::{PowerPreference, RequestAdapterOptions};
+    ///
     /// # use pixels::PixelsBuilder;
     /// # let window = pixels_mocks::Rwh;
-    /// # let surface_texture = pixels::SurfaceTexture::new(1024, 768, &window);
+    /// # let surface_texture = pixels::SurfaceTexture::new(256, 240, &window);
     /// let mut pixels = PixelsBuilder::new(256, 240, surface_texture)
-    ///     .request_adapter_options(wgpu::RequestAdapterOptions {
-    ///         power_preference: wgpu::PowerPreference::HighPerformance,
+    ///     .request_adapter_options(RequestAdapterOptions {
+    ///         power_preference: PowerPreference::HighPerformance,
+    ///         force_fallback_adapter: false,
     ///         compatible_surface: None,
     ///     })
     ///     .enable_vsync(false)
@@ -40,25 +42,31 @@ impl<'req, 'dev, 'win, W: HasRawWindowHandle> PixelsBuilder<'req, 'dev, 'win, W>
     /// # Panics
     ///
     /// Panics when `width` or `height` are 0.
-    pub fn new(
-        width: u32,
-        height: u32,
-        surface_texture: SurfaceTexture<'win, W>,
-    ) -> PixelsBuilder<'req, 'dev, 'win, W> {
+    pub fn new(width: u32, height: u32, surface_texture: SurfaceTexture<'win, W>) -> Self {
         assert!(width > 0);
         assert!(height > 0);
 
-        PixelsBuilder {
+        Self {
             request_adapter_options: None,
-            device_descriptor: wgpu::DeviceDescriptor::default(),
-            backend: wgpu::BackendBit::PRIMARY,
+            device_descriptor: None,
+            backend: wgpu::util::backend_bits_from_env().unwrap_or({
+                #[cfg(not(target_arch = "wasm32"))]
+                {
+                    wgpu::Backends::PRIMARY
+                }
+
+                #[cfg(target_arch = "wasm32")]
+                {
+                    wgpu::Backends::all()
+                }
+            }),
             width,
             height,
             pixel_aspect_ratio: 1.0,
             present_mode: wgpu::PresentMode::Fifo,
             surface_texture,
             texture_format: wgpu::TextureFormat::Rgba8UnormSrgb,
-            render_texture_format: wgpu::TextureFormat::Bgra8UnormSrgb,
+            render_texture_format: None,
         }
     }
 
@@ -66,25 +74,21 @@ impl<'req, 'dev, 'win, W: HasRawWindowHandle> PixelsBuilder<'req, 'dev, 'win, W>
     pub fn request_adapter_options(
         mut self,
         request_adapter_options: wgpu::RequestAdapterOptions<'req>,
-    ) -> PixelsBuilder<'req, 'dev, 'win, W> {
+    ) -> Self {
         self.request_adapter_options = Some(request_adapter_options);
         self
     }
 
     /// Add options for requesting a [`wgpu::Device`].
-    pub fn device_descriptor(
-        mut self,
-        device_descriptor: wgpu::DeviceDescriptor<'dev>,
-    ) -> PixelsBuilder<'req, 'dev, 'win, W> {
-        self.device_descriptor = device_descriptor;
+    pub fn device_descriptor(mut self, device_descriptor: wgpu::DeviceDescriptor<'dev>) -> Self {
+        self.device_descriptor = Some(device_descriptor);
         self
     }
 
     /// Set which backends wgpu will attempt to use.
     ///
-    /// The default value of this is [`wgpu::BackendBit::PRIMARY`], which enables
-    /// the well supported backends for wgpu.
-    pub fn wgpu_backend(mut self, backend: wgpu::BackendBit) -> PixelsBuilder<'req, 'dev, 'win, W> {
+    /// The default value is `PRIMARY`, which enables the well supported backends for wgpu.
+    pub fn wgpu_backend(mut self, backend: wgpu::Backends) -> Self {
         self.backend = backend;
         self
     }
@@ -103,11 +107,7 @@ impl<'req, 'dev, 'win, W: HasRawWindowHandle> PixelsBuilder<'req, 'dev, 'win, W>
     /// # Warning
     ///
     /// This documentation is hidden because support for pixel aspect ratio is incomplete.
-    #[doc(hidden)]
-    pub fn pixel_aspect_ratio(
-        mut self,
-        pixel_aspect_ratio: f32,
-    ) -> PixelsBuilder<'req, 'dev, 'win, W> {
+    pub fn pixel_aspect_ratio(mut self, pixel_aspect_ratio: f32) -> Self {
         assert!(pixel_aspect_ratio > 0.0);
 
         self.pixel_aspect_ratio = pixel_aspect_ratio;
@@ -121,7 +121,7 @@ impl<'req, 'dev, 'win, W: HasRawWindowHandle> PixelsBuilder<'req, 'dev, 'win, W>
     /// The `wgpu` present mode will be set to `Fifo` when Vsync is enabled, or `Immediate` when
     /// Vsync is disabled. To set the present mode to `Mailbox` or another value, use the
     /// [`PixelsBuilder::present_mode`] method.
-    pub fn enable_vsync(mut self, enable_vsync: bool) -> PixelsBuilder<'req, 'dev, 'win, W> {
+    pub fn enable_vsync(mut self, enable_vsync: bool) -> Self {
         self.present_mode = if enable_vsync {
             wgpu::PresentMode::Fifo
         } else {
@@ -134,82 +134,107 @@ impl<'req, 'dev, 'win, W: HasRawWindowHandle> PixelsBuilder<'req, 'dev, 'win, W>
     ///
     /// This differs from [`PixelsBuilder::enable_vsync`] by allowing the present mode to be set to
     /// any value.
-    pub fn present_mode(
-        mut self,
-        present_mode: wgpu::PresentMode,
-    ) -> PixelsBuilder<'req, 'dev, 'win, W> {
+    pub fn present_mode(mut self, present_mode: wgpu::PresentMode) -> Self {
         self.present_mode = present_mode;
         self
     }
 
     /// Set the texture format.
     ///
-    /// The default value is [`wgpu::TextureFormat::Rgba8UnormSrgb`], which is 4 unsigned bytes in
-    /// `RGBA` order using the SRGB color space. This is typically what you want when you are
-    /// working with color values from popular image editing tools or web apps.
-    pub fn texture_format(
-        mut self,
-        texture_format: wgpu::TextureFormat,
-    ) -> PixelsBuilder<'req, 'dev, 'win, W> {
+    /// The default value is `Rgba8UnormSrgb`, which is 4 unsigned bytes in `RGBA` order using the
+    /// sRGB color space. This is typically what you want when you are working with color values
+    /// from popular image editing tools or web apps.
+    ///
+    /// This is the pixel format of the texture that most applications will interact with directly.
+    /// The format influences the structure of byte data that is returned by [`Pixels::get_frame`].
+    pub fn texture_format(mut self, texture_format: wgpu::TextureFormat) -> Self {
         self.texture_format = texture_format;
         self
     }
 
     /// Set the render texture format.
     ///
-    /// The default value is [`wgpu::TextureFormat::Bgra8UnormSrgb`], which is 4 unsigned bytes in
-    /// `BGRA` order using the SRGB color space. This format depends on the hardware/platform the
-    /// pixel buffer is rendered to/for.
-    pub fn render_texture_format(
-        mut self,
-        texture_format: wgpu::TextureFormat,
-    ) -> PixelsBuilder<'req, 'dev, 'win, W> {
-        self.render_texture_format = texture_format;
+    /// The default value is chosen automatically by the surface (if it can) with a fallback to
+    /// `Bgra8UnormSrgb` (which is 4 unsigned bytes in `BGRA` order using the sRGB color space).
+    /// Setting this format correctly depends on the hardware/platform the pixel buffer is rendered
+    /// to. The chosen format can be retrieved later with [`Pixels::render_texture_format`].
+    ///
+    /// This method controls the format of the surface frame buffer, which has strict texture
+    /// format requirements. Applications will never interact directly with the pixel data of this
+    /// texture, but a view is provided to the `render_function` closure by [`Pixels::render_with`].
+    /// The render texture can only be used as the final render target at the end of all
+    /// post-processing shaders.
+    ///
+    /// The [`ScalingRenderer`] also uses this format for its own render target. This is because it
+    /// assumes the render target is always the surface current frame. This needs to be kept in
+    /// mind when writing custom shaders for post-processing effects. There is a full example of a
+    /// [custom-shader](https://github.com/parasyte/pixels/tree/master/examples/custom-shader)
+    /// available that demonstrates how to deal with this.
+    pub fn render_texture_format(mut self, texture_format: wgpu::TextureFormat) -> Self {
+        self.render_texture_format = Some(texture_format);
         self
     }
 
     /// Create a pixel buffer from the options builder.
     ///
+    /// This is the private implementation shared by [`PixelsBuilder::build`] and
+    /// [`PixelsBuilder::build_async`].
+    ///
     /// # Errors
     ///
     /// Returns an error when a [`wgpu::Adapter`] cannot be found.
-    pub fn build(self) -> Result<Pixels, Error> {
+    async fn build_impl(self) -> Result<Pixels, Error> {
         let instance = wgpu::Instance::new(self.backend);
 
         let pixel_aspect_ratio = self.pixel_aspect_ratio;
         let texture_format = self.texture_format;
-        let render_texture_format = self.render_texture_format;
         let surface = unsafe { instance.create_surface(self.surface_texture.window) };
         let compatible_surface = Some(&surface);
-        let adapter = instance.request_adapter(&self.request_adapter_options.map_or_else(
-            || wgpu::RequestAdapterOptions {
-                compatible_surface,
-                power_preference: get_default_power_preference(),
-            },
-            |rao| wgpu::RequestAdapterOptions {
-                compatible_surface: rao.compatible_surface.or(compatible_surface),
-                power_preference: rao.power_preference,
-            },
-        ));
-        let adapter = pollster::block_on(adapter).ok_or(Error::AdapterNotFound)?;
+        let request_adapter_options = &self.request_adapter_options;
+        let adapter = match wgpu::util::initialize_adapter_from_env(&instance, self.backend) {
+            Some(adapter) => Some(adapter),
+            None => {
+                instance
+                    .request_adapter(&request_adapter_options.as_ref().map_or_else(
+                        || wgpu::RequestAdapterOptions {
+                            compatible_surface,
+                            force_fallback_adapter: false,
+                            power_preference:
+                                wgpu::util::power_preference_from_env().unwrap_or_default(),
+                        },
+                        |rao| wgpu::RequestAdapterOptions {
+                            compatible_surface: rao.compatible_surface.or(compatible_surface),
+                            force_fallback_adapter: rao.force_fallback_adapter,
+                            power_preference: rao.power_preference,
+                        },
+                    ))
+                    .await
+            }
+        };
 
-        let (mut device, queue) =
-            pollster::block_on(adapter.request_device(&self.device_descriptor, None))
-                .map_err(Error::DeviceNotFound)?;
+        let adapter = adapter.ok_or(Error::AdapterNotFound)?;
+
+        let device_descriptor = self
+            .device_descriptor
+            .unwrap_or_else(|| wgpu::DeviceDescriptor {
+                limits: adapter.limits(),
+                ..wgpu::DeviceDescriptor::default()
+            });
+
+        let (device, queue) = adapter
+            .request_device(&device_descriptor, None)
+            .await
+            .map_err(Error::DeviceNotFound)?;
 
         let present_mode = self.present_mode;
-
-        // Create swap chain
-        let surface_size = self.surface_texture.size;
-        let swap_chain = create_swap_chain(
-            &mut device,
-            &surface,
-            render_texture_format,
-            &surface_size,
-            present_mode,
-        );
+        let render_texture_format = self.render_texture_format.unwrap_or_else(|| {
+            surface
+                .get_preferred_format(&adapter)
+                .unwrap_or(wgpu::TextureFormat::Bgra8UnormSrgb)
+        });
 
         // Create the backing texture
+        let surface_size = self.surface_texture.size;
         let (scaling_matrix_inverse, texture_extent, texture, scaling_renderer, pixels_buffer_size) =
             create_backing_texture(
                 &device,
@@ -232,7 +257,6 @@ impl<'req, 'dev, 'win, W: HasRawWindowHandle> PixelsBuilder<'req, 'dev, 'win, W>
             device,
             queue,
             surface,
-            swap_chain,
             texture,
             texture_extent,
             texture_format,
@@ -240,7 +264,7 @@ impl<'req, 'dev, 'win, W: HasRawWindowHandle> PixelsBuilder<'req, 'dev, 'win, W>
             scaling_renderer,
         };
 
-        Ok(Pixels {
+        let pixels = Pixels {
             context,
             pixel_aspect_ratio,
             surface_size,
@@ -248,27 +272,50 @@ impl<'req, 'dev, 'win, W: HasRawWindowHandle> PixelsBuilder<'req, 'dev, 'win, W>
             render_texture_format,
             pixels,
             scaling_matrix_inverse,
-        })
-    }
-}
+        };
+        pixels.reconfigure_surface();
 
-pub(crate) fn create_swap_chain(
-    device: &mut wgpu::Device,
-    surface: &wgpu::Surface,
-    format: wgpu::TextureFormat,
-    surface_size: &SurfaceSize,
-    present_mode: wgpu::PresentMode,
-) -> wgpu::SwapChain {
-    device.create_swap_chain(
-        &surface,
-        &wgpu::SwapChainDescriptor {
-            usage: wgpu::TextureUsage::RENDER_ATTACHMENT,
-            format,
-            width: surface_size.width,
-            height: surface_size.height,
-            present_mode,
-        },
-    )
+        Ok(pixels)
+    }
+
+    /// Create a pixel buffer from the options builder.
+    ///
+    /// This method blocks the current thread, making it unusable on Web targets. Use
+    /// [`PixelsBuilder::build_async`] for a non-blocking alternative.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error when a [`wgpu::Adapter`] or [`wgpu::Device`] cannot be found.
+    #[cfg(not(target_arch = "wasm32"))]
+    pub fn build(self) -> Result<Pixels, Error> {
+        pollster::block_on(self.build_impl())
+    }
+
+    /// Create a pixel buffer from the options builder without blocking the current thread.
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use pixels::wgpu::{Backends, DeviceDescriptor, Limits};
+    ///
+    /// # async fn test() -> Result<(), pixels::Error> {
+    /// # use pixels::PixelsBuilder;
+    /// # let window = pixels_mocks::Rwh;
+    /// # let surface_texture = pixels::SurfaceTexture::new(256, 240, &window);
+    /// let mut pixels = PixelsBuilder::new(256, 240, surface_texture)
+    ///     .enable_vsync(false)
+    ///     .build_async()
+    ///     .await?;
+    /// # Ok::<(), pixels::Error>(())
+    /// # }
+    /// ```
+    ///
+    /// # Errors
+    ///
+    /// Returns an error when a [`wgpu::Adapter`] or [`wgpu::Device`] cannot be found.
+    pub async fn build_async(self) -> Result<Pixels, Error> {
+        self.build_impl().await
+    }
 }
 
 pub(crate) fn create_backing_texture(
@@ -296,7 +343,7 @@ pub(crate) fn create_backing_texture(
     let texture_extent = wgpu::Extent3d {
         width,
         height,
-        depth: 1,
+        depth_or_array_layers: 1,
     };
 
     let texture = device.create_texture(&wgpu::TextureDescriptor {
@@ -306,7 +353,7 @@ pub(crate) fn create_backing_texture(
         sample_count: 1,
         dimension: wgpu::TextureDimension::D2,
         format: backing_texture_format,
-        usage: wgpu::TextureUsage::SAMPLED | wgpu::TextureUsage::COPY_DST,
+        usage: wgpu::TextureUsages::TEXTURE_BINDING | wgpu::TextureUsages::COPY_DST,
     });
     let texture_view = texture.create_view(&wgpu::TextureViewDescriptor::default());
 
@@ -352,7 +399,8 @@ const fn get_texture_format_size(texture_format: wgpu::TextureFormat) -> f32 {
         | Rg8Unorm
         | Rg8Snorm
         | Rg8Uint
-        | Rg8Sint => 2.0, // 16.0 / 8.0
+        | Rg8Sint
+        | Rgb9e5Ufloat => 2.0, // 16.0 / 8.0
 
         // 32-bit formats, 8 bits per component
         R32Uint
@@ -412,10 +460,8 @@ const fn get_texture_format_size(texture_format: wgpu::TextureFormat) -> f32 {
         | Bc6hRgbSfloat
         | Bc7RgbaUnorm
         | Bc7RgbaUnormSrgb
-        | Etc2RgbA8Unorm
-        | Etc2RgbA8UnormSrgb
-        | EtcRgUnorm
-        | EtcRgSnorm
+        | EacRgUnorm
+        | EacRgSnorm
         | Astc4x4RgbaUnorm
         | Astc4x4RgbaUnormSrgb => 1.0, // 4.0 * 4.0 / 16.0
 
@@ -471,15 +517,4 @@ const fn get_texture_format_size(texture_format: wgpu::TextureFormat) -> f32 {
         Astc12x12RgbaUnorm
         | Astc12x12RgbaUnormSrgb => 9.0, // 12.0 * 12.0 / 16.0
     }
-}
-
-fn get_default_power_preference() -> wgpu::PowerPreference {
-    env::var("PIXELS_HIGH_PERF").map_or_else(
-        |_| {
-            env::var("PIXELS_LOW_POWER").map_or(wgpu::PowerPreference::default(), |_| {
-                wgpu::PowerPreference::LowPower
-            })
-        },
-        |_| wgpu::PowerPreference::HighPerformance,
-    )
 }

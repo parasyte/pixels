@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <style type="text/css">
+      body {
+        background-color: #000;
+        margin: 0;
+        overflow: hidden;
+      }
+    </style>
+    <title>Hello Pixels + Web</title>
+  </head>
+  <body>
+    <script type="module">
+      import init from "./minimal-web.js";
+      window.addEventListener("load", () => {
+        init();
+      });
+    </script>
+  </body>
+</html>

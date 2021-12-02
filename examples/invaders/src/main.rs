@@ -134,7 +134,7 @@ fn create_window(
     let window = winit::window::WindowBuilder::new()
         .with_visible(false)
         .with_title(title)
-        .build(&event_loop)
+        .build(event_loop)
         .unwrap();
     let hidpi_factor = window.scale_factor();
 

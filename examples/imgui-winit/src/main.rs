@@ -70,8 +70,9 @@ fn main() -> Result<(), Error> {
                 context.scaling_renderer.render(encoder, render_target);
 
                 // Render Dear ImGui
-                gui.render(&window, encoder, render_target, context)
-                    .expect("gui.render() failed");
+                gui.render(&window, encoder, render_target, context)?;
+
+                Ok(())
             });
 
             // Basic error handling
@@ -100,13 +101,15 @@ fn main() -> Result<(), Error> {
 
             // Resize the window
             if let Some(size) = input.window_resized() {
-                // Resize the surface texture
-                pixels.resize_surface(size.width, size.height);
+                if size.width > 0 && size.height > 0 {
+                    // Resize the surface texture
+                    pixels.resize_surface(size.width, size.height);
 
-                // Resize the world
-                let LogicalSize { width, height } = size.to_logical(scale_factor);
-                world.resize(width, height);
-                pixels.resize_buffer(width, height);
+                    // Resize the world
+                    let LogicalSize { width, height } = size.to_logical(scale_factor);
+                    world.resize(width, height);
+                    pixels.resize_buffer(width, height);
+                }
             }
 
             // Update internal state and request a redraw

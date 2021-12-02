@@ -41,21 +41,14 @@ impl Gui {
                 }),
             }]);
 
-        // Fix incorrect colors with sRGB framebuffer
-        let style = imgui.style_mut();
-        for color in 0..style.colors.len() {
-            style.colors[color] = gamma_to_linear(style.colors[color]);
-        }
-
         // Create Dear ImGui WGPU renderer
         let device = pixels.device();
         let queue = pixels.queue();
-        let texture_format = wgpu::TextureFormat::Bgra8UnormSrgb;
         let config = imgui_wgpu::RendererConfig {
-            texture_format,
+            texture_format: pixels.render_texture_format(),
             ..Default::default()
         };
-        let renderer = imgui_wgpu::Renderer::new(&mut imgui, &device, &queue, config);
+        let renderer = imgui_wgpu::Renderer::new(&mut imgui, device, queue, config);
 
         // Return GUI context
         Self {
@@ -100,8 +93,8 @@ impl Gui {
         // Draw windows and GUI elements here
         let mut about_open = false;
         ui.main_menu_bar(|| {
-            ui.menu(imgui::im_str!("Help"), true, || {
-                about_open = imgui::MenuItem::new(imgui::im_str!("About...")).build(&ui);
+            ui.menu("Help", || {
+                about_open = imgui::MenuItem::new("About...").build(&ui);
             });
         });
         if about_open {
@@ -115,8 +108,8 @@ impl Gui {
         // Render Dear ImGui with WGPU
         let mut rpass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
             label: Some("imgui"),
-            color_attachments: &[wgpu::RenderPassColorAttachmentDescriptor {
-                attachment: render_target,
+            color_attachments: &[wgpu::RenderPassColorAttachment {
+                view: render_target,
                 resolve_target: None,
                 ops: wgpu::Operations {
                     load: wgpu::LoadOp::Load,
@@ -139,15 +132,4 @@ impl Gui {
         self.platform
             .handle_event(self.imgui.io_mut(), window, event);
     }
-}
-
-fn gamma_to_linear(color: [f32; 4]) -> [f32; 4] {
-    const GAMMA: f32 = 2.2;
-
-    let x = color[0].powf(GAMMA);
-    let y = color[1].powf(GAMMA);
-    let z = color[2].powf(GAMMA);
-    let w = 1.0 - (1.0 - color[3]).powf(GAMMA);
-
-    [x, y, z, w]
 }

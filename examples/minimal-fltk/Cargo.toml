@@ -3,6 +3,7 @@ name = "minimal-fltk"
 version = "0.1.0"
 authors = ["Jay Oster <jay@kodewerx.org>"]
 edition = "2018"
+resolver = "2"
 publish = false
 
 [features]
@@ -10,7 +11,7 @@ optimize = ["log/release_max_level_warn"]
 default = ["optimize"]
 
 [dependencies]
-fltk = { version = "0.15", features = ["no-pango"] }
-env_logger = "0.8"
+fltk = { version = "1.2", features = ["raw-window-handle", "no-images", "no-pango"] }
+env_logger = "0.9"
 log = "0.4"
 pixels = { path = "../.." }

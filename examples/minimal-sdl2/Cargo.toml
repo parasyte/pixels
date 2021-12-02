@@ -3,6 +3,7 @@ name = "minimal-sdl2"
 version = "0.1.0"
 authors = ["Jay Oster <jay@kodewerx.org>"]
 edition = "2018"
+resolver = "2"
 publish = false
 
 [features]
@@ -11,6 +12,6 @@ default = ["optimize"]
 
 [dependencies]
 beryllium = { version = "0.3", features = ["extern_crate_raw_window_handle"] }
-env_logger = "0.8"
+env_logger = "0.9"
 log = "0.4"
 pixels = { path = "../.." }

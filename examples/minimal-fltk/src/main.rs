@@ -2,15 +2,13 @@
 #![forbid(unsafe_code)]
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
-use fltk::{app, prelude::*, window::Window};
+use fltk::{app, enums::Event, prelude::*, window::Window};
 use log::error;
 use pixels::{Error, Pixels, SurfaceTexture};
-use std::{thread, time::Duration};
 
 const WIDTH: u32 = 600;
 const HEIGHT: u32 = 400;
 const CIRCLE_RADIUS: i16 = 64;
-const SLEEP: u64 = 16;
 
 /// Representation of the application state. In this example, a circle will bounce around the screen.
 struct World {
@@ -21,24 +19,37 @@ struct World {
 }
 
 fn main() -> Result<(), Error> {
+    #[cfg(debug_assertions)]
     env_logger::init();
+
     let app = app::App::default();
     let mut win = Window::default()
         .with_size(WIDTH as i32, HEIGHT as i32)
         .with_label("Hello Pixels");
+    win.make_resizable(true);
     win.end();
     win.show();
 
     let mut pixels = {
-        let surface_texture = SurfaceTexture::new(WIDTH, HEIGHT, &win);
+        let pixel_width = win.pixel_w() as u32;
+        let pixel_height = win.pixel_h() as u32;
+        let surface_texture = SurfaceTexture::new(pixel_width, pixel_height, &win);
         Pixels::new(WIDTH, HEIGHT, surface_texture)?
     };
 
     let mut world = World::new();
 
     while app.wait() {
+        // Handle window events
+        if app::event() == Event::Resize {
+            let pixel_width = win.pixel_w() as u32;
+            let pixel_height = win.pixel_h() as u32;
+            pixels.resize_surface(pixel_width, pixel_height);
+        }
+
         // Update internal state
         world.update();
+
         // Draw the current frame
         world.draw(pixels.get_frame());
         if pixels
@@ -48,9 +59,9 @@ fn main() -> Result<(), Error> {
         {
             app.quit();
         }
-        win.redraw();
-        // Calls to redraw in the event loop require an explicit sleep
-        thread::sleep(Duration::from_millis(SLEEP));
+
+        app::flush();
+        app::awake();
     }
 
     Ok(())
