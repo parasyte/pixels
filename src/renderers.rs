@@ -256,8 +256,8 @@ impl ScalingMatrix {
         // Create a transformation matrix
         let sw = scaled_width / screen_width;
         let sh = scaled_height / screen_height;
-        let tx = (texture_width / screen_width - 1.0).max(0.0);
-        let ty = (1.0 - texture_height / screen_height).min(0.0);
+        let tx = (screen_width / 2.0).fract() / screen_width;
+        let ty = (screen_height / 2.0).fract() / screen_height;
         #[rustfmt::skip]
         let transform: [f32; 16] = [
             sw,  0.0, 0.0, 0.0,
