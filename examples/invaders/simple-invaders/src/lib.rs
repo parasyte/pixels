@@ -49,7 +49,7 @@ pub struct World {
     player: Player,
     bullet: Option<Bullet>,
     collision: Collision,
-    score: u32,
+    _score: u32,
     assets: Assets,
     dt: Duration,
     gameover: bool,
@@ -72,7 +72,7 @@ struct Invaders {
 struct Invader {
     sprite: SpriteRef,
     pos: Point,
-    score: u32,
+    _score: u32,
 }
 
 /// Creates a boundary around the live invaders.
@@ -172,7 +172,7 @@ impl World {
         };
         let bullet = None;
         let collision = Collision::default();
-        let score = 0;
+        let _score = 0;
 
         let dt = Duration::default();
         let gameover = false;
@@ -185,7 +185,7 @@ impl World {
             player,
             bullet,
             collision,
-            score,
+            _score,
             assets,
             dt,
             gameover,
@@ -556,7 +556,7 @@ fn make_invader_grid(assets: &Assets) -> Vec<Vec<Option<Invader>>> {
                     Some(Invader {
                         sprite: SpriteRef::new(assets, Blipjoy1, Duration::default()),
                         pos: START + BLIPJOY_OFFSET + Point::new(x, y) * GRID,
-                        score: 10,
+                        _score: 10,
                     })
                 })
                 .collect()
@@ -567,7 +567,7 @@ fn make_invader_grid(assets: &Assets) -> Vec<Vec<Option<Invader>>> {
                     Some(Invader {
                         sprite: SpriteRef::new(assets, Ferris1, Duration::default()),
                         pos: START + FERRIS_OFFSET + Point::new(x, y) * GRID,
-                        score: 10,
+                        _score: 10,
                     })
                 })
                 .collect()
@@ -578,7 +578,7 @@ fn make_invader_grid(assets: &Assets) -> Vec<Vec<Option<Invader>>> {
                     Some(Invader {
                         sprite: SpriteRef::new(assets, Cthulhu1, Duration::default()),
                         pos: START + CTHULHU_OFFSET + Point::new(x, y) * GRID,
-                        score: 10,
+                        _score: 10,
                     })
                 })
                 .collect()
