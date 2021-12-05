@@ -232,6 +232,27 @@ impl Pixels {
             .await
     }
 
+    /// Change the clear color.
+    ///
+    /// Allows customization of the background color and the border drawn for non-integer scale
+    /// values.
+    ///
+    /// ```no_run
+    /// use pixels::wgpu::Color;
+    ///
+    /// # use pixels::Pixels;
+    /// # let window = pixels_mocks::Rwh;
+    /// # let surface_texture = pixels::SurfaceTexture::new(320, 240, &window);
+    /// let mut pixels = Pixels::new(320, 240, surface_texture)?;
+    ///
+    /// // Set clear color to red.
+    /// pixels.set_clear_color(Color::RED);
+    /// # Ok::<(), pixels::Error>(())
+    /// ```
+    pub fn set_clear_color(&mut self, color: wgpu::Color) {
+        self.context.scaling_renderer.clear_color = color;
+    }
+
     /// Resize the pixel buffer and zero its contents.
     ///
     /// This does not resize the surface upon which the pixel buffer texture is rendered. Use
@@ -262,6 +283,7 @@ impl Pixels {
                 // Render texture values
                 &self.surface_size,
                 self.render_texture_format,
+                self.context.scaling_renderer.clear_color,
             );
 
         self.scaling_matrix_inverse = scaling_matrix_inverse;
