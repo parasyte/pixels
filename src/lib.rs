@@ -97,7 +97,6 @@ pub struct Pixels {
     surface_size: SurfaceSize,
     present_mode: wgpu::PresentMode,
     render_texture_format: wgpu::TextureFormat,
-    clear_color: wgpu::Color,
 
     // Pixel buffer
     pixels: Vec<u8>,
@@ -251,7 +250,7 @@ impl Pixels {
     /// # Ok::<(), pixels::Error>(())
     /// ```
     pub fn clear_color(&mut self, color: wgpu::Color) {
-        self.clear_color = color;
+        self.context.scaling_renderer.clear_color = color;
     }
 
     /// Resize the pixel buffer and zero its contents.
@@ -284,7 +283,7 @@ impl Pixels {
                 // Render texture values
                 &self.surface_size,
                 self.render_texture_format,
-                self.clear_color,
+                self.context.scaling_renderer.clear_color,
             );
 
         self.scaling_matrix_inverse = scaling_matrix_inverse;

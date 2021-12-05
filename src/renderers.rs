@@ -9,7 +9,7 @@ pub struct ScalingRenderer {
     uniform_buffer: wgpu::Buffer,
     bind_group: wgpu::BindGroup,
     render_pipeline: wgpu::RenderPipeline,
-    clear_color: wgpu::Color,
+    pub(crate) clear_color: wgpu::Color,
     width: f32,
     height: f32,
     clip_rect: (u32, u32, u32, u32),
@@ -155,10 +155,7 @@ impl ScalingRenderer {
                 entry_point: "fs_main",
                 targets: &[wgpu::ColorTargetState {
                     format: render_texture_format,
-                    blend: Some(wgpu::BlendState {
-                        color: wgpu::BlendComponent::REPLACE,
-                        alpha: wgpu::BlendComponent::REPLACE,
-                    }),
+                    blend: Some(wgpu::BlendState::ALPHA_BLENDING),
                     write_mask: wgpu::ColorWrites::ALL,
                 }],
             }),

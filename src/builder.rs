@@ -299,7 +299,6 @@ impl<'req, 'dev, 'win, W: HasRawWindowHandle> PixelsBuilder<'req, 'dev, 'win, W>
             surface_size,
             present_mode,
             render_texture_format,
-            clear_color,
             pixels,
             scaling_matrix_inverse,
         };
