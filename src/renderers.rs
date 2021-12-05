@@ -9,6 +9,7 @@ pub struct ScalingRenderer {
     uniform_buffer: wgpu::Buffer,
     bind_group: wgpu::BindGroup,
     render_pipeline: wgpu::RenderPipeline,
+    clear_color: wgpu::Color,
     width: f32,
     height: f32,
     clip_rect: (u32, u32, u32, u32),
@@ -21,6 +22,7 @@ impl ScalingRenderer {
         texture_size: &wgpu::Extent3d,
         surface_size: &SurfaceSize,
         render_texture_format: wgpu::TextureFormat,
+        clear_color: wgpu::Color,
     ) -> Self {
         let shader = wgpu::include_wgsl!("../shaders/scale.wgsl");
         let module = device.create_shader_module(&shader);
@@ -170,6 +172,7 @@ impl ScalingRenderer {
             uniform_buffer,
             bind_group,
             render_pipeline,
+            clear_color,
             width: texture_size.width as f32,
             height: texture_size.height as f32,
             clip_rect,
@@ -184,7 +187,7 @@ impl ScalingRenderer {
                 view: render_target,
                 resolve_target: None,
                 ops: wgpu::Operations {
-                    load: wgpu::LoadOp::Clear(wgpu::Color::BLACK),
+                    load: wgpu::LoadOp::Clear(self.clear_color),
                     store: true,
                 },
             }],
