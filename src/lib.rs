@@ -246,10 +246,10 @@ impl Pixels {
     /// let mut pixels = Pixels::new(320, 240, surface_texture)?;
     ///
     /// // Set clear color to red.
-    /// pixels.clear_color(Color::RED);
+    /// pixels.set_clear_color(Color::RED);
     /// # Ok::<(), pixels::Error>(())
     /// ```
-    pub fn clear_color(&mut self, color: wgpu::Color) {
+    pub fn set_clear_color(&mut self, color: wgpu::Color) {
         self.context.scaling_renderer.clear_color = color;
     }
 
