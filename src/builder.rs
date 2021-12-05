@@ -178,7 +178,7 @@ impl<'req, 'dev, 'win, W: HasRawWindowHandle> PixelsBuilder<'req, 'dev, 'win, W>
         self
     }
 
-    /// Set the clear color.
+    /// Set the default clear color.
     ///
     /// Allows customization of the background color and the border drawn for non-integer scale
     /// values.
