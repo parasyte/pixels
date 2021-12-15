@@ -15,6 +15,7 @@ pub struct PixelsBuilder<'req, 'dev, 'win, W: HasRawWindowHandle> {
     surface_texture: SurfaceTexture<'win, W>,
     texture_format: wgpu::TextureFormat,
     render_texture_format: Option<wgpu::TextureFormat>,
+    clear_color: wgpu::Color,
 }
 
 impl<'req, 'dev, 'win, W: HasRawWindowHandle> PixelsBuilder<'req, 'dev, 'win, W> {
@@ -67,6 +68,7 @@ impl<'req, 'dev, 'win, W: HasRawWindowHandle> PixelsBuilder<'req, 'dev, 'win, W>
             surface_texture,
             texture_format: wgpu::TextureFormat::Rgba8UnormSrgb,
             render_texture_format: None,
+            clear_color: wgpu::Color::BLACK,
         }
     }
 
@@ -176,6 +178,33 @@ impl<'req, 'dev, 'win, W: HasRawWindowHandle> PixelsBuilder<'req, 'dev, 'win, W>
         self
     }
 
+    /// Set the default clear color.
+    ///
+    /// Allows customization of the background color and the border drawn for non-integer scale
+    /// values.
+    ///
+    /// ```no_run
+    /// use pixels::wgpu::Color;
+    ///
+    /// # use pixels::PixelsBuilder;
+    /// # let window = pixels_mocks::Rwh;
+    /// # let surface_texture = pixels::SurfaceTexture::new(320, 240, &window);
+    /// // Set clear color to bright magenta.
+    /// let mut pixels = PixelsBuilder::new(320, 240, surface_texture)
+    ///     .clear_color(Color {
+    ///         r: 1.0,
+    ///         g: 0.0,
+    ///         b: 1.0,
+    ///         a: 1.0,
+    ///     })
+    ///     .build()?;
+    /// # Ok::<(), pixels::Error>(())
+    /// ```
+    pub fn clear_color(mut self, color: wgpu::Color) -> Self {
+        self.clear_color = color;
+        self
+    }
+
     /// Create a pixel buffer from the options builder.
     ///
     /// This is the private implementation shared by [`PixelsBuilder::build`] and
@@ -235,6 +264,7 @@ impl<'req, 'dev, 'win, W: HasRawWindowHandle> PixelsBuilder<'req, 'dev, 'win, W>
 
         // Create the backing texture
         let surface_size = self.surface_texture.size;
+        let clear_color = self.clear_color;
         let (scaling_matrix_inverse, texture_extent, texture, scaling_renderer, pixels_buffer_size) =
             create_backing_texture(
                 &device,
@@ -245,6 +275,7 @@ impl<'req, 'dev, 'win, W: HasRawWindowHandle> PixelsBuilder<'req, 'dev, 'win, W>
                 // Render texture values
                 &surface_size,
                 render_texture_format,
+                clear_color,
             );
 
         // Create the pixel buffer
@@ -323,6 +354,7 @@ pub(crate) fn create_backing_texture(
     backing_texture_format: wgpu::TextureFormat,
     surface_size: &SurfaceSize,
     render_texture_format: wgpu::TextureFormat,
+    clear_color: wgpu::Color,
 ) -> (
     ultraviolet::Mat4,
     wgpu::Extent3d,
@@ -360,6 +392,7 @@ pub(crate) fn create_backing_texture(
         &texture_extent,
         surface_size,
         render_texture_format,
+        clear_color,
     );
 
     let texture_format_size = get_texture_format_size(backing_texture_format);

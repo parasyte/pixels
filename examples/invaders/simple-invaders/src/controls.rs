@@ -1,5 +1,5 @@
 /// Player control inputs.
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct Controls {
     /// Move the player.
     pub direction: Direction,
@@ -16,15 +16,6 @@ pub enum Direction {
     Left,
     /// Move to the right.
     Right,
-}
-
-impl Default for Controls {
-    fn default() -> Controls {
-        Controls {
-            direction: Direction::default(),
-            fire: false,
-        }
-    }
 }
 
 impl Default for Direction {

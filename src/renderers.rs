@@ -9,6 +9,7 @@ pub struct ScalingRenderer {
     uniform_buffer: wgpu::Buffer,
     bind_group: wgpu::BindGroup,
     render_pipeline: wgpu::RenderPipeline,
+    pub(crate) clear_color: wgpu::Color,
     width: f32,
     height: f32,
     clip_rect: (u32, u32, u32, u32),
@@ -21,6 +22,7 @@ impl ScalingRenderer {
         texture_size: &wgpu::Extent3d,
         surface_size: &SurfaceSize,
         render_texture_format: wgpu::TextureFormat,
+        clear_color: wgpu::Color,
     ) -> Self {
         let shader = wgpu::include_wgsl!("../shaders/scale.wgsl");
         let module = device.create_shader_module(&shader);
@@ -153,10 +155,7 @@ impl ScalingRenderer {
                 entry_point: "fs_main",
                 targets: &[wgpu::ColorTargetState {
                     format: render_texture_format,
-                    blend: Some(wgpu::BlendState {
-                        color: wgpu::BlendComponent::REPLACE,
-                        alpha: wgpu::BlendComponent::REPLACE,
-                    }),
+                    blend: Some(wgpu::BlendState::ALPHA_BLENDING),
                     write_mask: wgpu::ColorWrites::ALL,
                 }],
             }),
@@ -170,6 +169,7 @@ impl ScalingRenderer {
             uniform_buffer,
             bind_group,
             render_pipeline,
+            clear_color,
             width: texture_size.width as f32,
             height: texture_size.height as f32,
             clip_rect,
@@ -184,7 +184,7 @@ impl ScalingRenderer {
                 view: render_target,
                 resolve_target: None,
                 ops: wgpu::Operations {
-                    load: wgpu::LoadOp::Clear(wgpu::Color::BLACK),
+                    load: wgpu::LoadOp::Clear(self.clear_color),
                     store: true,
                 },
             }],
@@ -243,8 +243,8 @@ impl ScalingMatrix {
         // Create a transformation matrix
         let sw = scaled_width / screen_width;
         let sh = scaled_height / screen_height;
-        let tx = (texture_width / screen_width - 1.0).max(0.0);
-        let ty = (1.0 - texture_height / screen_height).min(0.0);
+        let tx = (screen_width / 2.0).fract() / screen_width;
+        let ty = (screen_height / 2.0).fract() / screen_height;
         #[rustfmt::skip]
         let transform: [f32; 16] = [
             sw,  0.0, 0.0, 0.0,
