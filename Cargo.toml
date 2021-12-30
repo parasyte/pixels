@@ -20,10 +20,10 @@ include = [
 
 [dependencies]
 bytemuck = "1.7"
-raw-window-handle = "0.3"
+raw-window-handle = "0.4"
 thiserror = "1.0"
 ultraviolet = "0.8"
-wgpu = "0.11"
+wgpu = "0.12"
 
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
 pollster = "0.2"
@@ -38,3 +38,6 @@ members = [
     "examples/*",
     "internals/*",
 ]
+
+[patch.crates-io]
+egui_wgpu_backend = { git = "https://github.com/Jengamon/egui_wgpu_backend.git", branch = "egui-0.16" }

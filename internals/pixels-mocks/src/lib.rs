@@ -5,9 +5,7 @@ pub struct Rwh;
 unsafe impl raw_window_handle::HasRawWindowHandle for Rwh {
     fn raw_window_handle(&self) -> raw_window_handle::RawWindowHandle {
         #[cfg(target_os = "macos")]
-        return raw_window_handle::RawWindowHandle::MacOS(
-            raw_window_handle::macos::MacOSHandle::empty(),
-        );
+        return raw_window_handle::RawWindowHandle::AppKit(raw_window_handle::AppKitHandle::empty());
         #[cfg(any(
             target_os = "linux",
             target_os = "dragonfly",
@@ -16,13 +14,11 @@ unsafe impl raw_window_handle::HasRawWindowHandle for Rwh {
             target_os = "openbsd",
         ))]
         return raw_window_handle::RawWindowHandle::Wayland(
-            raw_window_handle::unix::WaylandHandle::empty(),
+            raw_window_handle::WaylandHandle::empty(),
         );
         #[cfg(target_os = "windows")]
-        return raw_window_handle::RawWindowHandle::Windows(
-            raw_window_handle::windows::WindowsHandle::empty(),
-        );
+        return raw_window_handle::RawWindowHandle::Win32(raw_window_handle::Win32Handle::empty());
         #[cfg(target_os = "ios")]
-        return raw_window_handle::RawWindowHandle::IOS(raw_window_handle::ios::IOSHandle::empty());
+        return raw_window_handle::RawWindowHandle::UiKit(raw_window_handle::UiKitHandle::empty());
     }
 }
