@@ -2,21 +2,20 @@
 name = "minimal-web"
 version = "0.1.0"
 authors = ["Jay Oster <jay@kodewerx.org>"]
-edition = "2018"
-resolver = "2"
+edition = "2021"
 publish = false
 
 [features]
 optimize = ["log/release_max_level_warn"]
-web = ["wgpu/webgl", "winit/web-sys"]
+web = ["wgpu/webgl"]
 default = ["optimize"]
 
 [dependencies]
 log = "0.4"
 pixels = { path = "../.." }
-wgpu = "0.11"
-winit = "0.25"
-winit_input_helper = "0.10"
+wgpu = "0.12"
+winit = "0.26"
+winit_input_helper = "0.11"
 
 [target.'cfg(target_arch = "wasm32")'.dependencies]
 console_error_panic_hook = "0.1"

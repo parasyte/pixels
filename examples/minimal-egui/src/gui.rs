@@ -65,15 +65,13 @@ impl Framework {
 
     /// Prepare egui.
     pub(crate) fn prepare(&mut self, window: &Window) {
-        // Begin the egui frame.
+        // Run the egui frame and create all paint jobs to prepare for rendering.
         let raw_input = self.egui_state.take_egui_input(window);
-        self.egui_ctx.begin_frame(raw_input);
+        let (output, paint_commands) = self.egui_ctx.run(raw_input, |egui_ctx| {
+            // Draw the demo application.
+            self.gui.ui(egui_ctx);
+        });
 
-        // Draw the demo application.
-        self.gui.ui(&self.egui_ctx);
-
-        // End the egui frame and create all paint jobs to prepare for rendering.
-        let (output, paint_commands) = self.egui_ctx.end_frame();
         self.egui_state
             .handle_output(window, &self.egui_ctx, output);
         self.paint_jobs = self.egui_ctx.tessellate(paint_commands);
@@ -88,7 +86,7 @@ impl Framework {
     ) -> Result<(), BackendError> {
         // Upload all resources to the GPU.
         self.rpass
-            .update_texture(&context.device, &context.queue, &self.egui_ctx.texture());
+            .update_texture(&context.device, &context.queue, &self.egui_ctx.font_image());
         self.rpass
             .update_user_textures(&context.device, &context.queue);
         self.rpass.update_buffers(
@@ -119,9 +117,10 @@ impl Gui {
     fn ui(&mut self, ctx: &CtxRef) {
         egui::TopBottomPanel::top("menubar_container").show(ctx, |ui| {
             egui::menu::bar(ui, |ui| {
-                egui::menu::menu(ui, "File", |ui| {
+                ui.menu_button("File", |ui| {
                     if ui.button("About...").clicked() {
                         self.window_open = true;
+                        ui.close_menu();
                     }
                 })
             });

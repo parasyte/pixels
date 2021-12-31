@@ -425,6 +425,8 @@ const fn get_texture_format_size(texture_format: wgpu::TextureFormat) -> f32 {
         R16Uint
         | R16Sint
         | R16Float
+        | R16Unorm
+        | R16Snorm
         | Rg8Unorm
         | Rg8Snorm
         | Rg8Uint
@@ -438,6 +440,8 @@ const fn get_texture_format_size(texture_format: wgpu::TextureFormat) -> f32 {
         | Rg16Uint
         | Rg16Sint
         | Rg16Float
+        | Rg16Unorm
+        | Rg16Snorm
         | Rgba8Unorm
         | Rgba8UnormSrgb
         | Rgba8Snorm
@@ -457,7 +461,9 @@ const fn get_texture_format_size(texture_format: wgpu::TextureFormat) -> f32 {
         | Rg32Float
         | Rgba16Uint
         | Rgba16Sint
-        | Rgba16Float => 8.0, // 64.0 / 8.0
+        | Rgba16Float
+        | Rgba16Unorm
+        | Rgba16Snorm => 8.0, // 64.0 / 8.0
 
         // 128-bit formats, 8 bits per component
         Rgba32Uint
@@ -471,12 +477,12 @@ const fn get_texture_format_size(texture_format: wgpu::TextureFormat) -> f32 {
         | Bc1RgbaUnormSrgb
         | Bc4RUnorm
         | Bc4RSnorm
-        | Etc2RgbUnorm
-        | Etc2RgbUnormSrgb
-        | Etc2RgbA1Unorm
-        | Etc2RgbA1UnormSrgb
-        | EacRUnorm
-        | EacRSnorm => 0.5, // 4.0 * 4.0 / 8.0
+        | Etc2Rgb8Unorm
+        | Etc2Rgb8UnormSrgb
+        | Etc2Rgb8A1Unorm
+        | Etc2Rgb8A1UnormSrgb
+        | EacR11Unorm
+        | EacR11Snorm => 0.5, // 4.0 * 4.0 / 8.0
 
         // 4x4 blocks, 16 bytes per block
         Bc2RgbaUnorm
@@ -489,8 +495,10 @@ const fn get_texture_format_size(texture_format: wgpu::TextureFormat) -> f32 {
         | Bc6hRgbSfloat
         | Bc7RgbaUnorm
         | Bc7RgbaUnormSrgb
-        | EacRgUnorm
-        | EacRgSnorm
+        | EacRg11Unorm
+        | EacRg11Snorm
+        | Etc2Rgba8Unorm
+        | Etc2Rgba8UnormSrgb
         | Astc4x4RgbaUnorm
         | Astc4x4RgbaUnormSrgb => 1.0, // 4.0 * 4.0 / 16.0
 

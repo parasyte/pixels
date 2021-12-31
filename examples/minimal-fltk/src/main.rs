@@ -26,7 +26,6 @@ fn main() -> Result<(), Error> {
     let mut win = Window::default()
         .with_size(WIDTH as i32, HEIGHT as i32)
         .with_label("Hello Pixels");
-    win.make_resizable(true);
     win.end();
     win.show();
 

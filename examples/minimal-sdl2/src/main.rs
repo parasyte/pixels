@@ -2,8 +2,14 @@
 #![forbid(unsafe_code)]
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
-use beryllium::*;
+use beryllium::{
+    event::Event,
+    init::{InitFlags, Sdl},
+    window::WindowFlags,
+};
+use fermium::keycode;
 use pixels::{Pixels, SurfaceTexture};
+use zstring::zstr;
 
 const WIDTH: u32 = 320;
 const HEIGHT: u32 = 240;
@@ -19,34 +25,36 @@ struct World {
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     env_logger::init();
-    let sdl = SDL::init(InitFlags::default())?;
-    let window =
-        sdl.create_raw_window("Hello Pixels", WindowPosition::Centered, WIDTH, HEIGHT, 0)?;
+    let sdl = Sdl::init(InitFlags::EVERYTHING)?;
+    let window = sdl.create_vk_window(
+        zstr!("Hello Pixels"),
+        None,
+        (WIDTH as i32, HEIGHT as i32),
+        WindowFlags::ALLOW_HIGHDPI,
+    )?;
 
     let mut pixels = {
         // TODO: Beryllium does not expose the SDL2 `GetDrawableSize` APIs, so choosing the correct
         // surface texture size is not possible.
-        let surface_texture = SurfaceTexture::new(WIDTH, HEIGHT, &window);
+        let surface_texture = SurfaceTexture::new(WIDTH, HEIGHT, &*window);
         Pixels::new(WIDTH, HEIGHT, surface_texture)?
     };
     let mut world = World::new();
 
     'game_loop: loop {
-        match sdl.poll_events().and_then(Result::ok) {
-            // Close events
-            Some(Event::Quit { .. }) => break 'game_loop,
-            Some(Event::Keyboard(KeyboardEvent {
-                key: KeyInfo { keycode: key, .. },
-                ..
-            })) if key == Keycode::ESCAPE => break 'game_loop,
+        while let Some(event) = sdl.poll_event() {
+            match event {
+                // Close events
+                Event::Quit { .. } => break 'game_loop,
+                Event::Keyboard { keycode: key, .. } if key == keycode::SDLK_ESCAPE => {
+                    break 'game_loop
+                }
 
-            // Resize the window
-            Some(Event::Window(WindowEvent {
-                event: WindowEventEnum::Resized { w, h },
-                ..
-            })) => pixels.resize_surface(w as u32, h as u32),
+                // Resize the window
+                Event::WindowResized { width, height, .. } => pixels.resize_surface(width, height),
 
-            _ => (),
+                _ => (),
+            }
         }
 
         // Update internal state

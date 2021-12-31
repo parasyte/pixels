@@ -2,8 +2,7 @@
 name = "minimal-sdl2"
 version = "0.1.0"
 authors = ["Jay Oster <jay@kodewerx.org>"]
-edition = "2018"
-resolver = "2"
+edition = "2021"
 publish = false
 
 [features]
@@ -11,7 +10,9 @@ optimize = ["log/release_max_level_warn"]
 default = ["optimize"]
 
 [dependencies]
-beryllium = { version = "0.3", features = ["extern_crate_raw_window_handle"] }
+beryllium = { version = "0.7", features = ["use-raw-window-handle"] }
 env_logger = "0.9"
+fermium = { version = "20016.1.1", default-features = false }
 log = "0.4"
 pixels = { path = "../.." }
+zstring = "0.1"

@@ -2,8 +2,7 @@
 name = "custom-shader"
 version = "0.1.0"
 authors = ["Jay Oster <jay@kodewerx.org>"]
-edition = "2018"
-resolver = "2"
+edition = "2021"
 publish = false
 
 [features]
@@ -15,5 +14,5 @@ bytemuck = "1.7"
 env_logger = "0.9"
 log = "0.4"
 pixels = { path = "../.." }
-winit = "0.25"
-winit_input_helper = "0.10"
+winit = "0.26"
+winit_input_helper = "0.11"

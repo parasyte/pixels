@@ -3,7 +3,7 @@ name = "pixels"
 description = "A tiny library providing a GPU-powered pixel frame buffer."
 version = "0.8.0"
 authors = ["Jay Oster <jay@kodewerx.org>"]
-edition = "2018"
+edition = "2021"
 repository = "https://github.com/parasyte/pixels"
 readme = "README.md"
 keywords = ["pixels", "2D", "GPU", "framebuffer"]
@@ -20,17 +20,17 @@ include = [
 
 [dependencies]
 bytemuck = "1.7"
-raw-window-handle = "0.3"
+raw-window-handle = "0.4"
 thiserror = "1.0"
 ultraviolet = "0.8"
-wgpu = "0.11"
+wgpu = "0.12"
 
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
 pollster = "0.2"
 
 [dev-dependencies]
 pixels-mocks = { path = "internals/pixels-mocks" }
-winit = "0.25"
+winit = "0.26"
 
 [workspace]
 resolver = "2"

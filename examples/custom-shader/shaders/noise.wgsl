@@ -19,7 +19,7 @@ fn vs_main(
 
 [[group(0), binding(0)]] var r_tex_color: texture_2d<f32>;
 [[group(0), binding(1)]] var r_tex_sampler: sampler;
-[[block]] struct Locals {
+struct Locals {
     time: f32;
 };
 [[group(0), binding(2)]] var<uniform> r_locals: Locals;
