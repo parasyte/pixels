@@ -40,4 +40,4 @@ members = [
 ]
 
 [patch.crates-io]
-egui_wgpu_backend = { git = "https://github.com/Jengamon/egui_wgpu_backend.git", branch = "egui-0.16" }
+egui_wgpu_backend = { git = "https://github.com/hasenbanck/egui_wgpu_backend.git", branch = "egui-0.16" }
