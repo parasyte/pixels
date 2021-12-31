@@ -38,6 +38,3 @@ members = [
     "examples/*",
     "internals/*",
 ]
-
-[patch.crates-io]
-egui_wgpu_backend = { git = "https://github.com/hasenbanck/egui_wgpu_backend.git", branch = "egui-0.16" }
