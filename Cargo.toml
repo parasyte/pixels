@@ -33,7 +33,6 @@ pixels-mocks = { path = "internals/pixels-mocks" }
 winit = "0.26"
 
 [workspace]
-resolver = "2"
 members = [
     "examples/*",
     "internals/*",
