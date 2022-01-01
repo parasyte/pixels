@@ -41,16 +41,6 @@ The Minimum Supported Rust Version for `pixels` will always be made available in
 
 ## Troubleshooting
 
-### Cargo resolver
-
-Starting with [`wgpu` 0.10](https://github.com/gfx-rs/wgpu/blob/06316c1bac8b78ac04d762cfb1a886bd1d453b30/CHANGELOG.md#v010-2021-08-18), the [resolver version](https://doc.rust-lang.org/cargo/reference/resolver.html#resolver-versions) needs to be set in your `Cargo.toml` to avoid build errors:
-
-```toml
-resolver = "2"
-```
-
-Perhaps a better alternative is specifying [`edition = "2021"`](https://doc.rust-lang.org/edition-guide/rust-2021/default-cargo-resolver.html), especially if you are starting a new project with Rust `1.56.0` or later.
-
 ### Driver issues
 
 The most common issue is having an outdated graphics driver installed on the host machine. `pixels`
