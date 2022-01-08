@@ -3,7 +3,7 @@ use std::rc::Rc;
 use std::time::Duration;
 
 use crate::loader::Assets;
-use crate::{Point, SCREEN_HEIGHT, SCREEN_WIDTH};
+use crate::{Point, HEIGHT, WIDTH};
 use line_drawing::Bresenham;
 
 // This is the type stored in the `Assets` hash map
@@ -191,15 +191,15 @@ pub(crate) fn blit<S>(screen: &mut [u8], dest: &Point, sprite: &S)
 where
     S: Drawable,
 {
-    assert!(dest.x + sprite.width() <= SCREEN_WIDTH);
-    assert!(dest.y + sprite.height() <= SCREEN_HEIGHT);
+    assert!(dest.x + sprite.width() <= WIDTH);
+    assert!(dest.y + sprite.height() <= HEIGHT);
 
     let pixels = sprite.pixels();
     let width = sprite.width() * 4;
 
     let mut s = 0;
     for y in 0..sprite.height() {
-        let i = dest.x * 4 + dest.y * SCREEN_WIDTH * 4 + y * SCREEN_WIDTH * 4;
+        let i = dest.x * 4 + dest.y * WIDTH * 4 + y * WIDTH * 4;
 
         // Merge pixels from sprite into screen
         let zipped = screen[i..i + width].iter_mut().zip(&pixels[s..s + width]);
@@ -219,9 +219,9 @@ pub(crate) fn line(screen: &mut [u8], p1: &Point, p2: &Point, color: [u8; 4]) {
     let p2 = (p2.x as i64, p2.y as i64);
 
     for (x, y) in Bresenham::new(p1, p2) {
-        let x = min(x as usize, SCREEN_WIDTH - 1);
-        let y = min(y as usize, SCREEN_HEIGHT - 1);
-        let i = x * 4 + y * SCREEN_WIDTH * 4;
+        let x = min(x as usize, WIDTH - 1);
+        let y = min(y as usize, HEIGHT - 1);
+        let i = x * 4 + y * WIDTH * 4;
 
         screen[i..i + 4].copy_from_slice(&color);
     }

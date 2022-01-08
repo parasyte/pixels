@@ -24,9 +24,9 @@ mod loader;
 mod sprites;
 
 /// The screen width is constant (units are in pixels)
-pub const SCREEN_WIDTH: usize = 224;
+pub const WIDTH: usize = 224;
 /// The screen height is constant (units are in pixels)
-pub const SCREEN_HEIGHT: usize = 256;
+pub const HEIGHT: usize = 256;
 
 // Invader positioning
 const START: Point = Point::new(24, 64);
@@ -343,7 +343,7 @@ impl World {
                     }
                 }
                 Direction::Right => {
-                    if right > SCREEN_WIDTH - 2 {
+                    if right > WIDTH - 2 {
                         self.invaders.bounds.pos.x -= 2;
                         self.invaders.bounds.pos.y += 8;
                         self.invaders.descend = true;
@@ -406,7 +406,7 @@ impl World {
             }
 
             Direction::Right => {
-                if self.player.pos.x < SCREEN_WIDTH - width * 2 {
+                if self.player.pos.x < WIDTH - width * 2 {
                     self.player.pos.x += frames;
                     self.player.sprite.animate(&self.assets, dt);
                 }
