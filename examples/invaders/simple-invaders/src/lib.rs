@@ -29,7 +29,7 @@ pub const HEIGHT: usize = 256;
 
 // Fixed time step (240 fps)
 pub const FPS: usize = 240;
-pub(crate) const TIME_STEP: Duration = Duration::from_nanos(1_000_000_000 / FPS as u64);
+pub const TIME_STEP: Duration = Duration::from_nanos(1_000_000_000 / FPS as u64);
 // Internally, the game advances at 60 fps
 const ONE_FRAME: Duration = Duration::from_nanos(1_000_000_000 / 60);
 

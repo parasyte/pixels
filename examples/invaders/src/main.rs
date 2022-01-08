@@ -5,7 +5,7 @@ use game_loop::{game_loop, Time, TimeTrait as _};
 use gilrs::{Button, GamepadId, Gilrs};
 use log::{debug, error};
 use pixels::{Error, Pixels, SurfaceTexture};
-use simple_invaders::{Controls, Direction, World, FPS, HEIGHT, WIDTH};
+use simple_invaders::{Controls, Direction, World, FPS, HEIGHT, TIME_STEP, WIDTH};
 use std::{env, time::Duration};
 use winit::{
     dpi::LogicalSize,
@@ -21,8 +21,6 @@ struct Game {
     pixels: Pixels,
     /// Invaders world.
     world: World,
-    /// Fixed time step for physics.
-    time_step: Duration,
     /// Player controls for world updates.
     controls: Controls,
     /// Event manager.
@@ -42,7 +40,6 @@ impl Game {
         Self {
             pixels,
             world: World::new(generate_seed(), debug),
-            time_step: Duration::from_secs_f64(1.0 / FPS as f64),
             controls: Controls::default(),
             input: WinitInputHelper::new(),
             gilrs: Gilrs::new().unwrap(), // XXX: Don't unwrap.
@@ -163,7 +160,7 @@ fn main() -> Result<(), Error> {
 
             // Sleep the main thread to limit drawing to the fixed time step.
             // See: https://github.com/parasyte/pixels/issues/174
-            let dt = g.game.time_step.as_secs_f64() - Time::now().sub(&g.current_instant());
+            let dt = TIME_STEP.as_secs_f64() - Time::now().sub(&g.current_instant());
             if dt > 0.0 {
                 std::thread::sleep(Duration::from_secs_f64(dt));
             }
