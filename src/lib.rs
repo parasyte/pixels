@@ -31,7 +31,7 @@
 
 #![deny(clippy::all)]
 
-pub use crate::builder::PixelsBuilder;
+pub use crate::builder::{check_texture_size, PixelsBuilder};
 pub use crate::renderers::ScalingRenderer;
 pub use raw_window_handle;
 use raw_window_handle::{HasRawDisplayHandle, HasRawWindowHandle};
@@ -111,6 +111,7 @@ pub struct Pixels {
 
 /// All the ways in which creating a pixel buffer can fail.
 #[derive(Error, Debug)]
+#[non_exhaustive]
 pub enum Error {
     /// No suitable [`wgpu::Adapter`] found
     #[error("No suitable `wgpu::Adapter` found.")]
@@ -121,12 +122,27 @@ pub enum Error {
     /// Equivalent to [`wgpu::SurfaceError`]
     #[error("The GPU failed to acquire a surface frame.")]
     Surface(wgpu::SurfaceError),
+    /// Equivalent to [`TextureError`]
+    #[error("Texture creation failed: {0}")]
+    InvalidTexture(#[from] TextureError),
     /// User-defined error from custom render function
     #[error("User-defined error.")]
     UserDefined(#[from] DynError),
 }
 
 type DynError = Box<dyn std::error::Error + Send + Sync + 'static>;
+
+/// All the ways in which creating a texture can fail.
+#[derive(Error, Debug)]
+#[non_exhaustive]
+pub enum TextureError {
+    /// Unable to create a backing texture; Width is either 0 or greater than GPU limits
+    #[error("Texture width is invalid: {0}")]
+    TextureWidth(u32),
+    /// Unable to create a backing texture; Height is either 0 or greater than GPU limits
+    #[error("Texture height is invalid: {0}")]
+    TextureHeight(u32),
+}
 
 impl<'win, W: HasRawWindowHandle + HasRawDisplayHandle> SurfaceTexture<'win, W> {
     /// Create a logical texture for a window surface.
@@ -268,13 +284,11 @@ impl Pixels {
     /// Call this method to change the virtual screen resolution. E.g. when you want your pixel
     /// buffer to be resized from `640x480` to `800x600`.
     ///
-    /// # Panics
+    /// # Errors
     ///
-    /// Panics when `width` or `height` are 0.
-    pub fn resize_buffer(&mut self, width: u32, height: u32) {
-        assert!(width > 0);
-        assert!(height > 0);
-
+    /// - [`TextureError::TextureWidth`] when `width` is 0 or greater than GPU texture limits.
+    /// - [`TextureError::TextureHeight`] when `height` is 0 or greater than GPU texture limits.
+    pub fn resize_buffer(&mut self, width: u32, height: u32) -> Result<(), TextureError> {
         // Recreate the backing texture
         let (scaling_matrix_inverse, texture_extent, texture, scaling_renderer, pixels_buffer_size) =
             builder::create_backing_texture(
@@ -288,7 +302,7 @@ impl Pixels {
                 self.render_texture_format,
                 self.context.scaling_renderer.clear_color,
                 self.blend_state,
-            );
+            )?;
 
         self.scaling_matrix_inverse = scaling_matrix_inverse;
         self.context.texture_extent = texture_extent;
@@ -298,6 +312,8 @@ impl Pixels {
         // Resize the pixel buffer
         self.pixels
             .resize_with(pixels_buffer_size, Default::default);
+
+        Ok(())
     }
 
     /// Resize the surface upon which the pixel buffer texture is rendered.
@@ -311,10 +327,13 @@ impl Pixels {
     ///
     /// Call this method in response to a resize event from your window manager. The size expected
     /// is in physical pixel units. Does nothing when `width` or `height` are 0.
-    pub fn resize_surface(&mut self, width: u32, height: u32) {
-        if width == 0 || height == 0 {
-            return;
-        }
+    ///
+    /// # Errors
+    ///
+    /// - [`TextureError::TextureWidth`] when `width` is 0 or greater than GPU texture limits.
+    /// - [`TextureError::TextureHeight`] when `height` is 0 or greater than GPU texture limits.
+    pub fn resize_surface(&mut self, width: u32, height: u32) -> Result<(), TextureError> {
+        check_texture_size(&self.context.device, width, height)?;
 
         // Update SurfaceTexture dimensions
         self.surface_size.width = width;
@@ -338,6 +357,8 @@ impl Pixels {
         self.context
             .scaling_renderer
             .resize(&self.context.queue, width, height);
+
+        Ok(())
     }
 
     /// Draw this pixel buffer to the configured [`SurfaceTexture`].

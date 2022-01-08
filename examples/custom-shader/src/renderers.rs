@@ -1,4 +1,8 @@
-use pixels::wgpu::{self, util::DeviceExt};
+use pixels::{
+    check_texture_size,
+    wgpu::{self, util::DeviceExt},
+    TextureError,
+};
 
 pub(crate) struct NoiseRenderer {
     texture_view: wgpu::TextureView,
@@ -11,14 +15,18 @@ pub(crate) struct NoiseRenderer {
 }
 
 impl NoiseRenderer {
-    pub(crate) fn new(pixels: &pixels::Pixels, width: u32, height: u32) -> Self {
+    pub(crate) fn new(
+        pixels: &pixels::Pixels,
+        width: u32,
+        height: u32,
+    ) -> Result<Self, TextureError> {
         let device = pixels.device();
         let shader = wgpu::include_wgsl!("../shaders/noise.wgsl");
         let module = device.create_shader_module(shader);
 
         // Create a texture view that will be used as input
         // This will be used as the render target for the default scaling renderer
-        let texture_view = create_texture_view(pixels, width, height);
+        let texture_view = create_texture_view(pixels, width, height)?;
 
         // Create a texture sampler with nearest neighbor
         let sampler = device.create_sampler(&wgpu::SamplerDescriptor {
@@ -139,7 +147,7 @@ impl NoiseRenderer {
             multiview: None,
         });
 
-        Self {
+        Ok(Self {
             texture_view,
             sampler,
             bind_group_layout,
@@ -147,19 +155,20 @@ impl NoiseRenderer {
             render_pipeline,
             time_buffer,
             vertex_buffer,
-        }
+        })
     }
 
     pub(crate) fn get_texture_view(&self) -> &wgpu::TextureView {
         &self.texture_view
     }
 
-    pub(crate) fn resize(&mut self, pixels: &pixels::Pixels, width: u32, height: u32) {
-        if width == 0 || height == 0 {
-            return;
-        }
-
-        self.texture_view = create_texture_view(pixels, width, height);
+    pub(crate) fn resize(
+        &mut self,
+        pixels: &pixels::Pixels,
+        width: u32,
+        height: u32,
+    ) -> Result<(), TextureError> {
+        self.texture_view = create_texture_view(pixels, width, height)?;
         self.bind_group = create_bind_group(
             pixels.device(),
             &self.bind_group_layout,
@@ -167,6 +176,8 @@ impl NoiseRenderer {
             &self.sampler,
             &self.time_buffer,
         );
+
+        Ok(())
     }
 
     pub(crate) fn update(&self, queue: &wgpu::Queue, time: f32) {
@@ -199,8 +210,13 @@ impl NoiseRenderer {
     }
 }
 
-fn create_texture_view(pixels: &pixels::Pixels, width: u32, height: u32) -> wgpu::TextureView {
+fn create_texture_view(
+    pixels: &pixels::Pixels,
+    width: u32,
+    height: u32,
+) -> Result<wgpu::TextureView, TextureError> {
     let device = pixels.device();
+    check_texture_size(device, width, height)?;
     let texture_descriptor = wgpu::TextureDescriptor {
         label: None,
         size: pixels::wgpu::Extent3d {
@@ -215,9 +231,9 @@ fn create_texture_view(pixels: &pixels::Pixels, width: u32, height: u32) -> wgpu
         usage: wgpu::TextureUsages::TEXTURE_BINDING | wgpu::TextureUsages::RENDER_ATTACHMENT,
     };
 
-    device
+    Ok(device
         .create_texture(&texture_descriptor)
-        .create_view(&wgpu::TextureViewDescriptor::default())
+        .create_view(&wgpu::TextureViewDescriptor::default()))
 }
 
 fn create_bind_group(

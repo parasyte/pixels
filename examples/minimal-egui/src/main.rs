@@ -71,7 +71,11 @@ fn main() -> Result<(), Error> {
 
             // Resize the window
             if let Some(size) = input.window_resized() {
-                pixels.resize_surface(size.width, size.height);
+                if let Err(err) = pixels.resize_surface(size.width, size.height) {
+                    error!("pixels.resize_surface() failed: {err}");
+                    *control_flow = ControlFlow::Exit;
+                    return;
+                }
                 framework.resize(size.width, size.height);
             }
 
@@ -105,10 +109,8 @@ fn main() -> Result<(), Error> {
                 });
 
                 // Basic error handling
-                if render_result
-                    .map_err(|e| error!("pixels.render() failed: {}", e))
-                    .is_err()
-                {
+                if let Err(err) = render_result {
+                    error!("pixels.render() failed: {err}");
                     *control_flow = ControlFlow::Exit;
                 }
             }

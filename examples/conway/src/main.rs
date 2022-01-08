@@ -45,11 +45,8 @@ fn main() -> Result<(), Error> {
         // The one and only event that winit_input_helper doesn't have for us...
         if let Event::RedrawRequested(_) = event {
             life.draw(pixels.get_frame_mut());
-            if pixels
-                .render()
-                .map_err(|e| error!("pixels.render() failed: {}", e))
-                .is_err()
-            {
+            if let Err(err) = pixels.render() {
+                error!("pixels.render() failed: {}", err);
                 *control_flow = ControlFlow::Exit;
                 return;
             }
@@ -98,17 +95,17 @@ fn main() -> Result<(), Error> {
                 .unwrap_or_default();
 
             if input.mouse_pressed(0) {
-                debug!("Mouse click at {:?}", mouse_cell);
+                debug!("Mouse click at {mouse_cell:?}");
                 draw_state = Some(life.toggle(mouse_cell.0, mouse_cell.1));
             } else if let Some(draw_alive) = draw_state {
                 let release = input.mouse_released(0);
                 let held = input.mouse_held(0);
-                debug!("Draw at {:?} => {:?}", mouse_prev_cell, mouse_cell);
-                debug!("Mouse held {:?}, release {:?}", held, release);
+                debug!("Draw at {mouse_prev_cell:?} => {mouse_cell:?}");
+                debug!("Mouse held {held:?}, release {release:?}");
                 // If they either released (finishing the drawing) or are still
                 // in the middle of drawing, keep going.
                 if release || held {
-                    debug!("Draw line of {:?}", draw_alive);
+                    debug!("Draw line of {draw_alive:?}");
                     life.set_line(
                         mouse_prev_cell.0,
                         mouse_prev_cell.1,
@@ -125,7 +122,11 @@ fn main() -> Result<(), Error> {
             }
             // Resize the window
             if let Some(size) = input.window_resized() {
-                pixels.resize_surface(size.width, size.height);
+                if let Err(err) = pixels.resize_surface(size.width, size.height) {
+                    error!("pixels.resize_surface() failed: {err}");
+                    *control_flow = ControlFlow::Exit;
+                    return;
+                }
             }
             if !paused || input.key_pressed_os(VirtualKeyCode::Space) {
                 life.update();

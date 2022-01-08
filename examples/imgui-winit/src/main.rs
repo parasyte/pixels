@@ -76,10 +76,8 @@ fn main() -> Result<(), Error> {
             });
 
             // Basic error handling
-            if render_result
-                .map_err(|e| error!("pixels.render() failed: {}", e))
-                .is_err()
-            {
+            if let Err(err) = render_result {
+                error!("pixels.render() failed: {err}");
                 *control_flow = ControlFlow::Exit;
                 return;
             }
@@ -103,12 +101,20 @@ fn main() -> Result<(), Error> {
             if let Some(size) = input.window_resized() {
                 if size.width > 0 && size.height > 0 {
                     // Resize the surface texture
-                    pixels.resize_surface(size.width, size.height);
+                    if let Err(err) = pixels.resize_surface(size.width, size.height) {
+                        error!("pixels.resize_surface() failed: {err}");
+                        *control_flow = ControlFlow::Exit;
+                        return;
+                    }
 
                     // Resize the world
                     let LogicalSize { width, height } = size.to_logical(scale_factor);
                     world.resize(width, height);
-                    pixels.resize_buffer(width, height);
+                    if let Err(err) = pixels.resize_buffer(width, height) {
+                        error!("pixels.resize_buffer() failed: {err}");
+                        *control_flow = ControlFlow::Exit;
+                        return;
+                    }
                 }
             }
 
