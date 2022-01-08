@@ -61,8 +61,8 @@ impl Collision {
             ];
 
             for (x, y) in corners.iter() {
-                let col = (x - left) / GRID.x + invaders.bounds.left_col;
-                let row = (y - top) / GRID.y + invaders.bounds.top_row;
+                let col = x.saturating_sub(left) / GRID.x + invaders.bounds.left_col;
+                let row = y.saturating_sub(top) / GRID.y + invaders.bounds.top_row;
 
                 if col < COLS && row < ROWS && invaders.grid[row][col].is_some() {
                     let detail = BulletDetail::Invader(col, row);

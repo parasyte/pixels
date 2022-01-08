@@ -7,14 +7,13 @@
 #![deny(clippy::all)]
 #![forbid(unsafe_code)]
 
-use std::time::Duration;
-
 use crate::collision::Collision;
 pub use crate::controls::{Controls, Direction};
 use crate::geo::Point;
 use crate::loader::{load_assets, Assets};
 use crate::sprites::{blit, Animation, Drawable, Frame, Sprite, SpriteRef};
 use randomize::PCG32;
+use std::time::Duration;
 
 mod collision;
 mod controls;
@@ -27,6 +26,12 @@ mod sprites;
 pub const WIDTH: usize = 224;
 /// The screen height is constant (units are in pixels)
 pub const HEIGHT: usize = 256;
+
+// Fixed time step (240 fps)
+pub const FPS: usize = 240;
+pub const TIME_STEP: Duration = Duration::from_nanos(1_000_000_000 / FPS as u64);
+// Internally, the game advances at 60 fps
+const ONE_FRAME: Duration = Duration::from_nanos(1_000_000_000 / 60);
 
 // Invader positioning
 const START: Point = Point::new(24, 64);
@@ -92,7 +97,7 @@ struct Bounds {
 struct Player {
     sprite: SpriteRef,
     pos: Point,
-    dt: usize,
+    dt: Duration,
 }
 
 /// The shield entity.
@@ -108,7 +113,7 @@ struct Shield {
 struct Laser {
     sprite: SpriteRef,
     pos: Point,
-    dt: usize,
+    dt: Duration,
 }
 
 /// The cannon entity.
@@ -116,7 +121,37 @@ struct Laser {
 struct Bullet {
     sprite: SpriteRef,
     pos: Point,
-    dt: usize,
+    dt: Duration,
+}
+
+trait DeltaTime {
+    fn update(&mut self) -> usize;
+
+    fn update_dt(dest_dt: &mut Duration, step: Duration) -> usize {
+        *dest_dt += TIME_STEP;
+        let frames = dest_dt.as_nanos() / step.as_nanos();
+        *dest_dt -= Duration::from_nanos((frames * step.as_nanos()) as u64);
+
+        frames as usize
+    }
+}
+
+impl DeltaTime for Player {
+    fn update(&mut self) -> usize {
+        Self::update_dt(&mut self.dt, ONE_FRAME)
+    }
+}
+
+impl DeltaTime for Laser {
+    fn update(&mut self) -> usize {
+        Self::update_dt(&mut self.dt, ONE_FRAME)
+    }
+}
+
+impl DeltaTime for Bullet {
+    fn update(&mut self) -> usize {
+        Self::update_dt(&mut self.dt, TIME_STEP)
+    }
 }
 
 impl World {
@@ -168,7 +203,7 @@ impl World {
         let player = Player {
             sprite: SpriteRef::new(&assets, Player1, Duration::from_millis(100)),
             pos: PLAYER_START,
-            dt: 0,
+            dt: Duration::default(),
         };
         let bullet = None;
         let collision = Collision::default();
@@ -200,36 +235,34 @@ impl World {
     ///
     /// * `dt`: The time delta since last update.
     /// * `controls`: The player inputs.
-    pub fn update(&mut self, dt: &Duration, controls: &Controls) {
+    pub fn update(&mut self, controls: &Controls) {
         if self.gameover {
             // TODO: Add a game over screen
             return;
         }
 
-        let one_frame = Duration::new(0, 16_666_667);
-
         // Advance the timer by the delta time
-        self.dt += *dt;
+        self.dt += TIME_STEP;
 
         // Clear the collision details
         self.collision.clear();
 
         // Step the invaders one by one
-        while self.dt >= one_frame {
-            self.dt -= one_frame;
+        while self.dt >= ONE_FRAME {
+            self.dt -= ONE_FRAME;
             self.step_invaders();
         }
 
         // Handle player movement and animation
-        self.step_player(controls, dt);
+        self.step_player(controls);
 
         if let Some(bullet) = &mut self.bullet {
             // Handle bullet movement
-            let velocity = update_dt(&mut bullet.dt, dt) * 4;
+            let velocity = bullet.update();
 
             if bullet.pos.y > velocity {
                 bullet.pos.y -= velocity;
-                bullet.sprite.animate(&self.assets, dt);
+                bullet.sprite.animate(&self.assets);
 
                 // Handle collisions
                 if self
@@ -250,11 +283,11 @@ impl World {
         // Handle laser movement
         let mut destroy = Vec::new();
         for (i, laser) in self.lasers.iter_mut().enumerate() {
-            let velocity = update_dt(&mut laser.dt, dt) * 2;
+            let velocity = laser.update() * 2;
 
             if laser.pos.y < self.player.pos.y {
                 laser.pos.y += velocity;
-                laser.sprite.animate(&self.assets, dt);
+                laser.sprite.animate(&self.assets);
 
                 // Handle collisions
                 if self.collision.laser_to_player(laser, &self.player) {
@@ -387,28 +420,28 @@ impl World {
             let laser = Laser {
                 sprite: SpriteRef::new(&self.assets, Frame::Laser1, Duration::from_millis(16)),
                 pos: invader.pos + LASER_OFFSET,
-                dt: 0,
+                dt: Duration::default(),
             };
             self.lasers.push(laser);
         }
     }
 
-    fn step_player(&mut self, controls: &Controls, dt: &Duration) {
-        let frames = update_dt(&mut self.player.dt, dt);
+    fn step_player(&mut self, controls: &Controls) {
+        let frames = self.player.update();
         let width = self.player.sprite.width();
 
         match controls.direction {
             Direction::Left => {
                 if self.player.pos.x > width {
                     self.player.pos.x -= frames;
-                    self.player.sprite.animate(&self.assets, dt);
+                    self.player.sprite.animate(&self.assets);
                 }
             }
 
             Direction::Right => {
                 if self.player.pos.x < WIDTH - width * 2 {
                     self.player.pos.x += frames;
-                    self.player.sprite.animate(&self.assets, dt);
+                    self.player.sprite.animate(&self.assets);
                 }
             }
             _ => (),
@@ -418,7 +451,7 @@ impl World {
             self.bullet = Some(Bullet {
                 sprite: SpriteRef::new(&self.assets, Frame::Bullet1, Duration::from_millis(32)),
                 pos: self.player.pos + BULLET_OFFSET,
-                dt: 0,
+                dt: Duration::default(),
             });
         }
     }
@@ -611,12 +644,4 @@ fn next_invader<'a>(
             return (invaders[stepper.y][stepper.x].as_mut().unwrap(), is_leader);
         }
     }
-}
-
-fn update_dt(dest_dt: &mut usize, dt: &Duration) -> usize {
-    *dest_dt += dt.subsec_nanos() as usize;
-    let frames = *dest_dt / 16_666_667;
-    *dest_dt -= frames * 16_666_667;
-
-    frames
 }
