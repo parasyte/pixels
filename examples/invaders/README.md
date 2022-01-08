@@ -12,7 +12,7 @@ cargo run --release --package invaders
 
 ## Keyboard Controls
 
-<kbd>Left</kbd> <kbd>Right</kbd>: Move tank
+<kbd>🡰</kbd> <kbd>🡲</kbd>: Move tank
 
 <kbd>Space</kbd>: Fire cannon
 
