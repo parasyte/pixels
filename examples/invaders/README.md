@@ -10,11 +10,21 @@ The pixels have invaded!
 cargo run --release --package invaders
 ```
 
-## Controls
+## Keyboard Controls
 
-<kbd>Left</kbd> <kbd>Right</kbd> Move tank
+<kbd>Left</kbd> <kbd>Right</kbd>: Move tank
 
-<kbd>space</kbd> Fire cannon
+<kbd>Space</kbd>: Fire cannon
+
+<kbd>Pause</kbd> <kbd>P</kbd>: Pause
+
+## GamePad Controls
+
+`D-Pad 🡰` `D-Pad 🡲`: Move tank
+
+`XBox 🅐` `PS 🅧` `Switch 🅑`: Fire cannon
+
+`XBox/PS ≡` `Switch ⊕︀`: Pause
 
 ## Goal
 

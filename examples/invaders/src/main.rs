@@ -1,24 +1,120 @@
 #![deny(clippy::all)]
 #![forbid(unsafe_code)]
 
-use gilrs::{Button, Gilrs};
+use game_loop::{game_loop, Time, TimeTrait as _};
+use gilrs::{Button, GamepadId, Gilrs};
 use log::{debug, error};
 use pixels::{Error, Pixels, SurfaceTexture};
-use simple_invaders::{Controls, Direction, World, HEIGHT, WIDTH};
-use std::{env, time::Instant};
+use simple_invaders::{Controls, Direction, World, FPS, HEIGHT, WIDTH};
+use std::{env, time::Duration};
 use winit::{
     dpi::LogicalSize,
     event::{Event, VirtualKeyCode},
-    event_loop::{ControlFlow, EventLoop},
+    event_loop::EventLoop,
     window::WindowBuilder,
 };
 use winit_input_helper::WinitInputHelper;
 
+/// Uber-struct representing the entire game.
+struct Game {
+    /// Software renderer.
+    pixels: Pixels,
+    /// Invaders world.
+    world: World,
+    /// Fixed time step for physics.
+    time_step: Duration,
+    /// Player controls for world updates.
+    controls: Controls,
+    /// Event manager.
+    input: WinitInputHelper,
+    /// GamePad manager.
+    gilrs: Gilrs,
+    /// GamePad ID for the player.
+    gamepad: Option<GamepadId>,
+    /// Game pause state.
+    paused: bool,
+    /// State for key edge detection.
+    held: [bool; 2],
+}
+
+impl Game {
+    fn new(pixels: Pixels, debug: bool) -> Self {
+        Self {
+            pixels,
+            world: World::new(generate_seed(), debug),
+            time_step: Duration::from_secs_f64(1.0 / FPS as f64),
+            controls: Controls::default(),
+            input: WinitInputHelper::new(),
+            gilrs: Gilrs::new().unwrap(), // XXX: Don't unwrap.
+            gamepad: None,
+            paused: false,
+            held: [false; 2],
+        }
+    }
+
+    fn update_controls(&mut self, event: &Event<()>) {
+        // Let winit_input_helper collect events to build its state.
+        self.input.update(event);
+
+        // Pump the gilrs event loop and find an active gamepad
+        while let Some(gilrs::Event { id, event, .. }) = self.gilrs.next_event() {
+            let pad = self.gilrs.gamepad(id);
+            if self.gamepad.is_none() {
+                debug!("Gamepad with id {} is connected: {}", id, pad.name());
+                self.gamepad = Some(id);
+            } else if event == gilrs::ev::EventType::Disconnected {
+                debug!("Gamepad with id {} is disconnected: {}", id, pad.name());
+                self.gamepad = None;
+            }
+        }
+
+        self.controls = {
+            // Keyboard controls
+            let held = [
+                self.input.key_held(VirtualKeyCode::Pause),
+                self.input.key_held(VirtualKeyCode::P),
+            ];
+
+            let mut left = self.input.key_held(VirtualKeyCode::Left);
+            let mut right = self.input.key_held(VirtualKeyCode::Right);
+            let mut fire = self.input.key_held(VirtualKeyCode::Space);
+            let mut pause = (held[0] ^ self.held[0] & held[0]) | (held[1] ^ self.held[1] & held[1]);
+
+            self.held = held;
+
+            // GamePad controls
+            if let Some(id) = self.gamepad {
+                let gamepad = self.gilrs.gamepad(id);
+
+                left |= gamepad.is_pressed(Button::DPadLeft);
+                right |= gamepad.is_pressed(Button::DPadRight);
+                fire |= gamepad.is_pressed(Button::South);
+                pause |= gamepad.button_data(Button::Start).map_or(false, |button| {
+                    button.is_pressed() && button.counter() == self.gilrs.counter()
+                });
+            }
+            self.gilrs.inc();
+
+            if pause {
+                self.paused = !self.paused;
+            }
+
+            let direction = if left {
+                Direction::Left
+            } else if right {
+                Direction::Right
+            } else {
+                Direction::Still
+            };
+
+            Controls { direction, fire }
+        };
+    }
+}
+
 fn main() -> Result<(), Error> {
     env_logger::init();
     let event_loop = EventLoop::new();
-    let mut input = WinitInputHelper::new();
-    let mut gilrs = Gilrs::new().unwrap();
 
     // Enable debug mode with `DEBUG=true` environment variable
     let debug = env::var("DEBUG")
@@ -37,95 +133,57 @@ fn main() -> Result<(), Error> {
             .unwrap()
     };
 
-    let mut pixels = {
+    let pixels = {
         let window_size = window.inner_size();
         let surface_texture = SurfaceTexture::new(window_size.width, window_size.height, &window);
         Pixels::new(WIDTH as u32, HEIGHT as u32, surface_texture)?
     };
 
-    let mut invaders = World::new(generate_seed(), debug);
-    let mut time = Instant::now();
-    let mut gamepad = None;
+    let game = Game::new(pixels, debug);
 
-    event_loop.run(move |event, _, control_flow| {
-        // The one and only event that winit_input_helper doesn't have for us...
-        if let Event::RedrawRequested(_) = event {
-            invaders.draw(pixels.get_frame());
-            if pixels
-                .render()
-                .map_err(|e| error!("pixels.render() failed: {}", e))
-                .is_err()
-            {
-                *control_flow = ControlFlow::Exit;
-                return;
+    game_loop(
+        event_loop,
+        window,
+        game,
+        FPS as u32,
+        0.1,
+        move |g| {
+            // Update the world
+            if !g.game.paused {
+                g.game.world.update(&g.game.controls);
             }
-        }
-
-        // Pump the gilrs event loop and find an active gamepad
-        while let Some(gilrs::Event { id, event, .. }) = gilrs.next_event() {
-            let pad = gilrs.gamepad(id);
-            if gamepad.is_none() {
-                debug!("Gamepad with id {} is connected: {}", id, pad.name());
-                gamepad = Some(id);
-            } else if event == gilrs::ev::EventType::Disconnected {
-                debug!("Gamepad with id {} is disconnected: {}", id, pad.name());
-                gamepad = None;
+        },
+        move |g| {
+            // Drawing
+            g.game.world.draw(g.game.pixels.get_frame());
+            if let Err(e) = g.game.pixels.render() {
+                error!("pixels.render() failed: {}", e);
+                g.exit();
             }
-        }
 
-        // For everything else, for let winit_input_helper collect events to build its state.
-        // It returns `true` when it is time to update our game state and request a redraw.
-        if input.update(&event) {
+            // Sleep the main thread to limit drawing to the fixed time step.
+            // See: https://github.com/parasyte/pixels/issues/174
+            let dt = g.game.time_step.as_secs_f64() - Time::now().sub(&g.current_instant());
+            if dt > 0.0 {
+                std::thread::sleep(Duration::from_secs_f64(dt));
+            }
+        },
+        |g, event| {
+            // Update controls
+            g.game.update_controls(&event);
+
             // Close events
-            if input.key_pressed(VirtualKeyCode::Escape) || input.quit() {
-                *control_flow = ControlFlow::Exit;
+            if g.game.input.key_pressed(VirtualKeyCode::Escape) || g.game.input.quit() {
+                g.exit();
                 return;
             }
-
-            let controls = {
-                // Keyboard controls
-                let mut left = input.key_held(VirtualKeyCode::Left);
-                let mut right = input.key_held(VirtualKeyCode::Right);
-                let mut fire = input.key_pressed(VirtualKeyCode::Space);
-
-                // Gamepad controls
-                if let Some(id) = gamepad {
-                    let gamepad = gilrs.gamepad(id);
-
-                    left = left || gamepad.is_pressed(Button::DPadLeft);
-                    right = right || gamepad.is_pressed(Button::DPadRight);
-                    fire = fire
-                        || gamepad.button_data(Button::South).map_or(false, |button| {
-                            button.is_pressed() && button.counter() == gilrs.counter()
-                        });
-                }
-
-                let direction = if left {
-                    Direction::Left
-                } else if right {
-                    Direction::Right
-                } else {
-                    Direction::Still
-                };
-
-                Controls { direction, fire }
-            };
 
             // Resize the window
-            if let Some(size) = input.window_resized() {
-                pixels.resize_surface(size.width, size.height);
+            if let Some(size) = g.game.input.window_resized() {
+                g.game.pixels.resize_surface(size.width, size.height);
             }
-
-            // Get a new delta time.
-            let now = Instant::now();
-            let dt = now.duration_since(time);
-            time = now;
-
-            // Update the game logic and request redraw
-            invaders.update(&dt, &controls);
-            window.request_redraw();
-        }
-    });
+        },
+    );
 }
 
 /// Generate a pseudorandom seed for the game's PRNG.

@@ -1,10 +1,10 @@
+use crate::loader::Assets;
+use crate::TIME_STEP;
+use crate::{Point, HEIGHT, WIDTH};
+use line_drawing::Bresenham;
 use std::cmp::min;
 use std::rc::Rc;
 use std::time::Duration;
-
-use crate::loader::Assets;
-use crate::{Point, HEIGHT, WIDTH};
-use line_drawing::Bresenham;
 
 // This is the type stored in the `Assets` hash map
 pub(crate) type CachedSprite = (usize, usize, Rc<[u8]>);
@@ -74,7 +74,7 @@ pub(crate) trait Drawable {
 }
 
 pub(crate) trait Animation {
-    fn animate(&mut self, assets: &Assets, dt: &Duration);
+    fn animate(&mut self, assets: &Assets);
 }
 
 impl Sprite {
@@ -172,11 +172,11 @@ impl Drawable for SpriteRef {
 }
 
 impl Animation for SpriteRef {
-    fn animate(&mut self, assets: &Assets, dt: &Duration) {
+    fn animate(&mut self, assets: &Assets) {
         if self.duration.subsec_nanos() == 0 {
             self.step_frame(assets);
         } else {
-            self.dt += *dt;
+            self.dt += TIME_STEP;
 
             while self.dt >= self.duration {
                 self.dt -= self.duration;

@@ -12,6 +12,7 @@ default = ["optimize"]
 [dependencies]
 byteorder = "1.3"
 env_logger = "0.9"
+game-loop = { version = "0.8", features = ["window"] }
 getrandom = "0.2"
 gilrs = "0.8"
 log = "0.4"
