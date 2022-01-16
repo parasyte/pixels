@@ -15,6 +15,7 @@ pub struct PixelsBuilder<'req, 'dev, 'win, W: HasRawWindowHandle> {
     surface_texture: SurfaceTexture<'win, W>,
     texture_format: wgpu::TextureFormat,
     render_texture_format: Option<wgpu::TextureFormat>,
+    surface_texture_format: Option<wgpu::TextureFormat>,
     clear_color: wgpu::Color,
 }
 
@@ -68,6 +69,7 @@ impl<'req, 'dev, 'win, W: HasRawWindowHandle> PixelsBuilder<'req, 'dev, 'win, W>
             surface_texture,
             texture_format: wgpu::TextureFormat::Rgba8UnormSrgb,
             render_texture_format: None,
+            surface_texture_format: None,
             clear_color: wgpu::Color::BLACK,
         }
     }
@@ -157,6 +159,21 @@ impl<'req, 'dev, 'win, W: HasRawWindowHandle> PixelsBuilder<'req, 'dev, 'win, W>
 
     /// Set the render texture format.
     ///
+    /// This falls back on [`Pixels::surface_texture_format`] if not set.
+    ///
+    /// The [`ScalingRenderer`] uses this format for its own render target.
+    /// This is really only useful if you are running a custom shader pipeline and need different formats
+    /// for the intermediary textures (such as `Rgba16Float` for HDR rendering).
+    /// There is a full example of a
+    /// [custom-shader](https://github.com/parasyte/pixels/tree/master/examples/custom-shader)
+    /// available that demonstrates how to deal with this.
+    pub fn render_texture_format(mut self, texture_format: wgpu::TextureFormat) -> Self {
+        self.render_texture_format = Some(texture_format);
+        self
+    }
+
+    /// Set the surface texture format.
+    ///
     /// The default value is chosen automatically by the surface (if it can) with a fallback to
     /// `Bgra8UnormSrgb` (which is 4 unsigned bytes in `BGRA` order using the sRGB color space).
     /// Setting this format correctly depends on the hardware/platform the pixel buffer is rendered
@@ -167,14 +184,8 @@ impl<'req, 'dev, 'win, W: HasRawWindowHandle> PixelsBuilder<'req, 'dev, 'win, W>
     /// texture, but a view is provided to the `render_function` closure by [`Pixels::render_with`].
     /// The render texture can only be used as the final render target at the end of all
     /// post-processing shaders.
-    ///
-    /// The [`ScalingRenderer`] also uses this format for its own render target. This is because it
-    /// assumes the render target is always the surface current frame. This needs to be kept in
-    /// mind when writing custom shaders for post-processing effects. There is a full example of a
-    /// [custom-shader](https://github.com/parasyte/pixels/tree/master/examples/custom-shader)
-    /// available that demonstrates how to deal with this.
-    pub fn render_texture_format(mut self, texture_format: wgpu::TextureFormat) -> Self {
-        self.render_texture_format = Some(texture_format);
+    pub fn surface_texture_format(mut self, texture_format: wgpu::TextureFormat) -> Self {
+        self.surface_texture_format = Some(texture_format);
         self
     }
 
@@ -256,11 +267,12 @@ impl<'req, 'dev, 'win, W: HasRawWindowHandle> PixelsBuilder<'req, 'dev, 'win, W>
             .map_err(Error::DeviceNotFound)?;
 
         let present_mode = self.present_mode;
-        let render_texture_format = self.render_texture_format.unwrap_or_else(|| {
+        let surface_texture_format = self.surface_texture_format.unwrap_or_else(|| {
             surface
                 .get_preferred_format(&adapter)
                 .unwrap_or(wgpu::TextureFormat::Bgra8UnormSrgb)
         });
+        let render_texture_format = self.render_texture_format.unwrap_or(surface_texture_format);
 
         // Create the backing texture
         let surface_size = self.surface_texture.size;
@@ -299,6 +311,7 @@ impl<'req, 'dev, 'win, W: HasRawWindowHandle> PixelsBuilder<'req, 'dev, 'win, W>
             surface_size,
             present_mode,
             render_texture_format,
+            surface_texture_format,
             pixels,
             scaling_matrix_inverse,
         };

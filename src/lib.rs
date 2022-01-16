@@ -97,6 +97,7 @@ pub struct Pixels {
     surface_size: SurfaceSize,
     present_mode: wgpu::PresentMode,
     render_texture_format: wgpu::TextureFormat,
+    surface_texture_format: wgpu::TextureFormat,
 
     // Pixel buffer
     pixels: Vec<u8>,
@@ -480,7 +481,7 @@ impl Pixels {
             &self.context.device,
             &wgpu::SurfaceConfiguration {
                 usage: wgpu::TextureUsages::RENDER_ATTACHMENT,
-                format: self.render_texture_format,
+                format: self.surface_texture_format,
                 width: self.surface_size.width,
                 height: self.surface_size.height,
                 present_mode: self.present_mode,
@@ -607,10 +608,18 @@ impl Pixels {
         &self.context
     }
 
-    /// Get the render texture format.
+    /// Get the surface texture format.
     ///
     /// This texture format may be chosen automatically by the surface. See
-    /// [`PixelsBuilder::render_texture_format`] for more information.
+    /// [`PixelsBuilder::surface_texture_format`] for more information.
+    pub fn surface_texture_format(&self) -> wgpu::TextureFormat {
+        self.surface_texture_format
+    }
+
+    /// Get the render texture format.
+    ///
+    ///
+    /// See [`PixelsBuilder::render_texture_format`] for more information.
     pub fn render_texture_format(&self) -> wgpu::TextureFormat {
         self.render_texture_format
     }
