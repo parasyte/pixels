@@ -17,6 +17,7 @@ pub struct PixelsBuilder<'req, 'dev, 'win, W: HasRawWindowHandle> {
     render_texture_format: Option<wgpu::TextureFormat>,
     surface_texture_format: Option<wgpu::TextureFormat>,
     clear_color: wgpu::Color,
+    blend_state: wgpu::BlendState,
 }
 
 impl<'req, 'dev, 'win, W: HasRawWindowHandle> PixelsBuilder<'req, 'dev, 'win, W> {
@@ -71,6 +72,7 @@ impl<'req, 'dev, 'win, W: HasRawWindowHandle> PixelsBuilder<'req, 'dev, 'win, W>
             render_texture_format: None,
             surface_texture_format: None,
             clear_color: wgpu::Color::BLACK,
+            blend_state: wgpu::BlendState::ALPHA_BLENDING,
         }
     }
 
@@ -189,10 +191,36 @@ impl<'req, 'dev, 'win, W: HasRawWindowHandle> PixelsBuilder<'req, 'dev, 'win, W>
         self
     }
 
-    /// Set the default clear color.
+    /// Set the blend state.
+    ///
+    /// Allows customization of how to mix the new and new existing pixels in a texture
+    /// when rendering.
+    ///
+    /// The default blend state is alpha blending with non-premultiplied alpha.
+    ///
+    /// ```no_run
+    /// use pixels::wgpu::BlendState;
+    ///
+    /// # use pixels::PixelsBuilder;
+    /// # let window = pixels_mocks::Rwh;
+    /// # let surface_texture = pixels::SurfaceTexture::new(320, 240, &window);
+    /// // Replace the old pixels with the new without mixing.
+    /// let mut pixels = PixelsBuilder::new(320, 240, surface_texture)
+    ///     .blend_state(wgpu::BlendState::REPLACE)
+    ///     .build()?;
+    /// # Ok::<(), pixels::Error>(())
+    /// ```
+    pub fn blend_state(mut self, blend_state: wgpu::BlendState) -> Self {
+        self.blend_state = blend_state;
+        self
+    }
+
+    /// Set the clear color.
     ///
     /// Allows customization of the background color and the border drawn for non-integer scale
     /// values.
+    ///
+    /// The default value is pure black.
     ///
     /// ```no_run
     /// use pixels::wgpu::Color;
@@ -277,6 +305,7 @@ impl<'req, 'dev, 'win, W: HasRawWindowHandle> PixelsBuilder<'req, 'dev, 'win, W>
         // Create the backing texture
         let surface_size = self.surface_texture.size;
         let clear_color = self.clear_color;
+        let blend_state = self.blend_state;
         let (scaling_matrix_inverse, texture_extent, texture, scaling_renderer, pixels_buffer_size) =
             create_backing_texture(
                 &device,
@@ -288,6 +317,7 @@ impl<'req, 'dev, 'win, W: HasRawWindowHandle> PixelsBuilder<'req, 'dev, 'win, W>
                 &surface_size,
                 render_texture_format,
                 clear_color,
+                blend_state,
             );
 
         // Create the pixel buffer
@@ -312,6 +342,7 @@ impl<'req, 'dev, 'win, W: HasRawWindowHandle> PixelsBuilder<'req, 'dev, 'win, W>
             present_mode,
             render_texture_format,
             surface_texture_format,
+            blend_state,
             pixels,
             scaling_matrix_inverse,
         };
@@ -368,6 +399,7 @@ pub(crate) fn create_backing_texture(
     surface_size: &SurfaceSize,
     render_texture_format: wgpu::TextureFormat,
     clear_color: wgpu::Color,
+    blend_state: wgpu::BlendState,
 ) -> (
     ultraviolet::Mat4,
     wgpu::Extent3d,
@@ -406,6 +438,7 @@ pub(crate) fn create_backing_texture(
         surface_size,
         render_texture_format,
         clear_color,
+        blend_state,
     );
 
     let texture_format_size = get_texture_format_size(backing_texture_format);

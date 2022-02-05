@@ -98,6 +98,7 @@ pub struct Pixels {
     present_mode: wgpu::PresentMode,
     render_texture_format: wgpu::TextureFormat,
     surface_texture_format: wgpu::TextureFormat,
+    blend_state: wgpu::BlendState,
 
     // Pixel buffer
     pixels: Vec<u8>,
@@ -285,6 +286,7 @@ impl Pixels {
                 &self.surface_size,
                 self.render_texture_format,
                 self.context.scaling_renderer.clear_color,
+                self.blend_state,
             );
 
         self.scaling_matrix_inverse = scaling_matrix_inverse;

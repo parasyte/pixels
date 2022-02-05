@@ -23,6 +23,7 @@ impl ScalingRenderer {
         surface_size: &SurfaceSize,
         render_texture_format: wgpu::TextureFormat,
         clear_color: wgpu::Color,
+        blend_state: wgpu::BlendState,
     ) -> Self {
         let shader = wgpu::include_wgsl!("../shaders/scale.wgsl");
         let module = device.create_shader_module(&shader);
@@ -152,7 +153,7 @@ impl ScalingRenderer {
                 entry_point: "fs_main",
                 targets: &[wgpu::ColorTargetState {
                     format: render_texture_format,
-                    blend: Some(wgpu::BlendState::ALPHA_BLENDING),
+                    blend: Some(blend_state),
                     write_mask: wgpu::ColorWrites::ALL,
                 }],
             }),
