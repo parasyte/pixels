@@ -391,6 +391,7 @@ impl<'req, 'dev, 'win, W: HasRawWindowHandle> PixelsBuilder<'req, 'dev, 'win, W>
     }
 }
 
+#[allow(clippy::too_many_arguments)]
 pub(crate) fn create_backing_texture(
     device: &wgpu::Device,
     width: u32,
