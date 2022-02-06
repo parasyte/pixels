@@ -193,7 +193,7 @@ impl<'req, 'dev, 'win, W: HasRawWindowHandle> PixelsBuilder<'req, 'dev, 'win, W>
 
     /// Set the blend state.
     ///
-    /// Allows customization of how to mix the new and new existing pixels in a texture
+    /// Allows customization of how to mix the new and existing pixels in a texture
     /// when rendering.
     ///
     /// The default blend state is alpha blending with non-premultiplied alpha.
