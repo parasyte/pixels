@@ -620,7 +620,7 @@ fn make_invader_grid(assets: &Assets) -> Vec<Vec<Option<Invader>>> {
 }
 
 fn next_invader<'a>(
-    invaders: &'a mut Vec<Vec<Option<Invader>>>,
+    invaders: &'a mut [Vec<Option<Invader>>],
     stepper: &mut Point,
 ) -> (&'a mut Invader, bool) {
     let mut is_leader = false;
