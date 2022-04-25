@@ -12,7 +12,7 @@ default = ["optimize"]
 [dependencies]
 byteorder = "1.3"
 env_logger = "0.9"
-game-loop = { version = "0.8", features = ["window"] }
+game-loop = { version = "0.9", features = ["window"] }
 getrandom = "0.2"
 gilrs = "0.8"
 log = "0.4"
@@ -20,4 +20,4 @@ pixels = { path = "../.." }
 randomize = "3.0"
 simple-invaders = { path = "simple-invaders" }
 winit = "0.26"
-winit_input_helper = "0.11"
+winit_input_helper = "0.12"
