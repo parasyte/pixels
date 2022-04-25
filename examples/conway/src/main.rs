@@ -66,7 +66,7 @@ fn main() -> Result<(), Error> {
             if input.key_pressed(VirtualKeyCode::P) {
                 paused = !paused;
             }
-            if input.key_pressed(VirtualKeyCode::Space) {
+            if input.key_pressed_os(VirtualKeyCode::Space) {
                 // Space is frame-step, so ensure we're paused
                 paused = true;
             }
@@ -127,7 +127,7 @@ fn main() -> Result<(), Error> {
             if let Some(size) = input.window_resized() {
                 pixels.resize_surface(size.width, size.height);
             }
-            if !paused || input.key_pressed(VirtualKeyCode::Space) {
+            if !paused || input.key_pressed_os(VirtualKeyCode::Space) {
                 life.update();
             }
             window.request_redraw();
