@@ -70,7 +70,9 @@ impl Game {
 
                 left |= gamepad.is_pressed(Button::DPadLeft);
                 right |= gamepad.is_pressed(Button::DPadRight);
-                fire |= gamepad.is_pressed(Button::South);
+                fire |= gamepad.button_data(Button::South).map_or(false, |button| {
+                    button.is_pressed() && button.counter() == self.gilrs.counter()
+                });
                 pause |= gamepad.button_data(Button::Start).map_or(false, |button| {
                     button.is_pressed() && button.counter() == self.gilrs.counter()
                 });
