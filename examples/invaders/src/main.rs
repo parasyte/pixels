@@ -8,10 +8,7 @@ use pixels::{Error, Pixels, SurfaceTexture};
 use simple_invaders::{Controls, Direction, World, FPS, HEIGHT, TIME_STEP, WIDTH};
 use std::{env, time::Duration};
 use winit::{
-    dpi::LogicalSize,
-    event::{Event, VirtualKeyCode},
-    event_loop::EventLoop,
-    window::WindowBuilder,
+    dpi::LogicalSize, event::VirtualKeyCode, event_loop::EventLoop, window::WindowBuilder,
 };
 use winit_input_helper::WinitInputHelper;
 
@@ -31,8 +28,6 @@ struct Game {
     gamepad: Option<GamepadId>,
     /// Game pause state.
     paused: bool,
-    /// State for key edge detection.
-    held: [bool; 2],
 }
 
 impl Game {
@@ -45,14 +40,10 @@ impl Game {
             gilrs: Gilrs::new().unwrap(), // XXX: Don't unwrap.
             gamepad: None,
             paused: false,
-            held: [false; 2],
         }
     }
 
-    fn update_controls(&mut self, event: &Event<()>) {
-        // Let winit_input_helper collect events to build its state.
-        self.input.update(event);
-
+    fn update_controls(&mut self) {
         // Pump the gilrs event loop and find an active gamepad
         while let Some(gilrs::Event { id, event, .. }) = self.gilrs.next_event() {
             let pad = self.gilrs.gamepad(id);
@@ -67,17 +58,11 @@ impl Game {
 
         self.controls = {
             // Keyboard controls
-            let held = [
-                self.input.key_held(VirtualKeyCode::Pause),
-                self.input.key_held(VirtualKeyCode::P),
-            ];
-
             let mut left = self.input.key_held(VirtualKeyCode::Left);
             let mut right = self.input.key_held(VirtualKeyCode::Right);
-            let mut fire = self.input.key_held(VirtualKeyCode::Space);
-            let mut pause = (held[0] ^ self.held[0] & held[0]) | (held[1] ^ self.held[1] & held[1]);
-
-            self.held = held;
+            let mut fire = self.input.key_pressed(VirtualKeyCode::Space);
+            let mut pause = self.input.key_pressed(VirtualKeyCode::Pause)
+                | self.input.key_pressed(VirtualKeyCode::P);
 
             // GamePad controls
             if let Some(id) = self.gamepad {
@@ -85,7 +70,9 @@ impl Game {
 
                 left |= gamepad.is_pressed(Button::DPadLeft);
                 right |= gamepad.is_pressed(Button::DPadRight);
-                fire |= gamepad.is_pressed(Button::South);
+                fire |= gamepad.button_data(Button::South).map_or(false, |button| {
+                    button.is_pressed() && button.counter() == self.gilrs.counter()
+                });
                 pause |= gamepad.button_data(Button::Start).map_or(false, |button| {
                     button.is_pressed() && button.counter() == self.gilrs.counter()
                 });
@@ -166,18 +153,21 @@ fn main() -> Result<(), Error> {
             }
         },
         |g, event| {
-            // Update controls
-            g.game.update_controls(&event);
+            // Let winit_input_helper collect events to build its state.
+            if g.game.input.update(event) {
+                // Update controls
+                g.game.update_controls();
 
-            // Close events
-            if g.game.input.key_pressed(VirtualKeyCode::Escape) || g.game.input.quit() {
-                g.exit();
-                return;
-            }
+                // Close events
+                if g.game.input.key_pressed(VirtualKeyCode::Escape) || g.game.input.quit() {
+                    g.exit();
+                    return;
+                }
 
-            // Resize the window
-            if let Some(size) = g.game.input.window_resized() {
-                g.game.pixels.resize_surface(size.width, size.height);
+                // Resize the window
+                if let Some(size) = g.game.input.window_resized() {
+                    g.game.pixels.resize_surface(size.width, size.height);
+                }
             }
         },
     );

@@ -15,7 +15,7 @@ log = "0.4"
 pixels = { path = "../.." }
 wgpu = "0.12"
 winit = "0.26"
-winit_input_helper = "0.11"
+winit_input_helper = "0.12"
 
 [target.'cfg(target_arch = "wasm32")'.dependencies]
 console_error_panic_hook = "0.1"
