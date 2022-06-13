@@ -14,7 +14,7 @@ byteorder = "1.3"
 env_logger = "0.9"
 game-loop = { version = "0.9", features = ["window"] }
 getrandom = "0.2"
-gilrs = "0.8"
+gilrs = "0.9"
 log = "0.4"
 pixels = { path = "../.." }
 randomize = "3.0"
