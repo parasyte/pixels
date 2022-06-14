@@ -1,5 +1,5 @@
-use egui::{ClippedMesh, Context, TexturesDelta};
-use egui_wgpu_backend::{BackendError, RenderPass, ScreenDescriptor};
+use egui::{ClippedPrimitive, Context, TexturesDelta};
+use egui_wgpu::renderer::{RenderPass, ScreenDescriptor};
 use pixels::{wgpu, PixelsContext};
 use winit::window::Window;
 
@@ -10,7 +10,7 @@ pub(crate) struct Framework {
     egui_state: egui_winit::State,
     screen_descriptor: ScreenDescriptor,
     rpass: RenderPass,
-    paint_jobs: Vec<ClippedMesh>,
+    paint_jobs: Vec<ClippedPrimitive>,
     textures: TexturesDelta,
 
     // State for the GUI
@@ -31,9 +31,8 @@ impl Framework {
         let egui_ctx = Context::default();
         let egui_state = egui_winit::State::from_pixels_per_point(max_texture_size, scale_factor);
         let screen_descriptor = ScreenDescriptor {
-            physical_width: width,
-            physical_height: height,
-            scale_factor,
+            size_in_pixels: [width, height],
+            pixels_per_point: scale_factor,
         };
         let rpass = RenderPass::new(pixels.device(), pixels.render_texture_format(), 1);
         let textures = TexturesDelta::default();
@@ -58,14 +57,13 @@ impl Framework {
     /// Resize egui.
     pub(crate) fn resize(&mut self, width: u32, height: u32) {
         if width > 0 && height > 0 {
-            self.screen_descriptor.physical_width = width;
-            self.screen_descriptor.physical_height = height;
+            self.screen_descriptor.size_in_pixels = [width, height];
         }
     }
 
     /// Update scaling factor.
     pub(crate) fn scale_factor(&mut self, scale_factor: f64) {
-        self.screen_descriptor.scale_factor = scale_factor as f32;
+        self.screen_descriptor.pixels_per_point = scale_factor as f32;
     }
 
     /// Prepare egui.
@@ -89,10 +87,12 @@ impl Framework {
         encoder: &mut wgpu::CommandEncoder,
         render_target: &wgpu::TextureView,
         context: &PixelsContext,
-    ) -> Result<(), BackendError> {
+    ) {
         // Upload all resources to the GPU.
-        self.rpass
-            .add_textures(&context.device, &context.queue, &self.textures)?;
+        for (id, image_delta) in &self.textures.set {
+            self.rpass
+                .update_texture(&context.device, &context.queue, *id, image_delta);
+        }
         self.rpass.update_buffers(
             &context.device,
             &context.queue,
@@ -107,11 +107,13 @@ impl Framework {
             &self.paint_jobs,
             &self.screen_descriptor,
             None,
-        )?;
+        );
 
         // Cleanup
         let textures = std::mem::take(&mut self.textures);
-        self.rpass.remove_textures(textures)
+        for id in &textures.free {
+            self.rpass.free_texture(id);
+        }
     }
 }
 
