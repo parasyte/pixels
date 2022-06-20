@@ -38,14 +38,14 @@ fn main() -> Result<(), Error> {
             .unwrap()
     };
 
+    let window_size = window.inner_size();
     let mut pixels = {
-        let window_size = window.inner_size();
         let surface_texture = SurfaceTexture::new(window_size.width, window_size.height, &window);
         Pixels::new(WIDTH, HEIGHT, surface_texture)?
     };
     let mut world = World::new();
     let mut time = 0.0;
-    let mut noise_renderer = NoiseRenderer::new(&pixels, WIDTH, HEIGHT);
+    let mut noise_renderer = NoiseRenderer::new(&pixels, window_size.width, window_size.height);
 
     event_loop.run(move |event, _, control_flow| {
         // Draw the current frame
