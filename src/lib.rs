@@ -497,6 +497,12 @@ impl Pixels {
         &mut self.pixels
     }
 
+    /// Get an immutable byte slice for the pixel buffer. The buffer is _not_ cleared for you; it will
+    /// retain the previous frame's contents until you clear it yourself.
+    pub fn get_frame_immut(&self) -> &[u8] {
+        &self.pixels
+    }
+
     /// Calculate the pixel location from a physical location on the window,
     /// dealing with window resizing, scaling, and margins. Takes a physical
     /// position (x, y) within the window, and returns a pixel position (x, y).
