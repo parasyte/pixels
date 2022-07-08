@@ -354,7 +354,7 @@ impl Pixels {
     /// let mut pixels = Pixels::new(320, 240, surface_texture)?;
     ///
     /// // Clear the pixel buffer
-    /// let frame = pixels.get_frame();
+    /// let frame = pixels.get_frame_mut();
     /// for pixel in frame.chunks_exact_mut(4) {
     ///     pixel[0] = 0x00; // R
     ///     pixel[1] = 0x00; // G
@@ -399,7 +399,7 @@ impl Pixels {
     /// let mut pixels = Pixels::new(320, 240, surface_texture)?;
     ///
     /// // Clear the pixel buffer
-    /// let frame = pixels.get_frame();
+    /// let frame = pixels.get_frame_mut();
     /// for pixel in frame.chunks_exact_mut(4) {
     ///     pixel[0] = 0x00; // R
     ///     pixel[1] = 0x00; // G
@@ -493,13 +493,13 @@ impl Pixels {
 
     /// Get a mutable byte slice for the pixel buffer. The buffer is _not_ cleared for you; it will
     /// retain the previous frame's contents until you clear it yourself.
-    pub fn get_frame(&mut self) -> &mut [u8] {
+    pub fn get_frame_mut(&mut self) -> &mut [u8] {
         &mut self.pixels
     }
 
     /// Get an immutable byte slice for the pixel buffer. The buffer is _not_ cleared for you; it will
     /// retain the previous frame's contents until you clear it yourself.
-    pub fn get_frame_immut(&self) -> &[u8] {
+    pub fn get_frame(&self) -> &[u8] {
         &self.pixels
     }
 
