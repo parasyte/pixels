@@ -46,7 +46,7 @@ fn main() -> Result<(), Error> {
         // Draw the current frame
         if let Event::RedrawRequested(_) = event {
             for (dst, &src) in pixels
-                .get_frame()
+                .get_frame_mut()
                 .chunks_exact_mut(4)
                 .zip(shapes.get_frame().iter())
             {

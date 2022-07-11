@@ -139,7 +139,7 @@ fn main() -> Result<(), Error> {
         },
         move |g| {
             // Drawing
-            g.game.world.draw(g.game.pixels.get_frame());
+            g.game.world.draw(g.game.pixels.get_frame_mut());
             if let Err(e) = g.game.pixels.render() {
                 error!("pixels.render() failed: {}", e);
                 g.exit();

@@ -83,7 +83,7 @@ fn main() -> Result<(), Error> {
             // Draw the current frame
             Event::RedrawRequested(_) => {
                 // Draw the world
-                world.draw(pixels.get_frame());
+                world.draw(pixels.get_frame_mut());
 
                 // Prepare egui
                 framework.prepare(&window);
