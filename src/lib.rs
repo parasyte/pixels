@@ -497,8 +497,10 @@ impl Pixels {
         &mut self.pixels
     }
 
-    /// Get an immutable byte slice for the pixel buffer. The buffer is _not_ cleared for you; it
-    /// will retain the previous frame's contents until you clear it yourself.
+    /// Get an immutable byte slice for the pixel buffer.
+    ///
+    /// This may be useful for operations that must sample the buffer, such as blending pixel
+    /// colours directly into the buffer.
     pub fn get_frame(&self) -> &[u8] {
         &self.pixels
     }
