@@ -500,7 +500,7 @@ impl Pixels {
     /// Get an immutable byte slice for the pixel buffer.
     ///
     /// This may be useful for operations that must sample the buffer, such as blending pixel
-    /// colours directly into the buffer.
+    /// colours directly into it.
     pub fn get_frame(&self) -> &[u8] {
         &self.pixels
     }
