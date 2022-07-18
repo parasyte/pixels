@@ -43,8 +43,13 @@ fn main() -> Result<(), Error> {
         let scale_factor = window.scale_factor() as f32;
         let surface_texture = SurfaceTexture::new(window_size.width, window_size.height, &window);
         let pixels = Pixels::new(WIDTH, HEIGHT, surface_texture)?;
-        let framework =
-            Framework::new(window_size.width, window_size.height, scale_factor, &pixels);
+        let framework = Framework::new(
+            &event_loop,
+            window_size.width,
+            window_size.height,
+            scale_factor,
+            &pixels,
+        );
 
         (pixels, framework)
     };

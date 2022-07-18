@@ -14,7 +14,7 @@ impl NoiseRenderer {
     pub(crate) fn new(pixels: &pixels::Pixels, width: u32, height: u32) -> Self {
         let device = pixels.device();
         let shader = wgpu::include_wgsl!("../shaders/noise.wgsl");
-        let module = device.create_shader_module(&shader);
+        let module = device.create_shader_module(shader);
 
         // Create a texture view that will be used as input
         // This will be used as the render target for the default scaling renderer
@@ -127,14 +127,14 @@ impl NoiseRenderer {
             fragment: Some(wgpu::FragmentState {
                 module: &module,
                 entry_point: "fs_main",
-                targets: &[wgpu::ColorTargetState {
+                targets: &[Some(wgpu::ColorTargetState {
                     format: pixels.render_texture_format(),
                     blend: Some(wgpu::BlendState {
                         color: wgpu::BlendComponent::REPLACE,
                         alpha: wgpu::BlendComponent::REPLACE,
                     }),
                     write_mask: wgpu::ColorWrites::ALL,
-                }],
+                })],
             }),
             multiview: None,
         });
@@ -181,14 +181,14 @@ impl NoiseRenderer {
     ) {
         let mut rpass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
             label: Some("NoiseRenderer render pass"),
-            color_attachments: &[wgpu::RenderPassColorAttachment {
+            color_attachments: &[Some(wgpu::RenderPassColorAttachment {
                 view: render_target,
                 resolve_target: None,
                 ops: wgpu::Operations {
                     load: wgpu::LoadOp::Clear(wgpu::Color::BLACK),
                     store: true,
                 },
-            }],
+            })],
             depth_stencil_attachment: None,
         });
         rpass.set_pipeline(&self.render_pipeline);
