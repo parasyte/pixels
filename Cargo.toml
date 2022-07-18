@@ -19,11 +19,11 @@ include = [
 ]
 
 [dependencies]
-bytemuck = "1.7"
+bytemuck = "1.10"
 raw-window-handle = "0.4"
 thiserror = "1.0"
-ultraviolet = "0.8"
-wgpu = "0.12"
+ultraviolet = "0.9"
+wgpu = "0.13"
 
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
 pollster = "0.2"
