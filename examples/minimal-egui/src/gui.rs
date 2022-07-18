@@ -1,5 +1,5 @@
 use egui::{ClippedPrimitive, Context, TexturesDelta};
-use egui_wgpu::renderer::{RenderPass, ScreenDescriptor};
+use egui_wgpu_backend::{RenderPass, ScreenDescriptor};
 use pixels::{wgpu, PixelsContext};
 use winit::window::Window;
 
@@ -31,8 +31,9 @@ impl Framework {
         let egui_ctx = Context::default();
         let egui_state = egui_winit::State::from_pixels_per_point(max_texture_size, scale_factor);
         let screen_descriptor = ScreenDescriptor {
-            size_in_pixels: [width, height],
-            pixels_per_point: scale_factor,
+            physical_width: width,
+            physical_height: height,
+            scale_factor,
         };
         let rpass = RenderPass::new(pixels.device(), pixels.render_texture_format(), 1);
         let textures = TexturesDelta::default();
@@ -57,13 +58,14 @@ impl Framework {
     /// Resize egui.
     pub(crate) fn resize(&mut self, width: u32, height: u32) {
         if width > 0 && height > 0 {
-            self.screen_descriptor.size_in_pixels = [width, height];
+            self.screen_descriptor.physical_width = width;
+            self.screen_descriptor.physical_height = height;
         }
     }
 
     /// Update scaling factor.
     pub(crate) fn scale_factor(&mut self, scale_factor: f64) {
-        self.screen_descriptor.pixels_per_point = scale_factor as f32;
+        self.screen_descriptor.scale_factor = scale_factor as f32;
     }
 
     /// Prepare egui.
@@ -112,7 +114,7 @@ impl Framework {
         // Cleanup
         let textures = std::mem::take(&mut self.textures);
         for id in &textures.free {
-            self.rpass.free_texture(id);
+            self.rpass.remove_textures(id);
         }
     }
 }
