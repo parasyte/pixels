@@ -155,6 +155,10 @@ impl NoiseRenderer {
     }
 
     pub(crate) fn resize(&mut self, pixels: &pixels::Pixels, width: u32, height: u32) {
+        if width == 0 || height == 0 {
+            return;
+        }
+
         self.texture_view = create_texture_view(pixels, width, height);
         self.bind_group = create_bind_group(
             pixels.device(),
