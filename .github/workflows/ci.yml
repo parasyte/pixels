@@ -122,7 +122,6 @@ jobs:
   # See https://github.com/parasyte/pixels-ci-rust-version
   rust-version:
     name: Rust-Version
-    name: WASM
     runs-on: ubuntu-latest
     needs: [checks, lints]
     strategy:
