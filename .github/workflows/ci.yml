@@ -16,7 +16,7 @@ jobs:
           - 1.60.0
     steps:
       - name: Checkout sources
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
       - name: Update apt repos
         run: sudo apt-get -y update
       - name: Install dependencies
@@ -37,7 +37,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout sources
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
       - name: Update apt repos
         run: sudo apt-get -y update
       - name: Install dependencies
@@ -76,7 +76,7 @@ jobs:
           - 1.60.0
     steps:
       - name: Checkout sources
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
       - name: Update apt repos
         run: sudo apt-get -y update
       - name: Install dependencies
@@ -102,7 +102,7 @@ jobs:
           - minimal-web
     steps:
       - name: Checkout sources
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
       - name: Update apt repos
         run: sudo apt-get -y update
       - name: Install dependencies
@@ -127,12 +127,12 @@ jobs:
     strategy:
       matrix:
         rust:
-          - 1.56
+          - 1.56.0
     steps:
       - name: Checkout sources
         uses: actions/checkout@v3
         with:
-          repository: https://github.com/parasyte/pixels-ci-rust-version.git
+          repository: parasyte/pixels-ci-rust-version
       - name: Install toolchain
         uses: actions-rs/toolchain@v1
         with:
