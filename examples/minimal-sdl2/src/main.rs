@@ -61,7 +61,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         world.update();
 
         // Draw the current frame
-        world.draw(pixels.get_frame());
+        world.draw(pixels.get_frame_mut());
         pixels.render()?;
     }
 

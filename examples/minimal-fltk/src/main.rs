@@ -50,7 +50,7 @@ fn main() -> Result<(), Error> {
         world.update();
 
         // Draw the current frame
-        world.draw(pixels.get_frame());
+        world.draw(pixels.get_frame_mut());
         if pixels
             .render()
             .map_err(|e| error!("pixels.render() failed: {}", e))

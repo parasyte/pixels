@@ -45,7 +45,7 @@ fn main() -> Result<(), Error> {
     event_loop.run(move |event, _, control_flow| {
         // Draw the current frame
         if let Event::RedrawRequested(_) = event {
-            world.draw(pixels.get_frame());
+            world.draw(pixels.get_frame_mut());
             if pixels
                 .render()
                 .map_err(|e| error!("pixels.render() failed: {}", e))
