@@ -14,5 +14,5 @@ env_logger = "0.9"
 fermium = { version = "20022.0.0", features = ["raw-window-handle"] }
 log = "0.4"
 pixels = { path = "../.." }
-thiserror = "1"
+thiserror = "1.0"
 zstring = "0.1"
