@@ -10,9 +10,9 @@ optimize = ["log/release_max_level_warn"]
 default = ["optimize"]
 
 [dependencies]
-beryllium = { version = "0.7", features = ["use-raw-window-handle"] }
 env_logger = "0.9"
-fermium = { version = "20016.1.1", default-features = false }
+fermium = { version = "20022.0.0", features = ["raw-window-handle"] }
 log = "0.4"
 pixels = { path = "../.." }
+thiserror = "1"
 zstring = "0.1"
