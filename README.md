@@ -35,6 +35,7 @@ The Minimum Supported Rust Version for `pixels` will always be made available in
 - [Minimal example for WebGL2](./examples/minimal-web)
 - [Minimal example with SDL2](./examples/minimal-sdl2)
 - [Minimal example with `winit`](./examples/minimal-winit)
+- [Minimal example with `tao`](./examples/minimal-tao)
 - [Minimal example with `fltk`](./examples/minimal-fltk)
 - [Pixel Invaders](./examples/invaders)
 - [`raqote` example](./examples/raqote-winit)
