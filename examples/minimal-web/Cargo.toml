@@ -14,8 +14,8 @@ default = ["optimize"]
 log = "0.4"
 pixels = { path = "../.." }
 wgpu = "0.13"
-winit = "0.26"
-winit_input_helper = "0.12"
+winit = "0.27"
+winit_input_helper = "0.13"
 
 [target.'cfg(target_arch = "wasm32")'.dependencies]
 console_error_panic_hook = "0.1"

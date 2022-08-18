@@ -14,8 +14,8 @@ env_logger = "0.9"
 euclid = "0.22"
 log = "0.4"
 pixels = { path = "../.." }
-winit = "0.26"
-winit_input_helper = "0.12"
+winit = "0.27"
+winit_input_helper = "0.13"
 
 [dependencies.raqote]
 git = "https://github.com/jrmuizel/raqote.git"
