@@ -296,9 +296,10 @@ impl<'req, 'dev, 'win, W: HasRawWindowHandle> PixelsBuilder<'req, 'dev, 'win, W>
 
         let present_mode = self.present_mode;
         let surface_texture_format = self.surface_texture_format.unwrap_or_else(|| {
-            surface
-                .get_preferred_format(&adapter)
-                .unwrap_or(wgpu::TextureFormat::Bgra8UnormSrgb)
+            *surface
+                .get_supported_formats(&adapter)
+                .first()
+                .unwrap_or(&wgpu::TextureFormat::Bgra8UnormSrgb)
         });
         let render_texture_format = self.render_texture_format.unwrap_or(surface_texture_format);
 
@@ -457,11 +458,20 @@ pub(crate) fn create_backing_texture(
 #[rustfmt::skip]
 #[inline]
 const fn get_texture_format_size(texture_format: wgpu::TextureFormat) -> f32 {
-    use wgpu::TextureFormat::*;
+    use wgpu::{AstcBlock::*, TextureFormat::*};
 
     // TODO: Use constant arithmetic when supported.
     // See: https://github.com/rust-lang/rust/issues/57241
     match texture_format {
+        // Note that these sizes are typically estimates. For instance, GPU vendors decide whether
+        // their implementation uses 5 or 8 bytes per texel for formats like `Depth32PlusStencil8`.
+        // In cases where it is unclear, we choose to overestimate.
+        //
+        // See:
+        // - https://gpuweb.github.io/gpuweb/#plain-color-formats
+        // - https://gpuweb.github.io/gpuweb/#depth-formats
+        // - https://gpuweb.github.io/gpuweb/#packed-formats
+
         // 8-bit formats, 8 bits per component
         R8Unorm
         | R8Snorm
@@ -500,7 +510,8 @@ const fn get_texture_format_size(texture_format: wgpu::TextureFormat) -> f32 {
         | Rg11b10Float
         | Depth32Float
         | Depth24Plus
-        | Depth24PlusStencil8 => 4.0, // 32.0 / 8.0
+        | Depth24PlusStencil8
+        | Depth24UnormStencil8 => 4.0, // 32.0 / 8.0
 
         // 64-bit formats, 8 bits per component
         Rg32Uint
@@ -510,7 +521,8 @@ const fn get_texture_format_size(texture_format: wgpu::TextureFormat) -> f32 {
         | Rgba16Sint
         | Rgba16Float
         | Rgba16Unorm
-        | Rgba16Snorm => 8.0, // 64.0 / 8.0
+        | Rgba16Snorm
+        | Depth32FloatStencil8 => 8.0, // 64.0 / 8.0
 
         // 128-bit formats, 8 bits per component
         Rgba32Uint
@@ -546,59 +558,45 @@ const fn get_texture_format_size(texture_format: wgpu::TextureFormat) -> f32 {
         | EacRg11Snorm
         | Etc2Rgba8Unorm
         | Etc2Rgba8UnormSrgb
-        | Astc4x4RgbaUnorm
-        | Astc4x4RgbaUnormSrgb => 1.0, // 4.0 * 4.0 / 16.0
+        | Astc { block: B4x4, channel: _ } => 1.0, // 4.0 * 4.0 / 16.0
 
         // 5x4 blocks, 16 bytes per block
-        Astc5x4RgbaUnorm
-        | Astc5x4RgbaUnormSrgb => 1.25, // 5.0 * 4.0 / 16.0
+        Astc { block: B5x4, channel: _ } => 1.25, // 5.0 * 4.0 / 16.0
 
         // 5x5 blocks, 16 bytes per block
-        Astc5x5RgbaUnorm
-        | Astc5x5RgbaUnormSrgb => 1.5625, // 5.0 * 5.0 / 16.0
+        Astc { block: B5x5, channel: _ } => 1.5625, // 5.0 * 5.0 / 16.0
 
         // 6x5 blocks, 16 bytes per block
-        Astc6x5RgbaUnorm
-        | Astc6x5RgbaUnormSrgb => 1.875, // 6.0 * 5.0 / 16.0
+        Astc { block: B6x5, channel: _ } => 1.875, // 6.0 * 5.0 / 16.0
 
         // 6x6 blocks, 16 bytes per block
-        Astc6x6RgbaUnorm
-        | Astc6x6RgbaUnormSrgb => 2.25, // 6.0 * 6.0 / 16.0
+        Astc { block: B6x6, channel: _ } => 2.25, // 6.0 * 6.0 / 16.0
 
         // 8x5 blocks, 16 bytes per block
-        Astc8x5RgbaUnorm
-        | Astc8x5RgbaUnormSrgb => 2.5, // 8.0 * 5.0 / 16.0
+        Astc { block: B8x5, channel: _ } => 2.5, // 8.0 * 5.0 / 16.0
 
         // 8x6 blocks, 16 bytes per block
-        Astc8x6RgbaUnorm
-        | Astc8x6RgbaUnormSrgb => 3.0, // 8.0 * 6.0 / 16.0
+        Astc { block: B8x6, channel: _ } => 3.0, // 8.0 * 6.0 / 16.0
 
         // 8x8 blocks, 16 bytes per block
-        Astc8x8RgbaUnorm
-        | Astc8x8RgbaUnormSrgb => 4.0, // 8.0 * 8.0 / 16.0
+        Astc { block: B8x8, channel: _ } => 4.0, // 8.0 * 8.0 / 16.0
 
         // 10x5 blocks, 16 bytes per block
-        Astc10x5RgbaUnorm
-        | Astc10x5RgbaUnormSrgb => 3.125, // 10.0 * 5.0 / 16.0
+        Astc { block: B10x5, channel: _ } => 3.125, // 10.0 * 5.0 / 16.0
 
         // 10x6 blocks, 16 bytes per block
-        Astc10x6RgbaUnorm
-        | Astc10x6RgbaUnormSrgb => 3.75, // 10.0 * 6.0 / 16.0
+        Astc { block: B10x6, channel: _ } => 3.75, // 10.0 * 6.0 / 16.0
 
         // 10x8 blocks, 16 bytes per block
-        Astc10x8RgbaUnorm
-        | Astc10x8RgbaUnormSrgb => 5.0, // 10.0 * 8.0 / 16.0
+        Astc { block: B10x8, channel: _ } => 5.0, // 10.0 * 8.0 / 16.0
 
         // 10x10 blocks, 16 bytes per block
-        Astc10x10RgbaUnorm
-        | Astc10x10RgbaUnormSrgb => 6.25, // 10.0 * 10.0 / 16.0
+        Astc { block: B10x10, channel: _ } => 6.25, // 10.0 * 10.0 / 16.0
 
         // 12x10 blocks, 16 bytes per block
-        Astc12x10RgbaUnorm
-        | Astc12x10RgbaUnormSrgb => 7.5, // 12.0 * 10.0 / 16.0
+        Astc { block: B12x10, channel: _ } => 7.5, // 12.0 * 10.0 / 16.0
 
         // 12x12 blocks, 16 bytes per block
-        Astc12x12RgbaUnorm
-        | Astc12x12RgbaUnormSrgb => 9.0, // 12.0 * 12.0 / 16.0
+        Astc { block: B12x12, channel: _ } => 9.0, // 12.0 * 12.0 / 16.0
     }
 }

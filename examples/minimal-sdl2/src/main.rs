@@ -1,15 +1,11 @@
 #![deny(clippy::all)]
-#![forbid(unsafe_code)]
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
-use beryllium::{
-    event::Event,
-    init::{InitFlags, Sdl},
-    window::WindowFlags,
-};
-use fermium::keycode;
+use crate::sdl::{Event, Sdl};
 use pixels::{Pixels, SurfaceTexture};
 use zstring::zstr;
+
+mod sdl;
 
 const WIDTH: u32 = 320;
 const HEIGHT: u32 = 240;
@@ -25,18 +21,12 @@ struct World {
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     env_logger::init();
-    let sdl = Sdl::init(InitFlags::EVERYTHING)?;
-    let window = sdl.create_vk_window(
-        zstr!("Hello Pixels"),
-        None,
-        (WIDTH as i32, HEIGHT as i32),
-        WindowFlags::ALLOW_HIGHDPI,
-    )?;
+
+    let sdl = Sdl::new(zstr!("Hello Pixels"), WIDTH, HEIGHT)?;
 
     let mut pixels = {
-        // TODO: Beryllium does not expose the SDL2 `GetDrawableSize` APIs, so choosing the correct
-        // surface texture size is not possible.
-        let surface_texture = SurfaceTexture::new(WIDTH, HEIGHT, &*window);
+        let (width, height) = sdl.drawable_size();
+        let surface_texture = SurfaceTexture::new(width, height, &sdl);
         Pixels::new(WIDTH, HEIGHT, surface_texture)?
     };
     let mut world = World::new();
@@ -46,9 +36,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             match event {
                 // Close events
                 Event::Quit { .. } => break 'game_loop,
-                Event::Keyboard { keycode: key, .. } if key == keycode::SDLK_ESCAPE => {
-                    break 'game_loop
-                }
+                Event::Keyboard(key) if key == fermium::keycode::SDLK_ESCAPE => break 'game_loop,
 
                 // Resize the window
                 Event::WindowResized { width, height, .. } => pixels.resize_surface(width, height),

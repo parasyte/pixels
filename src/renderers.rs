@@ -26,7 +26,7 @@ impl ScalingRenderer {
         blend_state: wgpu::BlendState,
     ) -> Self {
         let shader = wgpu::include_wgsl!("../shaders/scale.wgsl");
-        let module = device.create_shader_module(&shader);
+        let module = device.create_shader_module(shader);
 
         // Create a texture sampler with nearest neighbor
         let sampler = device.create_sampler(&wgpu::SamplerDescriptor {
@@ -151,11 +151,11 @@ impl ScalingRenderer {
             fragment: Some(wgpu::FragmentState {
                 module: &module,
                 entry_point: "fs_main",
-                targets: &[wgpu::ColorTargetState {
+                targets: &[Some(wgpu::ColorTargetState {
                     format: render_texture_format,
                     blend: Some(blend_state),
                     write_mask: wgpu::ColorWrites::ALL,
-                }],
+                })],
             }),
             multiview: None,
         });
@@ -179,14 +179,14 @@ impl ScalingRenderer {
     pub fn render(&self, encoder: &mut wgpu::CommandEncoder, render_target: &wgpu::TextureView) {
         let mut rpass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
             label: Some("pixels_scaling_renderer_render_pass"),
-            color_attachments: &[wgpu::RenderPassColorAttachment {
+            color_attachments: &[Some(wgpu::RenderPassColorAttachment {
                 view: render_target,
                 resolve_target: None,
                 ops: wgpu::Operations {
                     load: wgpu::LoadOp::Clear(self.clear_color),
                     store: true,
                 },
-            }],
+            })],
             depth_stencil_attachment: None,
         });
         rpass.set_pipeline(&self.render_pipeline);

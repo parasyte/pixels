@@ -10,7 +10,7 @@ optimize = ["log/release_max_level_warn"]
 default = ["optimize"]
 
 [dependencies]
-fltk = { version = "1.2", features = ["raw-window-handle", "no-images", "no-pango"] }
+fltk = { version = "1.3", features = ["raw-window-handle", "no-images", "no-pango"] }
 env_logger = "0.9"
 log = "0.4"
 pixels = { path = "../.." }
