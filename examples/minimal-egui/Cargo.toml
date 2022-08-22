@@ -10,9 +10,9 @@ optimize = ["log/release_max_level_warn"]
 default = ["optimize"]
 
 [dependencies]
-egui = { git = "https://github.com/emilk/egui.git", rev = "eeeb4b7de2d08b7923a0e19cf1a711b7219afa1f" }
-egui-wgpu = { git = "https://github.com/emilk/egui.git", rev = "eeeb4b7de2d08b7923a0e19cf1a711b7219afa1f" }
-egui-winit = { git = "https://github.com/emilk/egui.git", rev = "eeeb4b7de2d08b7923a0e19cf1a711b7219afa1f", default-features = false, features = ["links"] }
+egui = "0.19"
+egui-wgpu = "0.19"
+egui-winit = { version = "0.19", default-features = false, features = ["links"] }
 env_logger = "0.9"
 log = "0.4"
 pixels = { path = "../.." }
