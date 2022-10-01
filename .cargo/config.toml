@@ -1,0 +1,6 @@
+[alias]
+run-wasm = [
+    "run", "--release", "--package", "run-wasm",
+    "--",
+    "--template", "examples/minimal-web/index.template.html",
+]
