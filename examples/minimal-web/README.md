@@ -17,7 +17,7 @@ rustup target add wasm32-unknown-unknown
 Build the project and start a local server to host it:
 
 ```bash
-cargo run-wasm minimal-web
+cargo run-minimal-web
 ```
 
 Open http://localhost:8000/ in your browser to run the example.
@@ -25,7 +25,7 @@ Open http://localhost:8000/ in your browser to run the example.
 To build the project without serving it:
 
 ```bash
-cargo run-wasm --build-only minimal-web
+cargo run-minimal-web --build-only
 ```
 
 The build files are stored in `./target/wasm-examples/minimal-web/`.

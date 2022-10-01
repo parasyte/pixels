@@ -115,7 +115,7 @@ jobs:
           target: wasm32-unknown-unknown
           override: true
       - name: WASM build
-        run: cargo run-wasm --build-only ${{ matrix.example }}
+        run: cargo run-${{ matrix.example }} --build-only
 
   # See https://github.com/parasyte/pixels-ci-rust-version
   rust-version:

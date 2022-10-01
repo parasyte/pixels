@@ -1,6 +1,9 @@
 [alias]
-run-wasm = [
-    "run", "--release", "--package", "run-wasm",
-    "--",
+run-wasm = [ "run", "--release", "--package", "run-wasm", "--" ]
+
+# This alias encapsulates the custom template that is specific to the `minimal-web` example.
+run-minimal-web = [
+    "run-wasm",
     "--template", "examples/minimal-web/index.template.html",
+    "minimal-web",
 ]
