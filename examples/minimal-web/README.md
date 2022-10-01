@@ -22,6 +22,12 @@ cargo run-wasm minimal-web
 
 Open http://localhost:8000/ in your browser to run the example.
 
+To build the project without serving it:
+
+```bash
+cargo run-wasm --build-only minimal-web
+```
+
 The build files are stored in `./target/wasm-examples/minimal-web/`.
 
 ## Running on native targets

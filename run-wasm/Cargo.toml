@@ -5,4 +5,4 @@ edition = "2021"
 
 [dependencies.cargo-run-wasm]
 git = "https://github.com/parasyte/cargo-run-wasm.git"
-branch = "feature/custom-html-template"
+branch = "NO-MERGE/template-and-build"
