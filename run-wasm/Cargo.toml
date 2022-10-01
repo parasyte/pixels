@@ -3,5 +3,6 @@ name = "run-wasm"
 version = "0.1.0"
 edition = "2021"
 
-[dependencies]
-cargo-run-wasm = { path = "../../../other-projects/cargo-run-wasm" }
+[dependencies.cargo-run-wasm]
+git = "https://github.com/parasyte/cargo-run-wasm.git"
+branch = "feature/custom-html-template"
