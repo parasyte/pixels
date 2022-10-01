@@ -20,7 +20,7 @@ Build the project and start a local server to host it:
 cargo run-wasm minimal-web
 ```
 
-Open http://localhost:8080/ in your browser to run the example.
+Open http://localhost:8000/ in your browser to run the example.
 
 The build files are stored in `./target/wasm-examples/minimal-web/`.
 
