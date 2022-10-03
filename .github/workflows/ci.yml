@@ -114,10 +114,8 @@ jobs:
           toolchain: stable
           target: wasm32-unknown-unknown
           override: true
-      - name: Install tools
-        run: cargo install --locked wasm-bindgen-cli just
-      - name: Just build
-        run: just build ${{ matrix.example }}
+      - name: WASM build
+        run: cargo run-wasm --build-only ${{ matrix.example }}
 
   # See https://github.com/parasyte/pixels-ci-rust-version
   rust-version:

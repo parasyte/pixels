@@ -6,11 +6,10 @@ Minimal example for WebGL2.
 
 ## Install build dependencies
 
-Install the WASM32 target and a few CLI tools:
+Install the WASM32 target:
 
 ```bash
 rustup target add wasm32-unknown-unknown
-cargo install --locked wasm-bindgen-cli just miniserve
 ```
 
 ## Running on the Web
@@ -18,18 +17,18 @@ cargo install --locked wasm-bindgen-cli just miniserve
 Build the project and start a local server to host it:
 
 ```bash
-just serve minimal-web
+cargo run-wasm --release minimal-web
 ```
 
-Open http://localhost:8080/ in your browser to run the example.
+Open http://localhost:8000/ in your browser to run the example.
 
 To build the project without serving it:
 
 ```bash
-just build minimal-web
+cargo run-wasm --release --build-only minimal-web
 ```
 
-The build files are stored in `./target/minimal-web/`.
+The build files are stored in `./target/wasm-examples/minimal-web/`.
 
 ## Running on native targets
 

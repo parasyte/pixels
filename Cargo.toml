@@ -37,4 +37,5 @@ winit = "0.27"
 members = [
     "examples/*",
     "internals/*",
+    "run-wasm",
 ]
