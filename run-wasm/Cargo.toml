@@ -4,5 +4,5 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies.cargo-run-wasm]
-git = "https://github.com/parasyte/cargo-run-wasm.git"
-branch = "NO-MERGE/template-and-build"
+git = "https://github.com/rukai/cargo-run-wasm.git"
+rev = "49d53e5eda86aaf66bfb271cb2e7e37cbcf4cfbb"
