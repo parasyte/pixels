@@ -13,6 +13,6 @@ default = ["optimize"]
 env_logger = "0.9"
 fermium = { version = "20022.0.0", features = ["raw-window-handle"] }
 log = "0.4"
-pixels = { path = "../.." }
+pixels = { git = "https://github.com/parasyte/pixels.git", rev = "9f7896cd2f1c80989e8f29ec6e3b6687183250a4" }
 thiserror = "1.0"
 zstring = "0.1"

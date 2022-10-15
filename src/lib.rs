@@ -34,7 +34,7 @@
 pub use crate::builder::PixelsBuilder;
 pub use crate::renderers::ScalingRenderer;
 pub use raw_window_handle;
-use raw_window_handle::HasRawWindowHandle;
+use raw_window_handle::{HasRawDisplayHandle, HasRawWindowHandle};
 use std::num::NonZeroU32;
 use thiserror::Error;
 pub use wgpu;
@@ -44,7 +44,7 @@ mod renderers;
 
 /// A logical texture for a window surface.
 #[derive(Debug)]
-pub struct SurfaceTexture<'win, W: HasRawWindowHandle> {
+pub struct SurfaceTexture<'win, W: HasRawWindowHandle + HasRawDisplayHandle> {
     window: &'win W,
     size: SurfaceSize,
 }
@@ -99,6 +99,7 @@ pub struct Pixels {
     render_texture_format: wgpu::TextureFormat,
     surface_texture_format: wgpu::TextureFormat,
     blend_state: wgpu::BlendState,
+    alpha_mode: wgpu::CompositeAlphaMode,
 
     // Pixel buffer
     pixels: Vec<u8>,
@@ -127,7 +128,7 @@ pub enum Error {
 
 type DynError = Box<dyn std::error::Error + Send + Sync + 'static>;
 
-impl<'win, W: HasRawWindowHandle> SurfaceTexture<'win, W> {
+impl<'win, W: HasRawWindowHandle + HasRawDisplayHandle> SurfaceTexture<'win, W> {
     /// Create a logical texture for a window surface.
     ///
     /// It is recommended (but not required) that the `width` and `height` are equivalent to the
@@ -193,7 +194,7 @@ impl Pixels {
     ///
     /// Panics when `width` or `height` are 0.
     #[cfg(not(target_arch = "wasm32"))]
-    pub fn new<W: HasRawWindowHandle>(
+    pub fn new<W: HasRawWindowHandle + HasRawDisplayHandle>(
         width: u32,
         height: u32,
         surface_texture: SurfaceTexture<'_, W>,
@@ -224,7 +225,7 @@ impl Pixels {
     /// # Panics
     ///
     /// Panics when `width` or `height` are 0.
-    pub async fn new_async<W: HasRawWindowHandle>(
+    pub async fn new_async<W: HasRawWindowHandle + HasRawDisplayHandle>(
         width: u32,
         height: u32,
         surface_texture: SurfaceTexture<'_, W>,
@@ -487,6 +488,7 @@ impl Pixels {
                 width: self.surface_size.width,
                 height: self.surface_size.height,
                 present_mode: self.present_mode,
+                alpha_mode: self.alpha_mode,
             },
         );
     }
