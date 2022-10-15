@@ -4,7 +4,7 @@ description = "A tiny library providing a GPU-powered pixel frame buffer."
 version = "0.10.0"
 authors = ["Jay Oster <jay@kodewerx.org>"]
 edition = "2021"
-rust-version = "1.59.0"
+rust-version = "1.62.0"
 repository = "https://github.com/parasyte/pixels"
 readme = "README.md"
 keywords = ["pixels", "2D", "GPU", "framebuffer"]
@@ -20,22 +20,21 @@ include = [
 ]
 
 [dependencies]
-bytemuck = "1.12"
-raw-window-handle = "0.4"
-thiserror = "1.0"
-ultraviolet = "0.9"
-wgpu = "0.13"
+bytemuck = "1.12.1"
+raw-window-handle = "0.5.0"
+thiserror = "1.0.37"
+ultraviolet = "0.9.0"
+
+[target.'cfg(target_arch = "wasm32")'.dependencies]
+wgpu = { version = "0.14.0", features = ["webgl"] }
 
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
-pollster = "0.2"
+pollster = "0.2.5"
+wgpu = "0.14.0"
 
 [dev-dependencies]
 pixels-mocks = { path = "internals/pixels-mocks" }
-winit = "0.27"
+winit = "0.27.4"
 
 [workspace]
-members = [
-    "examples/*",
-    "internals/*",
-    "run-wasm",
-]
+members = ["examples/*", "internals/*", "run-wasm"]

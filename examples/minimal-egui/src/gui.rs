@@ -43,7 +43,7 @@ impl Framework {
             size_in_pixels: [width, height],
             pixels_per_point: scale_factor,
         };
-        let rpass = RenderPass::new(pixels.device(), pixels.render_texture_format(), 1);
+        let rpass = RenderPass::new(pixels.device().into(), pixels.render_texture_format(), 1);
         let textures = TexturesDelta::default();
         let gui = Gui::new();
 

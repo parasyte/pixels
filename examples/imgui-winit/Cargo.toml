@@ -13,8 +13,10 @@ default = ["optimize"]
 env_logger = "0.9"
 imgui = "0.8"
 imgui-wgpu = "0.20"
-imgui-winit-support = { version = "0.8", default-features = false, features = ["winit-26"] }
+imgui-winit-support = { version = "0.8", default-features = false, features = [
+    "winit-26",
+] }
 log = "0.4"
-pixels = { path = "../.." }
+pixels = { git = "https://github.com/parasyte/pixels.git", rev = "9f7896cd2f1c80989e8f29ec6e3b6687183250a4" }
 winit = "0.26"
 winit_input_helper = "0.12"
