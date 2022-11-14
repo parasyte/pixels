@@ -1,6 +1,6 @@
 # Hello tiny-skia
 
-![Hello Raqote](../../img/raqote-winit.png)
+![Hello Tiny-Skia](../../img/tiny-skia-winit.png)
 
 `tiny-skia` example with `winit`.
 
