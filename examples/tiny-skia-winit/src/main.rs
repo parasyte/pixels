@@ -34,8 +34,7 @@ fn main() -> Result<(), Error> {
     let mut pixels = {
         let window_size = window.inner_size();
         let surface_texture = SurfaceTexture::new(window_size.width, window_size.height, &window);
-        let pixels = Pixels::new(WIDTH, HEIGHT, surface_texture)?;
-        pixels
+        Pixels::new(WIDTH, HEIGHT, surface_texture)?
     };
 
     let mut drawing = Pixmap::new(1000, 1000).unwrap();
