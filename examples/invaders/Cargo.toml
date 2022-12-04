@@ -10,7 +10,7 @@ optimize = ["log/release_max_level_warn"]
 default = ["optimize"]
 
 [dependencies]
-byteorder = "1.4"
+byteorder = "1.3"
 env_logger = "0.9"
 game-loop = { version = "0.10", features = ["winit"] }
 getrandom = "0.2"

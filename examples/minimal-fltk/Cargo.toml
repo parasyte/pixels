@@ -10,11 +10,7 @@ optimize = ["log/release_max_level_warn"]
 default = ["optimize"]
 
 [dependencies]
-fltk = { version = "=1.3.13", features = [
-    "raw-window-handle",
-    "no-images",
-    "no-pango",
-] }
+fltk = { version = "=1.3.13", features = ["raw-window-handle", "no-images", "no-pango"] }
 env_logger = "0.9"
 log = "0.4"
-pixels = { git = "https://github.com/parasyte/pixels.git", rev = "9f7896cd2f1c80989e8f29ec6e3b6687183250a4" }
+pixels = { path = "../.." }

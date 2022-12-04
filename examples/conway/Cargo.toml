@@ -15,7 +15,7 @@ env_logger = "0.9"
 getrandom = "0.2"
 line_drawing = "1.0"
 log = "0.4"
-pixels = { git = "https://github.com/parasyte/pixels.git", rev = "9f7896cd2f1c80989e8f29ec6e3b6687183250a4" }
+pixels = { path = "../.." }
 randomize = "3.0"
 winit = "0.27"
 winit_input_helper = "0.13"
