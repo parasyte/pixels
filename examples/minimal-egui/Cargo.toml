@@ -10,9 +10,9 @@ optimize = ["log/release_max_level_warn"]
 default = ["optimize"]
 
 [dependencies]
-egui = "0.19"
-egui-wgpu = "0.19"
-egui-winit = { version = "0.19", default-features = false, features = ["links"] }
+egui = "0.20"
+egui-wgpu = "0.20"
+egui-winit = { version = "0.20", default-features = false, features = ["links"] }
 env_logger = "0.9"
 log = "0.4"
 pixels = { path = "../.." }
