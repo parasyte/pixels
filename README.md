@@ -1,6 +1,6 @@
 [![Crates.io](https://img.shields.io/crates/v/pixels)](https://crates.io/crates/pixels "Crates.io version")
 [![Documentation](https://img.shields.io/docsrs/pixels)](https://docs.rs/pixels "Documentation")
-[![GitHub actions](https://img.shields.io/github/workflow/status/parasyte/pixels/CI)](https://github.com/parasyte/pixels/actions "CI")
+[![GitHub actions](https://img.shields.io/github/actions/workflow/status/parasyte/pixels/ci.yml?branch=main)](https://github.com/parasyte/pixels/actions "CI")
 [![GitHub activity](https://img.shields.io/github/last-commit/parasyte/pixels)](https://github.com/parasyte/pixels/commits "Commit activity")
 [![GitHub Sponsors](https://img.shields.io/github/sponsors/parasyte)](https://github.com/sponsors/parasyte "Sponsors")
 
