@@ -94,7 +94,7 @@ impl Gui {
         let mut about_open = false;
         ui.main_menu_bar(|| {
             ui.menu("Help", || {
-                about_open = imgui::MenuItem::new("About...").build(&ui);
+                about_open = ui.menu_item("About...");
             });
         });
         if about_open {
@@ -119,8 +119,12 @@ impl Gui {
             depth_stencil_attachment: None,
         });
 
-        self.renderer
-            .render(ui.render(), &context.queue, &context.device, &mut rpass)
+        self.renderer.render(
+            self.imgui.render(),
+            &context.queue,
+            &context.device,
+            &mut rpass,
+        )
     }
 
     /// Handle any outstanding events.
