@@ -1,10 +1,10 @@
 use crate::renderers::{ScalingMatrix, ScalingRenderer};
 use crate::SurfaceSize;
 use crate::{Error, Pixels, PixelsContext, SurfaceTexture};
-use raw_window_handle::HasRawWindowHandle;
+use raw_window_handle::{HasRawDisplayHandle, HasRawWindowHandle};
 
 /// A builder to help create customized pixel buffers.
-pub struct PixelsBuilder<'req, 'dev, 'win, W: HasRawWindowHandle> {
+pub struct PixelsBuilder<'req, 'dev, 'win, W: HasRawWindowHandle + HasRawDisplayHandle> {
     request_adapter_options: Option<wgpu::RequestAdapterOptions<'req>>,
     device_descriptor: Option<wgpu::DeviceDescriptor<'dev>>,
     backend: wgpu::Backends,
@@ -20,7 +20,9 @@ pub struct PixelsBuilder<'req, 'dev, 'win, W: HasRawWindowHandle> {
     blend_state: wgpu::BlendState,
 }
 
-impl<'req, 'dev, 'win, W: HasRawWindowHandle> PixelsBuilder<'req, 'dev, 'win, W> {
+impl<'req, 'dev, 'win, W: HasRawWindowHandle + HasRawDisplayHandle>
+    PixelsBuilder<'req, 'dev, 'win, W>
+{
     /// Create a builder that can be finalized into a [`Pixels`] pixel buffer.
     ///
     /// # Examples
@@ -325,6 +327,8 @@ impl<'req, 'dev, 'win, W: HasRawWindowHandle> PixelsBuilder<'req, 'dev, 'win, W>
         let mut pixels = Vec::with_capacity(pixels_buffer_size);
         pixels.resize_with(pixels_buffer_size, Default::default);
 
+        let alpha_mode = surface.get_supported_alpha_modes(&adapter)[0];
+
         // Instantiate the Pixels struct
         let context = PixelsContext {
             device,
@@ -346,6 +350,7 @@ impl<'req, 'dev, 'win, W: HasRawWindowHandle> PixelsBuilder<'req, 'dev, 'win, W>
             blend_state,
             pixels,
             scaling_matrix_inverse,
+            alpha_mode,
         };
         pixels.reconfigure_surface();
 
@@ -488,7 +493,8 @@ const fn get_texture_format_size(texture_format: wgpu::TextureFormat) -> f32 {
         | Rg8Snorm
         | Rg8Uint
         | Rg8Sint
-        | Rgb9e5Ufloat => 2.0, // 16.0 / 8.0
+        | Rgb9e5Ufloat
+        | Depth16Unorm => 2.0, // 16.0 / 8.0
 
         // 32-bit formats, 8 bits per component
         R32Uint
@@ -510,8 +516,7 @@ const fn get_texture_format_size(texture_format: wgpu::TextureFormat) -> f32 {
         | Rg11b10Float
         | Depth32Float
         | Depth24Plus
-        | Depth24PlusStencil8
-        | Depth24UnormStencil8 => 4.0, // 32.0 / 8.0
+        | Depth24PlusStencil8 => 4.0, // 32.0 / 8.0
 
         // 64-bit formats, 8 bits per component
         Rg32Uint

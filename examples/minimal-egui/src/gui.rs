@@ -1,5 +1,5 @@
 use egui::{ClippedPrimitive, Context, TexturesDelta};
-use egui_wgpu::renderer::{RenderPass, ScreenDescriptor};
+use egui_wgpu::renderer::{Renderer, ScreenDescriptor};
 use pixels::{wgpu, PixelsContext};
 use winit::event_loop::EventLoopWindowTarget;
 use winit::window::Window;
@@ -10,7 +10,7 @@ pub(crate) struct Framework {
     egui_ctx: Context,
     egui_state: egui_winit::State,
     screen_descriptor: ScreenDescriptor,
-    rpass: RenderPass,
+    renderer: Renderer,
     paint_jobs: Vec<ClippedPrimitive>,
     textures: TexturesDelta,
 
@@ -43,7 +43,7 @@ impl Framework {
             size_in_pixels: [width, height],
             pixels_per_point: scale_factor,
         };
-        let rpass = RenderPass::new(pixels.device(), pixels.render_texture_format(), 1);
+        let renderer = Renderer::new(pixels.device(), pixels.render_texture_format(), None, 1);
         let textures = TexturesDelta::default();
         let gui = Gui::new();
 
@@ -51,7 +51,7 @@ impl Framework {
             egui_ctx,
             egui_state,
             screen_descriptor,
-            rpass,
+            renderer,
             paint_jobs: Vec::new(),
             textures,
             gui,
@@ -60,7 +60,7 @@ impl Framework {
 
     /// Handle input events from the window manager.
     pub(crate) fn handle_event(&mut self, event: &winit::event::WindowEvent) {
-        self.egui_state.on_event(&self.egui_ctx, event);
+        let _ = self.egui_state.on_event(&self.egui_ctx, event);
     }
 
     /// Resize egui.
@@ -99,29 +99,40 @@ impl Framework {
     ) {
         // Upload all resources to the GPU.
         for (id, image_delta) in &self.textures.set {
-            self.rpass
+            self.renderer
                 .update_texture(&context.device, &context.queue, *id, image_delta);
         }
-        self.rpass.update_buffers(
+        self.renderer.update_buffers(
             &context.device,
             &context.queue,
+            encoder,
             &self.paint_jobs,
             &self.screen_descriptor,
         );
 
-        // Record all render passes.
-        self.rpass.execute(
-            encoder,
-            render_target,
-            &self.paint_jobs,
-            &self.screen_descriptor,
-            None,
-        );
+        // Render egui with WGPU
+        {
+            let mut rpass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
+                label: Some("egui"),
+                color_attachments: &[Some(wgpu::RenderPassColorAttachment {
+                    view: render_target,
+                    resolve_target: None,
+                    ops: wgpu::Operations {
+                        load: wgpu::LoadOp::Clear(wgpu::Color::BLACK),
+                        store: true,
+                    },
+                })],
+                depth_stencil_attachment: None,
+            });
+
+            self.renderer
+                .render(&mut rpass, &self.paint_jobs, &self.screen_descriptor);
+        }
 
         // Cleanup
         let textures = std::mem::take(&mut self.textures);
         for id in &textures.free {
-            self.rpass.free_texture(id);
+            self.renderer.free_texture(id);
         }
     }
 }

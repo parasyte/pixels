@@ -67,7 +67,7 @@ fn load_pcx(pcx: &[u8]) -> CachedSprite {
         let mut buffer = Vec::new();
         buffer.resize_with(width * height, Default::default);
         for y in 0..height {
-            let a = y as usize * width;
+            let a = y * width;
             let b = a + width;
             reader.next_row_paletted(&mut buffer[a..b]).unwrap();
         }

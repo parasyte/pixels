@@ -196,7 +196,7 @@ impl Cell {
 
     fn cool_off(&mut self, decay: f32) {
         if !self.alive {
-            let heat = (self.heat as f32 * decay).min(255.0).max(0.0);
+            let heat = (self.heat as f32 * decay).clamp(0.0, 255.0);
             assert!(heat.is_finite());
             self.heat = heat as u8;
         }
@@ -313,8 +313,8 @@ impl ConwayGrid {
         // probably should do sutherland-hodgeman if this were more serious.
         // instead just clamp the start pos, and draw until moving towards the
         // end pos takes us out of bounds.
-        let x0 = x0.max(0).min(self.width as isize);
-        let y0 = y0.max(0).min(self.height as isize);
+        let x0 = x0.clamp(0, self.width as isize);
+        let y0 = y0.clamp(0, self.height as isize);
         for (x, y) in line_drawing::Bresenham::new((x0, y0), (x1, y1)) {
             if let Some(i) = self.grid_idx(x, y) {
                 self.cells[i].set_alive(alive);

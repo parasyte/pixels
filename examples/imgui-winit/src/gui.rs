@@ -87,14 +87,14 @@ impl Gui {
         let mouse_cursor = ui.mouse_cursor();
         if self.last_cursor != mouse_cursor {
             self.last_cursor = mouse_cursor;
-            self.platform.prepare_render(&ui, window);
+            self.platform.prepare_render(ui, window);
         }
 
         // Draw windows and GUI elements here
         let mut about_open = false;
         ui.main_menu_bar(|| {
             ui.menu("Help", || {
-                about_open = imgui::MenuItem::new("About...").build(&ui);
+                about_open = ui.menu_item("About...");
             });
         });
         if about_open {
@@ -119,8 +119,12 @@ impl Gui {
             depth_stencil_attachment: None,
         });
 
-        self.renderer
-            .render(ui.render(), &context.queue, &context.device, &mut rpass)
+        self.renderer.render(
+            self.imgui.render(),
+            &context.queue,
+            &context.device,
+            &mut rpass,
+        )
     }
 
     /// Handle any outstanding events.
