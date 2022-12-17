@@ -17,53 +17,29 @@ jobs:
     steps:
       - name: Checkout sources
         uses: actions/checkout@v3
-      - name: Update apt repos
-        run: sudo apt-get -y update
-      - name: Install dependencies
-        run: sudo apt -y install libsdl2-dev libgtk-3-dev
       - name: Install toolchain
-        uses: actions-rs/toolchain@v1
+        uses: dtolnay/rust-toolchain@master
         with:
-          profile: minimal
           toolchain: ${{ matrix.rust }}
-          override: true
       - name: Cargo check
-        uses: actions-rs/cargo@v1
-        with:
-          command: check
-          args: --all
+        run: cargo check --workspace
   lints:
     name: Lints
     runs-on: ubuntu-latest
     steps:
       - name: Checkout sources
         uses: actions/checkout@v3
-      - name: Update apt repos
-        run: sudo apt-get -y update
-      - name: Install dependencies
-        run: sudo apt -y install libsdl2-dev libgtk-3-dev
       - name: Install toolchain
-        uses: actions-rs/toolchain@v1
+        uses: dtolnay/rust-toolchain@master
         with:
-          profile: minimal
           toolchain: stable
           components: clippy, rustfmt
-          override: true
       - name: Cargo fmt
-        uses: actions-rs/cargo@v1
-        with:
-          command: fmt
-          args: --all -- --check
+        run: cargo fmt --all -- --check
       - name: Cargo doc
-        uses: actions-rs/cargo@v1
-        with:
-          command: doc
-          args: --workspace --no-deps
+        run: cargo doc --workspace --no-deps
       - name: Cargo clippy
-        uses: actions-rs/clippy-check@v1
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-          args: --all --tests -- -D warnings
+        run: cargo clippy --all --tests -- -D warnings
   tests:
     name: Test
     runs-on: ubuntu-latest
@@ -77,21 +53,12 @@ jobs:
     steps:
       - name: Checkout sources
         uses: actions/checkout@v3
-      - name: Update apt repos
-        run: sudo apt-get -y update
-      - name: Install dependencies
-        run: sudo apt -y install libsdl2-dev libgtk-3-dev
       - name: Install toolchain
-        uses: actions-rs/toolchain@v1
+        uses: dtolnay/rust-toolchain@master
         with:
-          profile: minimal
           toolchain: ${{ matrix.rust }}
-          override: true
       - name: Cargo test
-        uses: actions-rs/cargo@v1
-        with:
-          command: test
-          args: --all
+        run: cargo test --workspace
   wasm:
     name: WASM
     runs-on: ubuntu-latest
@@ -103,17 +70,11 @@ jobs:
     steps:
       - name: Checkout sources
         uses: actions/checkout@v3
-      - name: Update apt repos
-        run: sudo apt-get -y update
-      - name: Install dependencies
-        run: sudo apt -y install libsdl2-dev libgtk-3-dev
       - name: Install toolchain
-        uses: actions-rs/toolchain@v1
+        uses: dtolnay/rust-toolchain@master
         with:
-          profile: minimal
           toolchain: stable
           target: wasm32-unknown-unknown
-          override: true
       - name: WASM build
         run: cargo run-wasm --build-only ${{ matrix.example }}
 
@@ -132,12 +93,8 @@ jobs:
         with:
           repository: parasyte/pixels-ci-rust-version
       - name: Install toolchain
-        uses: actions-rs/toolchain@v1
+        uses: dtolnay/rust-toolchain@master
         with:
-          profile: minimal
           toolchain: ${{ matrix.rust }}
-          override: true
       - name: Cargo build
-        uses: actions-rs/cargo@v1
-        with:
-          command: build
+        run: cargo build
