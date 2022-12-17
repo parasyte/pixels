@@ -590,11 +590,9 @@ impl Pixels {
     pub fn clamp_pixel_pos(&self, pos: (isize, isize)) -> (usize, usize) {
         (
             pos.0
-                .max(0)
-                .min(self.context.texture_extent.width as isize - 1) as usize,
+                .clamp(0, self.context.texture_extent.width as isize - 1) as usize,
             pos.1
-                .max(0)
-                .min(self.context.texture_extent.height as isize - 1) as usize,
+                .clamp(0, self.context.texture_extent.height as isize - 1) as usize,
         )
     }
 

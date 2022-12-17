@@ -232,8 +232,7 @@ impl ScalingMatrix {
 
         // Get smallest scale size
         let scale = (screen_width / texture_width)
-            .min(screen_height / texture_height)
-            .max(1.0)
+            .clamp(1.0, screen_height / texture_height)
             .floor();
 
         let scaled_width = texture_width * scale;

@@ -87,7 +87,7 @@ impl Gui {
         let mouse_cursor = ui.mouse_cursor();
         if self.last_cursor != mouse_cursor {
             self.last_cursor = mouse_cursor;
-            self.platform.prepare_render(&ui, window);
+            self.platform.prepare_render(ui, window);
         }
 
         // Draw windows and GUI elements here
