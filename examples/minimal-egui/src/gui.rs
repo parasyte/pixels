@@ -60,10 +60,7 @@ impl Framework {
 
     /// Handle input events from the window manager.
     pub(crate) fn handle_event(&mut self, event: &winit::event::WindowEvent) {
-        #[allow(unused_must_use)]
-        {
-            self.egui_state.on_event(&self.egui_ctx, event);
-        }
+        let _ = self.egui_state.on_event(&self.egui_ctx, event);
     }
 
     /// Resize egui.
