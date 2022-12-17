@@ -25,8 +25,13 @@ jobs:
         uses: dtolnay/rust-toolchain@master
         with:
           toolchain: ${{ matrix.rust }}
+      - name: Setup cache
+        uses: Swatinem/rust-cache@v2
+        with:
+          shared-key: ''
       - name: Cargo check
         run: cargo check --workspace
+
   lints:
     name: Lints
     runs-on: ubuntu-latest
@@ -42,12 +47,17 @@ jobs:
         with:
           toolchain: stable
           components: clippy, rustfmt
+      - name: Setup cache
+        uses: Swatinem/rust-cache@v2
+        with:
+          shared-key: ''
       - name: Cargo fmt
         run: cargo fmt --all -- --check
       - name: Cargo doc
         run: cargo doc --workspace --no-deps
       - name: Cargo clippy
         run: cargo clippy --workspace --tests -- -D warnings
+
   tests:
     name: Test
     runs-on: ubuntu-latest
@@ -69,8 +79,13 @@ jobs:
         uses: dtolnay/rust-toolchain@master
         with:
           toolchain: ${{ matrix.rust }}
+      - name: Setup cache
+        uses: Swatinem/rust-cache@v2
+        with:
+          shared-key: ''
       - name: Cargo test
         run: cargo test --workspace
+
   wasm:
     name: WASM
     runs-on: ubuntu-latest
@@ -91,6 +106,10 @@ jobs:
         with:
           toolchain: stable
           target: wasm32-unknown-unknown
+      - name: Setup cache
+        uses: Swatinem/rust-cache@v2
+        with:
+          shared-key: ''
       - name: WASM build
         run: cargo run-wasm --build-only ${{ matrix.example }}
 
@@ -112,5 +131,9 @@ jobs:
         uses: dtolnay/rust-toolchain@master
         with:
           toolchain: ${{ matrix.rust }}
+      - name: Setup cache
+        uses: Swatinem/rust-cache@v2
+        with:
+          shared-key: ''
       - name: Cargo build
         run: cargo build
