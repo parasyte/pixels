@@ -68,7 +68,7 @@ impl<'req, 'dev, 'win, W: HasRawWindowHandle + HasRawDisplayHandle>
             width,
             height,
             _pixel_aspect_ratio: 1.0,
-            present_mode: wgpu::PresentMode::Fifo,
+            present_mode: wgpu::PresentMode::AutoVsync,
             surface_texture,
             texture_format: wgpu::TextureFormat::Rgba8UnormSrgb,
             render_texture_format: None,
@@ -125,16 +125,16 @@ impl<'req, 'dev, 'win, W: HasRawWindowHandle + HasRawDisplayHandle>
 
     /// Enable or disable Vsync.
     ///
-    /// Vsync is enabled by default.
+    /// Vsync is enabled by default. It cannot be disabled on Web targets.
     ///
-    /// The `wgpu` present mode will be set to `Fifo` when Vsync is enabled, or `Immediate` when
-    /// Vsync is disabled. To set the present mode to `Mailbox` or another value, use the
+    /// The `wgpu` present mode will be set to `AutoVsync` when Vsync is enabled, or `AutoNoVsync`
+    /// when Vsync is disabled. To set the present mode to `Mailbox` or another value, use the
     /// [`PixelsBuilder::present_mode`] method.
     pub fn enable_vsync(mut self, enable_vsync: bool) -> Self {
         self.present_mode = if enable_vsync {
-            wgpu::PresentMode::Fifo
+            wgpu::PresentMode::AutoVsync
         } else {
-            wgpu::PresentMode::Immediate
+            wgpu::PresentMode::AutoNoVsync
         };
         self
     }
