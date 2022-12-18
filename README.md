@@ -28,7 +28,13 @@ The Minimum Supported Rust Version for `pixels` will always be made available in
 
 ## Examples
 
+### Games 🎮
+
 - [Conway's Game of Life](./examples/conway)
+- [Pixel Invaders](./examples/invaders)
+
+### Demos 🧪
+
 - [Custom Shader](./examples/custom-shader)
 - [Dear ImGui example with `winit`](./examples/imgui-winit)
 - [Egui example with `winit`](./examples/minimal-egui)
@@ -36,8 +42,8 @@ The Minimum Supported Rust Version for `pixels` will always be made available in
 - [Minimal example with `winit`](./examples/minimal-winit)
 - [Minimal example with `tao`](./examples/minimal-tao)
 - [Minimal example with `fltk`](./examples/minimal-fltk)
-- [Pixel Invaders](./examples/invaders)
 - [`raqote` example](./examples/raqote-winit)
+- [`tiny-skia` example](./examples/tiny-skia-winit)
 
 ## Troubleshooting
 
