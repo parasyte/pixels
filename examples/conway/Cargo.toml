@@ -10,12 +10,12 @@ optimize = ["log/release_max_level_warn"]
 default = ["optimize"]
 
 [dependencies]
-byteorder = "1.4"
-env_logger = "0.9"
+byteorder = "1"
+env_logger = "0.10"
 getrandom = "0.2"
-line_drawing = "1.0"
+line_drawing = "1"
 log = "0.4"
 pixels = { path = "../.." }
-randomize = "3.0"
+randomize = "3"
 winit = "0.27"
 winit_input_helper = "0.13"

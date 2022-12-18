@@ -10,8 +10,8 @@ optimize = ["log/release_max_level_warn"]
 default = ["optimize"]
 
 [dependencies]
-bytemuck = "1.10"
-env_logger = "0.9"
+bytemuck = "1"
+env_logger = "0.10"
 log = "0.4"
 pixels = { path = "../.." }
 winit = "0.27"
