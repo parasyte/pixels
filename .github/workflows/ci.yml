@@ -47,10 +47,10 @@ jobs:
         with:
           toolchain: stable
           components: clippy, rustfmt
-      - name: Setup cache
+      - name: Rust cache
         uses: Swatinem/rust-cache@v2
         with:
-          shared-key: ''
+          shared-key: common
       - name: Cargo fmt
         run: cargo fmt --all -- --check
       - name: Cargo doc
@@ -79,10 +79,10 @@ jobs:
         uses: dtolnay/rust-toolchain@master
         with:
           toolchain: ${{ matrix.rust }}
-      - name: Setup cache
+      - name: Rust cache
         uses: Swatinem/rust-cache@v2
         with:
-          shared-key: ''
+          shared-key: common
       - name: Cargo test
         run: cargo test --workspace
 
@@ -106,10 +106,10 @@ jobs:
         with:
           toolchain: stable
           target: wasm32-unknown-unknown
-      - name: Setup cache
+      - name: Rust cache
         uses: Swatinem/rust-cache@v2
         with:
-          shared-key: ''
+          shared-key: common
       - name: WASM build
         run: cargo run-wasm --build-only ${{ matrix.example }}
 
@@ -131,9 +131,9 @@ jobs:
         uses: dtolnay/rust-toolchain@master
         with:
           toolchain: ${{ matrix.rust }}
-      - name: Setup cache
+      - name: Rust cache
         uses: Swatinem/rust-cache@v2
         with:
-          shared-key: ''
+          shared-key: common
       - name: Cargo build
         run: cargo build
