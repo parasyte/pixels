@@ -23,5 +23,5 @@ wasm-bindgen-futures = "0.4"
 web-sys = { version = "0.3", features = ["GpuTextureFormat"] }
 
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
-env_logger = "0.9"
+env_logger = "0.10"
 pollster = "0.2"

@@ -10,7 +10,7 @@ optimize = ["log/release_max_level_warn"]
 default = ["optimize"]
 
 [dependencies]
-env_logger = "0.9"
+env_logger = "0.10"
 imgui = "0.9"
 imgui-wgpu = "0.21"
 imgui-winit-support = "0.9"

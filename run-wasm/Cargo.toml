@@ -3,6 +3,5 @@ name = "run-wasm"
 version = "0.1.0"
 edition = "2021"
 
-[dependencies.cargo-run-wasm]
-git = "https://github.com/rukai/cargo-run-wasm.git"
-rev = "49d53e5eda86aaf66bfb271cb2e7e37cbcf4cfbb"
+[dependencies]
+cargo-run-wasm = "0.2"

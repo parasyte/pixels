@@ -3,7 +3,6 @@
 
 use log::error;
 use pixels::{Error, Pixels, SurfaceTexture};
-use shape::draw;
 use std::time::Instant;
 use tiny_skia::Pixmap;
 use winit::dpi::LogicalSize;
@@ -14,8 +13,8 @@ use winit_input_helper::WinitInputHelper;
 
 mod shape;
 
-const WIDTH: u32 = 1000;
-const HEIGHT: u32 = 1000;
+const WIDTH: u32 = 500;
+const HEIGHT: u32 = 500;
 
 fn main() -> Result<(), Error> {
     env_logger::init();
@@ -34,10 +33,11 @@ fn main() -> Result<(), Error> {
     let mut pixels = {
         let window_size = window.inner_size();
         let surface_texture = SurfaceTexture::new(window_size.width, window_size.height, &window);
+
         Pixels::new(WIDTH, HEIGHT, surface_texture)?
     };
 
-    let mut drawing = Pixmap::new(1000, 1000).unwrap();
+    let mut drawing = Pixmap::new(WIDTH, HEIGHT).unwrap();
     let now = Instant::now();
 
     event_loop.run(move |event, _, control_flow| {
@@ -68,8 +68,7 @@ fn main() -> Result<(), Error> {
             }
 
             // Update internal state and request a redraw
-            // shapes.draw(now.elapsed().as_secs_f32());
-            draw(&mut drawing, now.elapsed().as_secs_f32());
+            shape::draw(&mut drawing, now.elapsed().as_secs_f32());
             window.request_redraw();
         }
     });
