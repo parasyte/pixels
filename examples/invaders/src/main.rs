@@ -140,8 +140,8 @@ fn main() -> Result<(), Error> {
         move |g| {
             // Drawing
             g.game.world.draw(g.game.pixels.get_frame_mut());
-            if let Err(e) = g.game.pixels.render() {
-                error!("pixels.render() failed: {}", e);
+            if let Err(err) = g.game.pixels.render() {
+                error!("pixels.render() failed: {err}");
                 g.exit();
             }
 
@@ -166,7 +166,10 @@ fn main() -> Result<(), Error> {
 
                 // Resize the window
                 if let Some(size) = g.game.input.window_resized() {
-                    g.game.pixels.resize_surface(size.width, size.height);
+                    if let Err(err) = g.game.pixels.resize_surface(size.width, size.height) {
+                        error!("pixels.resize_surface() failed: {err}");
+                        g.exit();
+                    }
                 }
             }
         },
