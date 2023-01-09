@@ -17,7 +17,6 @@ getrandom = "0.2"
 gilrs = "0.10"
 log = "0.4"
 pixels = { path = "../.." }
-randomize = "3.0"
 simple-invaders = { path = "simple-invaders" }
 winit = "0.27"
 winit_input_helper = "0.13"
