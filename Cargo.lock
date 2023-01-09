@@ -1435,7 +1435,6 @@ dependencies = [
  "gilrs",
  "log",
  "pixels",
- "randomize",
  "simple-invaders",
  "winit",
  "winit_input_helper",
@@ -2257,9 +2256,9 @@ dependencies = [
 
 [[package]]
 name = "regex"
-version = "1.7.0"
+version = "1.7.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e076559ef8e241f2ae3479e36f97bd5741c0330689e217ad51ce2c76808b868a"
+checksum = "48aaa5748ba571fb95cd2c85c09f629215d3a6ece942baa100950af03a34f733"
 dependencies = [
  "aho-corasick",
  "memchr",
@@ -2714,7 +2713,6 @@ name = "tiny-skia-winit"
 version = "0.1.0"
 dependencies = [
  "env_logger",
- "euclid",
  "log",
  "pixels",
  "tiny-skia 0.8.2",
@@ -2783,9 +2781,9 @@ dependencies = [
 
 [[package]]
 name = "typed-arena"
-version = "2.0.1"
+version = "2.0.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0685c84d5d54d1c26f7d3eb96cd41550adb97baed141a761cf335d3d33bcd0ae"
+checksum = "6af6ae20167a9ece4bcb41af5b80f8a1f1df981f6391189ce00fd257af04126a"
 
 [[package]]
 name = "ucd-trie"

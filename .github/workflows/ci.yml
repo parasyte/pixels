@@ -51,12 +51,16 @@ jobs:
         uses: Swatinem/rust-cache@v2
         with:
           shared-key: common
+      - name: Install cargo-machete
+        run: cargo install --locked cargo-machete
       - name: Cargo fmt
         run: cargo fmt --all -- --check
       - name: Cargo doc
         run: cargo doc --workspace --no-deps
       - name: Cargo clippy
         run: cargo clippy --workspace --tests -- -D warnings
+      - name: Cargo machete
+        run: cargo machete
 
   tests:
     name: Test
