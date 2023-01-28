@@ -230,10 +230,11 @@ impl ScalingMatrix {
         let (texture_width, texture_height) = texture_size;
         let (screen_width, screen_height) = screen_size;
 
+        let width_ratio = (screen_width / texture_width).max(1.0);
+        let height_ratio = (screen_height / texture_height).max(1.0);
+
         // Get smallest scale size
-        let scale = (screen_width / texture_width)
-            .clamp(1.0, screen_height / texture_height)
-            .floor();
+        let scale = width_ratio.clamp(1.0, height_ratio).floor();
 
         let scaled_width = texture_width * scale;
         let scaled_height = texture_height * scale;

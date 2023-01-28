@@ -118,10 +118,13 @@ pub enum Error {
     AdapterNotFound,
     /// Equivalent to [`wgpu::RequestDeviceError`]
     #[error("No wgpu::Device found.")]
-    DeviceNotFound(wgpu::RequestDeviceError),
+    DeviceNotFound(#[from] wgpu::RequestDeviceError),
     /// Equivalent to [`wgpu::SurfaceError`]
     #[error("The GPU failed to acquire a surface frame.")]
-    Surface(wgpu::SurfaceError),
+    Surface(#[from] wgpu::SurfaceError),
+    /// Equivalent to [`wgpu::CreateSurfaceError`]
+    #[error("Unable to create a surface.")]
+    CreateSurface(#[from] wgpu::CreateSurfaceError),
     /// Equivalent to [`TextureError`]
     #[error("Texture creation failed: {0}")]
     InvalidTexture(#[from] TextureError),
@@ -457,8 +460,7 @@ impl Pixels {
                     self.context.surface.get_current_texture()
                 }
                 err => Err(err),
-            })
-            .map_err(Error::Surface)?;
+            })?;
         let mut encoder =
             self.context
                 .device
@@ -510,6 +512,10 @@ impl Pixels {
                 height: self.surface_size.height,
                 present_mode: self.present_mode,
                 alpha_mode: self.alpha_mode,
+                view_formats: vec![
+                    self.surface_texture_format.add_srgb_suffix(),
+                    self.surface_texture_format.remove_srgb_suffix(),
+                ],
             },
         );
     }
