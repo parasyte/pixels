@@ -301,7 +301,7 @@ impl<'req, 'dev, 'win, W: HasRawWindowHandle + HasRawDisplayHandle>
             *surface_capabilities
                 .formats
                 .iter()
-                .find(|format| texture_format_is_srgb(**format))
+                .find(|format| format.describe().srgb)
                 .unwrap_or(&wgpu::TextureFormat::Bgra8UnormSrgb)
         });
         let render_texture_format = self.render_texture_format.unwrap_or(surface_texture_format);
@@ -488,24 +488,6 @@ pub(crate) fn create_backing_texture(
         scaling_renderer,
         pixels_buffer_size,
     ))
-}
-
-#[inline]
-const fn texture_format_is_srgb(texture_format: wgpu::TextureFormat) -> bool {
-    use wgpu::TextureFormat::*;
-
-    matches!(
-        texture_format,
-        Rgba8UnormSrgb
-            | Bgra8UnormSrgb
-            | Bc1RgbaUnormSrgb
-            | Etc2Rgb8UnormSrgb
-            | Etc2Rgb8A1UnormSrgb
-            | Bc2RgbaUnormSrgb
-            | Bc3RgbaUnormSrgb
-            | Bc7RgbaUnormSrgb
-            | Etc2Rgba8UnormSrgb
-    )
 }
 
 #[rustfmt::skip]
