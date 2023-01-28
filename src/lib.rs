@@ -512,10 +512,7 @@ impl Pixels {
                 height: self.surface_size.height,
                 present_mode: self.present_mode,
                 alpha_mode: self.alpha_mode,
-                view_formats: vec![
-                    self.surface_texture_format.add_srgb_suffix(),
-                    self.surface_texture_format.remove_srgb_suffix(),
-                ],
+                view_formats: vec![],
             },
         );
     }

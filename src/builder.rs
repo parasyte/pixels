@@ -464,10 +464,7 @@ pub(crate) fn create_backing_texture(
         dimension: wgpu::TextureDimension::D2,
         format: backing_texture_format,
         usage: wgpu::TextureUsages::TEXTURE_BINDING | wgpu::TextureUsages::COPY_DST,
-        view_formats: &[
-            backing_texture_format.add_srgb_suffix(),
-            backing_texture_format.remove_srgb_suffix(),
-        ],
+        view_formats: &[],
     });
     let texture_view = texture.create_view(&wgpu::TextureViewDescriptor::default());
 
