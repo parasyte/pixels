@@ -254,10 +254,13 @@ impl<'req, 'dev, 'win, W: HasRawWindowHandle + HasRawDisplayHandle>
     ///
     /// Returns an error when a [`wgpu::Adapter`] cannot be found.
     async fn build_impl(self) -> Result<Pixels, Error> {
-        let instance = wgpu::Instance::new(self.backend);
+        let instance = wgpu::Instance::new(wgpu::InstanceDescriptor {
+            backends: self.backend,
+            ..Default::default()
+        });
 
         // TODO: Use `options.pixel_aspect_ratio` to stretch the scaled texture
-        let surface = unsafe { instance.create_surface(self.surface_texture.window) };
+        let surface = unsafe { instance.create_surface(self.surface_texture.window) }?;
         let compatible_surface = Some(&surface);
         let request_adapter_options = &self.request_adapter_options;
         let adapter = match wgpu::util::initialize_adapter_from_env(&instance, self.backend) {
@@ -290,16 +293,15 @@ impl<'req, 'dev, 'win, W: HasRawWindowHandle + HasRawDisplayHandle>
                 ..wgpu::DeviceDescriptor::default()
             });
 
-        let (device, queue) = adapter
-            .request_device(&device_descriptor, None)
-            .await
-            .map_err(Error::DeviceNotFound)?;
+        let (device, queue) = adapter.request_device(&device_descriptor, None).await?;
 
+        let surface_capabilities = surface.get_capabilities(&adapter);
         let present_mode = self.present_mode;
         let surface_texture_format = self.surface_texture_format.unwrap_or_else(|| {
-            *surface
-                .get_supported_formats(&adapter)
-                .first()
+            *surface_capabilities
+                .formats
+                .iter()
+                .find(|format| texture_format_is_srgb(**format))
                 .unwrap_or(&wgpu::TextureFormat::Bgra8UnormSrgb)
         });
         let render_texture_format = self.render_texture_format.unwrap_or(surface_texture_format);
@@ -318,6 +320,7 @@ impl<'req, 'dev, 'win, W: HasRawWindowHandle + HasRawDisplayHandle>
                 // Render texture values
                 &surface_size,
                 render_texture_format,
+                // Clear color and blending values
                 clear_color,
                 blend_state,
             )?;
@@ -326,7 +329,7 @@ impl<'req, 'dev, 'win, W: HasRawWindowHandle + HasRawDisplayHandle>
         let mut pixels = Vec::with_capacity(pixels_buffer_size);
         pixels.resize_with(pixels_buffer_size, Default::default);
 
-        let alpha_mode = surface.get_supported_alpha_modes(&adapter)[0];
+        let alpha_mode = surface_capabilities.alpha_modes[0];
 
         // Instantiate the Pixels struct
         let context = PixelsContext {
@@ -461,6 +464,10 @@ pub(crate) fn create_backing_texture(
         dimension: wgpu::TextureDimension::D2,
         format: backing_texture_format,
         usage: wgpu::TextureUsages::TEXTURE_BINDING | wgpu::TextureUsages::COPY_DST,
+        view_formats: &[
+            backing_texture_format.add_srgb_suffix(),
+            backing_texture_format.remove_srgb_suffix(),
+        ],
     });
     let texture_view = texture.create_view(&wgpu::TextureViewDescriptor::default());
 
@@ -486,6 +493,24 @@ pub(crate) fn create_backing_texture(
     ))
 }
 
+#[inline]
+const fn texture_format_is_srgb(texture_format: wgpu::TextureFormat) -> bool {
+    use wgpu::TextureFormat::*;
+
+    matches!(
+        texture_format,
+        Rgba8UnormSrgb
+            | Bgra8UnormSrgb
+            | Bc1RgbaUnormSrgb
+            | Etc2Rgb8UnormSrgb
+            | Etc2Rgb8A1UnormSrgb
+            | Bc2RgbaUnormSrgb
+            | Bc3RgbaUnormSrgb
+            | Bc7RgbaUnormSrgb
+            | Etc2Rgba8UnormSrgb
+    )
+}
+
 #[rustfmt::skip]
 #[inline]
 const fn get_texture_format_size(texture_format: wgpu::TextureFormat) -> f32 {
@@ -507,7 +532,8 @@ const fn get_texture_format_size(texture_format: wgpu::TextureFormat) -> f32 {
         R8Unorm
         | R8Snorm
         | R8Uint
-        | R8Sint => 1.0, // 8.0 / 8.0
+        | R8Sint
+        | Stencil8 => 1.0, // 8.0 / 8.0
 
         // 16-bit formats, 8 bits per component
         R16Uint

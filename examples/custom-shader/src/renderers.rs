@@ -101,7 +101,7 @@ impl NoiseRenderer {
                     ty: wgpu::BindingType::Buffer {
                         ty: wgpu::BufferBindingType::Uniform,
                         has_dynamic_offset: false,
-                        min_binding_size: None,
+                        min_binding_size: wgpu::BufferSize::new(std::mem::size_of::<f32>() as u64),
                     },
                     count: None,
                 },
@@ -229,6 +229,10 @@ fn create_texture_view(
         dimension: wgpu::TextureDimension::D2,
         format: pixels.render_texture_format(),
         usage: wgpu::TextureUsages::TEXTURE_BINDING | wgpu::TextureUsages::RENDER_ATTACHMENT,
+        view_formats: &[
+            pixels.render_texture_format().add_srgb_suffix(),
+            pixels.render_texture_format().remove_srgb_suffix(),
+        ],
     };
 
     Ok(device
