@@ -229,10 +229,7 @@ fn create_texture_view(
         dimension: wgpu::TextureDimension::D2,
         format: pixels.render_texture_format(),
         usage: wgpu::TextureUsages::TEXTURE_BINDING | wgpu::TextureUsages::RENDER_ATTACHMENT,
-        view_formats: &[
-            pixels.render_texture_format().add_srgb_suffix(),
-            pixels.render_texture_format().remove_srgb_suffix(),
-        ],
+        view_formats: &[pixels.render_texture_format().add_srgb_suffix()],
     };
 
     Ok(device
