@@ -296,7 +296,6 @@ impl<'req, 'dev, 'win, W: HasRawWindowHandle + HasRawDisplayHandle>
         let (device, queue) = adapter.request_device(&device_descriptor, None).await?;
 
         let surface_capabilities = surface.get_capabilities(&adapter);
-
         let present_mode = self.present_mode;
         let surface_texture_format = self.surface_texture_format.unwrap_or_else(|| {
             *surface_capabilities
@@ -321,6 +320,7 @@ impl<'req, 'dev, 'win, W: HasRawWindowHandle + HasRawDisplayHandle>
                 // Render texture values
                 &surface_size,
                 render_texture_format,
+                // Clear color and blending values
                 clear_color,
                 blend_state,
             )?;
