@@ -30,11 +30,11 @@ wgpu = "0.15"
 wgpu = { version = "0.15", features = ["webgl"] }
 
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
-pollster = "0.2"
+pollster = "0.3"
 
 [dev-dependencies]
 pixels-mocks = { path = "internals/pixels-mocks" }
-winit = "0.27"
+winit = "0.28"
 
 [workspace]
 members = [
