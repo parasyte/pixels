@@ -12,11 +12,16 @@ default = ["optimize"]
 [dependencies]
 byteorder = "1"
 env_logger = "0.10"
-game-loop = { version = "0.10", features = ["winit"] }
+# game-loop = { version = "0.10", features = ["winit"] }
 getrandom = "0.2"
 gilrs = "0.10"
 log = "0.4"
 pixels = { path = "../.." }
 simple-invaders = { path = "simple-invaders" }
-winit = "0.27"
-winit_input_helper = "0.13"
+winit = "0.28"
+winit_input_helper = "0.14"
+
+[dependencies.game-loop]
+git = "https://github.com/parasyte/game-loop.git"
+rev = "52fae1c57414186bfb5804efed89b319a5db6a00"
+features = ["winit"]

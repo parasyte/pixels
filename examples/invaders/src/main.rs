@@ -159,7 +159,9 @@ fn main() -> Result<(), Error> {
                 g.game.update_controls();
 
                 // Close events
-                if g.game.input.key_pressed(VirtualKeyCode::Escape) || g.game.input.quit() {
+                if g.game.input.key_pressed(VirtualKeyCode::Escape)
+                    || g.game.input.close_requested()
+                {
                     g.exit();
                     return;
                 }

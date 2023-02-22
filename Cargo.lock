@@ -470,7 +470,7 @@ dependencies = [
  "pixels",
  "randomize",
  "winit 0.28.1",
- "winit_input_helper 0.13.0 (git+https://github.com/rukai/winit_input_helper.git?rev=9b9a34459fc121dfd542e728df76a1798a9abf34)",
+ "winit_input_helper 0.14.0",
 ]
 
 [[package]]
@@ -592,7 +592,7 @@ dependencies = [
  "log",
  "pixels",
  "winit 0.28.1",
- "winit_input_helper 0.13.0 (git+https://github.com/rukai/winit_input_helper.git?rev=9b9a34459fc121dfd542e728df76a1798a9abf34)",
+ "winit_input_helper 0.14.0",
 ]
 
 [[package]]
@@ -1034,12 +1034,11 @@ dependencies = [
 [[package]]
 name = "game-loop"
 version = "0.10.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2231caff85660ae373bc55ece896f923ba8fe2cee1c6950c15dc54a82e55bdce"
+source = "git+https://github.com/parasyte/game-loop.git?rev=52fae1c57414186bfb5804efed89b319a5db6a00#52fae1c57414186bfb5804efed89b319a5db6a00"
 dependencies = [
  "wasm-bindgen",
  "web-sys",
- "winit 0.27.5",
+ "winit 0.28.1",
 ]
 
 [[package]]
@@ -1529,7 +1528,7 @@ dependencies = [
  "log",
  "pixels",
  "winit 0.27.5",
- "winit_input_helper 0.13.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "winit_input_helper 0.13.0",
 ]
 
 [[package]]
@@ -1576,8 +1575,8 @@ dependencies = [
  "log",
  "pixels",
  "simple-invaders",
- "winit 0.27.5",
- "winit_input_helper 0.13.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "winit 0.28.1",
+ "winit_input_helper 0.14.0",
 ]
 
 [[package]]
@@ -1817,7 +1816,7 @@ dependencies = [
  "log",
  "pixels",
  "winit 0.28.1",
- "winit_input_helper 0.13.0 (git+https://github.com/rukai/winit_input_helper.git?rev=9b9a34459fc121dfd542e728df76a1798a9abf34)",
+ "winit_input_helper 0.14.0",
 ]
 
 [[package]]
@@ -1860,7 +1859,7 @@ dependencies = [
  "wasm-bindgen-futures",
  "web-sys",
  "winit 0.28.1",
- "winit_input_helper 0.13.0 (git+https://github.com/rukai/winit_input_helper.git?rev=9b9a34459fc121dfd542e728df76a1798a9abf34)",
+ "winit_input_helper 0.14.0",
 ]
 
 [[package]]
@@ -1871,7 +1870,7 @@ dependencies = [
  "log",
  "pixels",
  "winit 0.28.1",
- "winit_input_helper 0.13.0 (git+https://github.com/rukai/winit_input_helper.git?rev=9b9a34459fc121dfd542e728df76a1798a9abf34)",
+ "winit_input_helper 0.14.0",
 ]
 
 [[package]]
@@ -2418,7 +2417,7 @@ dependencies = [
  "pixels",
  "raqote",
  "winit 0.28.1",
- "winit_input_helper 0.13.0 (git+https://github.com/rukai/winit_input_helper.git?rev=9b9a34459fc121dfd542e728df76a1798a9abf34)",
+ "winit_input_helper 0.14.0",
 ]
 
 [[package]]
@@ -2956,7 +2955,7 @@ dependencies = [
  "pixels",
  "tiny-skia 0.8.3",
  "winit 0.28.1",
- "winit_input_helper 0.13.0 (git+https://github.com/rukai/winit_input_helper.git?rev=9b9a34459fc121dfd542e728df76a1798a9abf34)",
+ "winit_input_helper 0.14.0",
 ]
 
 [[package]]
@@ -3824,8 +3823,9 @@ dependencies = [
 
 [[package]]
 name = "winit_input_helper"
-version = "0.13.0"
-source = "git+https://github.com/rukai/winit_input_helper.git?rev=9b9a34459fc121dfd542e728df76a1798a9abf34#9b9a34459fc121dfd542e728df76a1798a9abf34"
+version = "0.14.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "8f16c8c2783fd0e2f9a1316e209ff7c2a79fd8faeb0fba730fd067cc6bd88bae"
 dependencies = [
  "winit 0.28.1",
 ]
