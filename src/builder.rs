@@ -345,6 +345,7 @@ impl<'req, 'dev, 'win, W: HasRawWindowHandle + HasRawDisplayHandle>
 
         let pixels = Pixels {
             context,
+            adapter,
             surface_size,
             present_mode,
             render_texture_format,
