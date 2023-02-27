@@ -50,8 +50,8 @@ pub struct SurfaceTexture<'win, W: HasRawWindowHandle + HasRawDisplayHandle> {
 }
 
 /// A logical texture size for a window surface.
-#[derive(Debug)]
-struct SurfaceSize {
+#[derive(Debug, Clone)]
+pub struct SurfaceSize {
     width: u32,
     height: u32,
 }
@@ -548,6 +548,14 @@ impl Pixels {
     /// colours directly into it.
     pub fn frame(&self) -> &[u8] {
         &self.pixels
+    }
+
+    /// Get the SurfaceSize object for the pixel buffer.
+    ///
+    /// This may be useful for checking the pixel surface size before performing
+    /// a resize operation.
+    pub fn surface_size(&self) -> SurfaceSize {
+        self.surface_size.clone()
     }
 
     /// Calculate the pixel location from a physical location on the window,
