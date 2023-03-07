@@ -284,12 +284,13 @@ impl Pixels {
     /// use pixels::Pixels;
     /// 
     /// let mut pixels = Pixels::new(320, 240, surface_texture)?;
-    /// let adapter = pixels.get_wgpu_adapter();
+    /// let adapter = pixels.adapter();
     /// // Do something with the adapter.
     /// ```
-    pub fn get_wgpu_adapter(&self) -> &wgpu::Adapter {
+    pub fn adapter(&self) -> &wgpu::Adapter {
         &self.adapter
     }
+
     /// Resize the pixel buffer and zero its contents.
     ///
     /// This does not resize the surface upon which the pixel buffer texture is rendered. Use
