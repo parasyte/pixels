@@ -290,22 +290,6 @@ impl Pixels {
     pub fn get_wgpu_adapter(&self) -> &wgpu::Adapter {
         &self.adapter
     }
-
-    /// Returns a mutable reference to the `wgpu` adapter used by the crate.
-    /// 
-    /// The adapter can be used to retrieve runtime information about the host system
-    /// or the WGPU backend.
-    /// ```no_run
-    /// use pixels::Pixels;
-    /// 
-    /// let mut pixels = Pixels::new(320, 240, surface_texture)?;
-    /// let adapter = pixels.get_wgpu_adapter();
-    /// // Do something with the adapter.
-    /// ```
-    pub fn get_wgpu_adapter_mut(&mut self) -> &mut wgpu::Adapter {
-        &mut self.adapter
-    }
-
     /// Resize the pixel buffer and zero its contents.
     ///
     /// This does not resize the surface upon which the pixel buffer texture is rendered. Use
