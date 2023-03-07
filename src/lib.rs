@@ -277,12 +277,12 @@ impl Pixels {
     }
 
     /// Returns a reference of the `wgpu` adapter used by the crate.
-    /// 
+    ///
     /// The adapter can be used to retrieve runtime information about the host system
     /// or the WGPU backend.
     /// ```no_run
     /// use pixels::Pixels;
-    /// 
+    ///
     /// let mut pixels = Pixels::new(320, 240, surface_texture)?;
     /// let adapter = pixels.adapter();
     /// // Do something with the adapter.
