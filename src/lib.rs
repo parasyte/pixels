@@ -280,12 +280,15 @@ impl Pixels {
     ///
     /// The adapter can be used to retrieve runtime information about the host system
     /// or the WGPU backend.
-    /// ```no_run
-    /// use pixels::Pixels;
     ///
+    /// ```no_run
+    /// # use pixels::Pixels;
+    /// # let window = pixels_mocks::Rwh;
+    /// # let surface_texture = pixels::SurfaceTexture::new(320, 240, &window);
     /// let mut pixels = Pixels::new(320, 240, surface_texture)?;
     /// let adapter = pixels.adapter();
     /// // Do something with the adapter.
+    /// # Ok::<(), pixels::Error>(())
     /// ```
     pub fn adapter(&self) -> &wgpu::Adapter {
         &self.adapter
