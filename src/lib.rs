@@ -100,6 +100,7 @@ pub struct Pixels {
     surface_texture_format: wgpu::TextureFormat,
     blend_state: wgpu::BlendState,
     alpha_mode: wgpu::CompositeAlphaMode,
+    adapter: wgpu::Adapter,
 
     // Pixel buffer
     pixels: Vec<u8>,
@@ -273,6 +274,24 @@ impl Pixels {
     /// ```
     pub fn set_clear_color(&mut self, color: wgpu::Color) {
         self.context.scaling_renderer.clear_color = color;
+    }
+
+    /// Returns a reference of the `wgpu` adapter used by the crate.
+    ///
+    /// The adapter can be used to retrieve runtime information about the host system
+    /// or the WGPU backend.
+    ///
+    /// ```no_run
+    /// # use pixels::Pixels;
+    /// # let window = pixels_mocks::Rwh;
+    /// # let surface_texture = pixels::SurfaceTexture::new(320, 240, &window);
+    /// let mut pixels = Pixels::new(320, 240, surface_texture)?;
+    /// let adapter = pixels.adapter();
+    /// // Do something with the adapter.
+    /// # Ok::<(), pixels::Error>(())
+    /// ```
+    pub fn adapter(&self) -> &wgpu::Adapter {
+        &self.adapter
     }
 
     /// Resize the pixel buffer and zero its contents.
