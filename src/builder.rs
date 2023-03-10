@@ -154,7 +154,7 @@ impl<'req, 'dev, 'win, W: HasRawWindowHandle + HasRawDisplayHandle>
     /// from popular image editing tools or web apps.
     ///
     /// This is the pixel format of the texture that most applications will interact with directly.
-    /// The format influences the structure of byte data that is returned by [`Pixels::get_frame`].
+    /// The format influences the structure of byte data that is returned by [`Pixels::frame`].
     pub fn texture_format(mut self, texture_format: wgpu::TextureFormat) -> Self {
         self.texture_format = texture_format;
         self
@@ -339,7 +339,7 @@ impl<'req, 'dev, 'win, W: HasRawWindowHandle + HasRawDisplayHandle>
             texture,
             texture_extent,
             texture_format: self.texture_format,
-            texture_format_size: get_texture_format_size(self.texture_format),
+            texture_format_size: texture_format_size(self.texture_format),
             scaling_renderer,
         };
 
@@ -479,7 +479,7 @@ pub(crate) fn create_backing_texture(
         blend_state,
     );
 
-    let texture_format_size = get_texture_format_size(backing_texture_format);
+    let texture_format_size = texture_format_size(backing_texture_format);
     let pixels_buffer_size = ((width * height) as f32 * texture_format_size) as usize;
 
     Ok((
@@ -493,7 +493,7 @@ pub(crate) fn create_backing_texture(
 
 #[rustfmt::skip]
 #[inline]
-const fn get_texture_format_size(texture_format: wgpu::TextureFormat) -> f32 {
+const fn texture_format_size(texture_format: wgpu::TextureFormat) -> f32 {
     use wgpu::{AstcBlock::*, TextureFormat::*};
 
     // TODO: Use constant arithmetic when supported.
