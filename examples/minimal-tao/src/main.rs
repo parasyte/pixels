@@ -84,7 +84,7 @@ fn main() -> Result<(), Error> {
 
             // Draw the current frame
             Event::RedrawRequested(_) => {
-                world.draw(pixels.get_frame_mut());
+                world.draw(pixels.frame_mut());
                 if let Err(err) = pixels.render() {
                     error!("pixels.render() failed: {err}");
                     *control_flow = ControlFlow::Exit;

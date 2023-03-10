@@ -8,18 +8,13 @@ pub struct Controls {
 }
 
 /// The player can only move left or right, but can also be stationary.
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub enum Direction {
     /// Do not move the player.
+    #[default]
     Still,
     /// Move to the left.
     Left,
     /// Move to the right.
     Right,
-}
-
-impl Default for Direction {
-    fn default() -> Direction {
-        Direction::Still
-    }
 }

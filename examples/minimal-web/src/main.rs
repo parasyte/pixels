@@ -110,7 +110,7 @@ async fn run() {
     event_loop.run(move |event, _, control_flow| {
         // Draw the current frame
         if let Event::RedrawRequested(_) = event {
-            world.draw(pixels.get_frame_mut());
+            world.draw(pixels.frame_mut());
             if let Err(err) = pixels.render() {
                 error!("pixels.render() failed: {err}");
                 *control_flow = ControlFlow::Exit;

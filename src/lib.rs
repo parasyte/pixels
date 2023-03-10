@@ -100,6 +100,7 @@ pub struct Pixels {
     surface_texture_format: wgpu::TextureFormat,
     blend_state: wgpu::BlendState,
     alpha_mode: wgpu::CompositeAlphaMode,
+    adapter: wgpu::Adapter,
 
     // Pixel buffer
     pixels: Vec<u8>,
@@ -268,11 +269,29 @@ impl Pixels {
     /// let mut pixels = Pixels::new(320, 240, surface_texture)?;
     ///
     /// // Set clear color to red.
-    /// pixels.set_clear_color(Color::RED);
+    /// pixels.clear_color(Color::RED);
     /// # Ok::<(), pixels::Error>(())
     /// ```
-    pub fn set_clear_color(&mut self, color: wgpu::Color) {
+    pub fn clear_color(&mut self, color: wgpu::Color) {
         self.context.scaling_renderer.clear_color = color;
+    }
+
+    /// Returns a reference of the `wgpu` adapter used by the crate.
+    ///
+    /// The adapter can be used to retrieve runtime information about the host system
+    /// or the WGPU backend.
+    ///
+    /// ```no_run
+    /// # use pixels::Pixels;
+    /// # let window = pixels_mocks::Rwh;
+    /// # let surface_texture = pixels::SurfaceTexture::new(320, 240, &window);
+    /// let mut pixels = Pixels::new(320, 240, surface_texture)?;
+    /// let adapter = pixels.adapter();
+    /// // Do something with the adapter.
+    /// # Ok::<(), pixels::Error>(())
+    /// ```
+    pub fn adapter(&self) -> &wgpu::Adapter {
+        &self.adapter
     }
 
     /// Resize the pixel buffer and zero its contents.
@@ -379,7 +398,7 @@ impl Pixels {
     /// let mut pixels = Pixels::new(320, 240, surface_texture)?;
     ///
     /// // Clear the pixel buffer
-    /// let frame = pixels.get_frame_mut();
+    /// let frame = pixels.frame_mut();
     /// for pixel in frame.chunks_exact_mut(4) {
     ///     pixel[0] = 0x00; // R
     ///     pixel[1] = 0x00; // G
@@ -424,7 +443,7 @@ impl Pixels {
     /// let mut pixels = Pixels::new(320, 240, surface_texture)?;
     ///
     /// // Clear the pixel buffer
-    /// let frame = pixels.get_frame_mut();
+    /// let frame = pixels.frame_mut();
     /// for pixel in frame.chunks_exact_mut(4) {
     ///     pixel[0] = 0x00; // R
     ///     pixel[1] = 0x00; // G
@@ -519,7 +538,7 @@ impl Pixels {
 
     /// Get a mutable byte slice for the pixel buffer. The buffer is _not_ cleared for you; it will
     /// retain the previous frame's contents until you clear it yourself.
-    pub fn get_frame_mut(&mut self) -> &mut [u8] {
+    pub fn frame_mut(&mut self) -> &mut [u8] {
         &mut self.pixels
     }
 
@@ -527,7 +546,7 @@ impl Pixels {
     ///
     /// This may be useful for operations that must sample the buffer, such as blending pixel
     /// colours directly into it.
-    pub fn get_frame(&self) -> &[u8] {
+    pub fn frame(&self) -> &[u8] {
         &self.pixels
     }
 
