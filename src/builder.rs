@@ -2,6 +2,13 @@ use crate::renderers::{ScalingMatrix, ScalingRenderer};
 use crate::{Error, Pixels, PixelsContext, SurfaceSize, SurfaceTexture, TextureError};
 use raw_window_handle::{HasRawDisplayHandle, HasRawWindowHandle};
 
+cfg_if::cfg_if! {
+    if #[cfg(not(feature = "std"))] {
+        use alloc::vec;
+        use alloc::vec::Vec;
+    }
+}
+
 /// A builder to help create customized pixel buffers.
 pub struct PixelsBuilder<'req, 'dev, 'win, W: HasRawWindowHandle + HasRawDisplayHandle> {
     request_adapter_options: Option<wgpu::RequestAdapterOptions<'req>>,
