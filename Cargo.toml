@@ -19,18 +19,24 @@ include = [
     "/src/**/*",
 ]
 
+[features]
+default = [ "std" ]
+std     = [ ]
+
 [dependencies]
 bytemuck = "1.12"
 raw-window-handle = "0.5"
 thiserror = "1.0"
 ultraviolet = "0.9"
 wgpu = "0.15"
+cfg-if = "1.0"
 
 [target.'cfg(target_arch = "wasm32")'.dependencies]
 wgpu = { version = "0.15", features = ["webgl"] }
 
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
 pollster = "0.2"
+
 
 [dev-dependencies]
 pixels-mocks = { path = "internals/pixels-mocks" }
