@@ -31,10 +31,23 @@
 
 #![deny(clippy::all)]
 
+#![cfg(not(feature = "std"))]
+#![no_std]
+
+extern crate alloc;
+
 pub use crate::builder::{check_texture_size, PixelsBuilder};
 pub use crate::renderers::ScalingRenderer;
 pub use raw_window_handle;
+cfg_if::cfg_if! {
+    if #[cfg(not(feature = "std"))] {
+        use alloc::vec;
+        use alloc::vec::Vec;
+        use alloc::boxed::Box;
+    }
+}
 use raw_window_handle::{HasRawDisplayHandle, HasRawWindowHandle};
+#[cfg(feature = "std")]
 use std::num::NonZeroU32;
 use thiserror::Error;
 pub use wgpu;
@@ -134,7 +147,13 @@ pub enum Error {
     UserDefined(#[from] DynError),
 }
 
-type DynError = Box<dyn std::error::Error + Send + Sync + 'static>;
+cfg_if::cfg_if! {
+    if #[cfg(feature = "std")] {
+        type DynError = Box<dyn std::error::Error + Send + Sync + 'static>;
+    } else {
+        type DynError = Box<dyn core::error::Error + Send + Sync + 'static>;
+    }
+}
 
 /// All the ways in which creating a texture can fail.
 #[derive(Error, Debug)]
@@ -498,10 +517,20 @@ impl Pixels {
                 aspect: wgpu::TextureAspect::All,
             },
             &self.pixels,
-            wgpu::ImageDataLayout {
-                offset: 0,
-                bytes_per_row: NonZeroU32::new(bytes_per_row),
-                rows_per_image: NonZeroU32::new(self.context.texture_extent.height),
+            cfg_if::cfg_if! {
+                if #[cfg(feature = "std")] {
+                    wgpu::ImageDataLayout {
+                        offset: 0,
+                        bytes_per_row: NonZeroU32::new(bytes_per_row),
+                        rows_per_image: NonZeroU32::new(self.context.texture_extent.height),
+                    },
+                } else {
+                    wgpu::ImageDataLayout {
+                        offset: 0,
+                        bytes_per_row,
+                        rows_per_image,
+                    },
+                }
             },
             self.context.texture_extent,
         );
