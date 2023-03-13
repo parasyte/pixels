@@ -1,6 +1,6 @@
-use std::collections::HashMap;
-use std::io::Cursor;
-use std::rc::Rc;
+use alloc::collections::BTreeMap as HashMap; // temporary, remove soon 
+use alloc::rc::Rc;
+use alloc::vec::Vec;
 
 use crate::sprites::{CachedSprite, Frame};
 
@@ -57,7 +57,7 @@ pub(crate) fn load_assets() -> Assets {
 
 /// Convert PCX data to raw pixels
 fn load_pcx(pcx: &[u8]) -> CachedSprite {
-    let mut reader = pcx::Reader::new(Cursor::new(pcx)).unwrap();
+    let mut reader = pcx::Reader::new(pcx).unwrap();
     let width = reader.width() as usize;
     let height = reader.height() as usize;
     let mut result = Vec::new();
@@ -113,6 +113,8 @@ fn load_pcx(pcx: &[u8]) -> CachedSprite {
 
 #[cfg(test)]
 mod tests {
+    use alloc::vec;
+
     use super::*;
 
     #[test]
