@@ -1,18 +1,19 @@
 //! Collision detection primitives.
 
+use alloc::collections::BTreeSet;
 use crate::geo::{Point, Rect};
 use crate::{Bullet, Invaders, Laser, Player, Shield, COLS, GRID, ROWS};
-use std::collections::HashSet;
+#[cfg(feature = "nostd")]
 
 /// Store information about collisions (for debug mode).
 #[derive(Debug, Default)]
 pub(crate) struct Collision {
-    pub(crate) bullet_details: HashSet<BulletDetail>,
-    pub(crate) laser_details: HashSet<LaserDetail>,
+    pub(crate) bullet_details: BTreeSet<BulletDetail>,
+    pub(crate) laser_details: BTreeSet<LaserDetail>,
 }
 
 /// Information regarding collisions between bullets and invaders, lasers, or shields.
-#[derive(Debug, Eq, Hash, PartialEq)]
+#[derive(Debug, Eq, Hash, PartialEq, PartialOrd, Ord)]
 pub(crate) enum BulletDetail {
     /// A grid position (col, row) for an invader.
     Invader(usize, usize),
@@ -23,7 +24,7 @@ pub(crate) enum BulletDetail {
 }
 
 /// Information regarding collisions between lasers and shields or the player.
-#[derive(Debug, Eq, Hash, PartialEq)]
+#[derive(Debug, Eq, Hash, PartialEq, PartialOrd, Ord)]
 pub(crate) enum LaserDetail {
     /// A shield index.
     Shield(usize),
