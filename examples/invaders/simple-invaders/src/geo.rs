@@ -23,7 +23,7 @@ impl Point {
     }
 }
 
-impl std::ops::Add for Point {
+impl core::ops::Add for Point {
     type Output = Self;
 
     fn add(self, other: Self) -> Self {
@@ -31,7 +31,7 @@ impl std::ops::Add for Point {
     }
 }
 
-impl std::ops::Mul for Point {
+impl core::ops::Mul for Point {
     type Output = Self;
 
     fn mul(self, other: Self) -> Self {
