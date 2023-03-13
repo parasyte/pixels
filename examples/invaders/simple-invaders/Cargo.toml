@@ -8,7 +8,12 @@ edition = "2018"
 line_drawing = "1.0"
 pcx = "0.2"
 randomize = "3.0"
+binrw    = { version = "0.11.1", default-features = false }
 
 [dev-dependencies]
 byteorder = "1.3"
 getrandom = "0.2"
+
+[features]
+default = [ ]
+nostd   = [ ]
