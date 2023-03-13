@@ -6,14 +6,18 @@
 
 #![deny(clippy::all)]
 #![forbid(unsafe_code)]
+#![no_std]
+
+extern crate alloc;
 
 use crate::collision::Collision;
 pub use crate::controls::{Controls, Direction};
 use crate::geo::Point;
 use crate::loader::{load_assets, Assets};
 use crate::sprites::{blit, Animation, Drawable, Frame, Sprite, SpriteRef};
+use alloc::vec::Vec;
 use randomize::PCG32;
-use std::time::Duration;
+use core::time::Duration;
 
 mod collision;
 mod controls;
