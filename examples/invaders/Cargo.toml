@@ -16,7 +16,7 @@ game-loop = { version = "=0.10.1", features = ["winit"] }
 getrandom = "0.2"
 gilrs = "0.10"
 log = "0.4"
-pixels = { path = "../.." }
-simple-invaders = { path = "simple-invaders" }
+pixels = { path = "../..", default-features = false }
+simple-invaders = { path = "simple-invaders", features = [ "nostd" ]}
 winit = "0.27"
 winit_input_helper = "0.13"
