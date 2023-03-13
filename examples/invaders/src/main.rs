@@ -1,5 +1,6 @@
 #![deny(clippy::all)]
 #![forbid(unsafe_code)]
+#![no_std]
 
 use game_loop::{game_loop, Time, TimeTrait as _};
 use gilrs::{Button, GamepadId, Gilrs};
