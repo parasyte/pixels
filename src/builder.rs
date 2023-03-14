@@ -4,7 +4,7 @@ use raw_window_handle::{HasRawDisplayHandle, HasRawWindowHandle};
 
 cfg_if::cfg_if! {
     if #[cfg(not(feature = "std"))] {
-        use alloc::vec;
+        use alloc::string::String;
         use alloc::vec::Vec;
     }
 }

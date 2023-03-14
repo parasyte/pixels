@@ -2,12 +2,16 @@
 #![forbid(unsafe_code)]
 #![no_std]
 
+#[cfg(not(feature = "std"))]
+extern crate alloc;
+
 use game_loop::{game_loop, Time, TimeTrait as _};
 use gilrs::{Button, GamepadId, Gilrs};
 use log::{debug, error};
 use pixels::{Error, Pixels, SurfaceTexture};
 use simple_invaders::{Controls, Direction, World, FPS, HEIGHT, TIME_STEP, WIDTH};
-use std::{env, time::Duration};
+use core::{env, time::Duration};
+use alloc::string::ToString;
 use winit::{
     dpi::LogicalSize, event::VirtualKeyCode, event_loop::EventLoop, window::WindowBuilder,
 };
@@ -101,12 +105,6 @@ fn main() -> Result<(), Error> {
     env_logger::init();
     let event_loop = EventLoop::new();
 
-    // Enable debug mode with `DEBUG=true` environment variable
-    let debug = env::var("DEBUG")
-        .unwrap_or_else(|_| "false".to_string())
-        .parse()
-        .unwrap_or(false);
-
     let window = {
         let size = LogicalSize::new(WIDTH as f64, HEIGHT as f64);
         let scaled_size = LogicalSize::new(WIDTH as f64 * 3.0, HEIGHT as f64 * 3.0);
@@ -144,13 +142,6 @@ fn main() -> Result<(), Error> {
             if let Err(err) = g.game.pixels.render() {
                 error!("pixels.render() failed: {err}");
                 g.exit();
-            }
-
-            // Sleep the main thread to limit drawing to the fixed time step.
-            // See: https://github.com/parasyte/pixels/issues/174
-            let dt = TIME_STEP.as_secs_f64() - Time::now().sub(&g.current_instant());
-            if dt > 0.0 {
-                std::thread::sleep(Duration::from_secs_f64(dt));
             }
         },
         |g, event| {

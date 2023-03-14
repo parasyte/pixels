@@ -1,5 +1,6 @@
 #![deny(clippy::all)]
 #![forbid(unsafe_code)]
+#![no_std]
 
 use crate::renderers::NoiseRenderer;
 use log::error;

@@ -3,7 +3,6 @@
 use alloc::collections::BTreeSet;
 use crate::geo::{Point, Rect};
 use crate::{Bullet, Invaders, Laser, Player, Shield, COLS, GRID, ROWS};
-#[cfg(feature = "nostd")]
 
 /// Store information about collisions (for debug mode).
 #[derive(Debug, Default)]

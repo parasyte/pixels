@@ -17,6 +17,6 @@ getrandom = "0.2"
 gilrs = "0.10"
 log = "0.4"
 pixels = { path = "../..", default-features = false }
-simple-invaders = { path = "simple-invaders", features = [ "nostd" ]}
+simple-invaders = { path = "simple-invaders" }
 winit = "0.27"
 winit_input_helper = "0.13"

@@ -32,9 +32,15 @@
 #![deny(clippy::all)]
 
 #![cfg(not(feature = "std"))]
+#![feature(error_in_core)]
+
+#![cfg(not(feature = "std"))]
 #![no_std]
 
 extern crate alloc;
+
+#[cfg(not(feature = "std"))]
+use core::option::Option;
 
 pub use crate::builder::{check_texture_size, PixelsBuilder};
 pub use crate::renderers::ScalingRenderer;
@@ -47,7 +53,6 @@ cfg_if::cfg_if! {
     }
 }
 use raw_window_handle::{HasRawDisplayHandle, HasRawWindowHandle};
-#[cfg(feature = "std")]
 use std::num::NonZeroU32;
 use thiserror::Error;
 pub use wgpu;
@@ -509,6 +514,7 @@ impl Pixels {
         // Update the pixel buffer texture view
         let bytes_per_row =
             (self.context.texture_extent.width as f32 * self.context.texture_format_size) as u32;
+        let rows_per_image = self.context.texture_extent.height;
         self.context.queue.write_texture(
             wgpu::ImageCopyTexture {
                 texture: &self.context.texture,
@@ -517,20 +523,10 @@ impl Pixels {
                 aspect: wgpu::TextureAspect::All,
             },
             &self.pixels,
-            cfg_if::cfg_if! {
-                if #[cfg(feature = "std")] {
-                    wgpu::ImageDataLayout {
-                        offset: 0,
-                        bytes_per_row: NonZeroU32::new(bytes_per_row),
-                        rows_per_image: NonZeroU32::new(self.context.texture_extent.height),
-                    },
-                } else {
-                    wgpu::ImageDataLayout {
-                        offset: 0,
-                        bytes_per_row,
-                        rows_per_image,
-                    },
-                }
+            wgpu::ImageDataLayout {
+                offset: 0,
+                bytes_per_row:  NonZeroU32::new(bytes_per_row),
+                rows_per_image: NonZeroU32::new(rows_per_image),
             },
             self.context.texture_extent,
         );
