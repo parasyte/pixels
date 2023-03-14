@@ -1,16 +1,17 @@
 use crate::loader::Assets;
 use crate::TIME_STEP;
 use crate::{Point, HEIGHT, WIDTH};
+use alloc::vec::Vec;
 use line_drawing::Bresenham;
-use std::cmp::min;
-use std::rc::Rc;
-use std::time::Duration;
+use core::cmp::min;
+use alloc::rc::Rc;
+use core::time::Duration;
 
 // This is the type stored in the `Assets` hash map
 pub(crate) type CachedSprite = (usize, usize, Rc<[u8]>);
 
 /// Frame identifier for managing animations.
-#[derive(Debug, Eq, Hash, PartialEq)]
+#[derive(Debug, Eq, Hash, PartialEq, PartialOrd, Ord)]
 pub(crate) enum Frame {
     Blipjoy1,
     Blipjoy2,

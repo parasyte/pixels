@@ -1,6 +1,7 @@
-use std::collections::HashMap;
-use std::io::Cursor;
-use std::rc::Rc;
+use alloc::collections::BTreeMap;
+use alloc::rc::Rc;
+
+use alloc::vec::Vec;
 
 use crate::sprites::{CachedSprite, Frame};
 
@@ -8,11 +9,11 @@ use crate::sprites::{CachedSprite, Frame};
 #[derive(Debug)]
 pub(crate) struct Assets {
     // sounds: TODO
-    sprites: HashMap<Frame, CachedSprite>,
+    sprites: BTreeMap<Frame, CachedSprite>,
 }
 
 impl Assets {
-    pub(crate) fn sprites(&self) -> &HashMap<Frame, CachedSprite> {
+    pub(crate) fn sprites(&self) -> &BTreeMap<Frame, CachedSprite> {
         &self.sprites
     }
 }
@@ -21,7 +22,7 @@ impl Assets {
 pub(crate) fn load_assets() -> Assets {
     use Frame::*;
 
-    let mut sprites = HashMap::new();
+    let mut sprites = BTreeMap::new();
 
     sprites.insert(Blipjoy1, load_pcx(include_bytes!("assets/blipjoy1.pcx")));
     sprites.insert(Blipjoy2, load_pcx(include_bytes!("assets/blipjoy2.pcx")));
@@ -57,7 +58,7 @@ pub(crate) fn load_assets() -> Assets {
 
 /// Convert PCX data to raw pixels
 fn load_pcx(pcx: &[u8]) -> CachedSprite {
-    let mut reader = pcx::Reader::new(Cursor::new(pcx)).unwrap();
+    let mut reader = pcx::Reader::new(pcx).unwrap();
     let width = reader.width() as usize;
     let height = reader.height() as usize;
     let mut result = Vec::new();
@@ -113,6 +114,8 @@ fn load_pcx(pcx: &[u8]) -> CachedSprite {
 
 #[cfg(test)]
 mod tests {
+    use alloc::vec;
+
     use super::*;
 
     #[test]
