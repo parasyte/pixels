@@ -44,7 +44,7 @@ fn main() -> Result<(), Error> {
     event_loop.run(move |event, _, control_flow| {
         // The one and only event that winit_input_helper doesn't have for us...
         if let Event::RedrawRequested(_) = event {
-            life.draw(pixels.frame_mut());
+            life.draw(pixels.get_frame_mut());
             if let Err(err) = pixels.render() {
                 error!("pixels.render() failed: {}", err);
                 *control_flow = ControlFlow::Exit;

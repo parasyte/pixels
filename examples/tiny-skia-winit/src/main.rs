@@ -43,7 +43,7 @@ fn main() -> Result<(), Error> {
     event_loop.run(move |event, _, control_flow| {
         // Draw the current frame
         if let Event::RedrawRequested(_) = event {
-            pixels.frame_mut().copy_from_slice(drawing.data());
+            pixels.get_frame_mut().copy_from_slice(drawing.data());
             if let Err(err) = pixels.render() {
                 error!("pixels.render() failed: {err}");
                 *control_flow = ControlFlow::Exit;

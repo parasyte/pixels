@@ -158,7 +158,7 @@ impl NoiseRenderer {
         })
     }
 
-    pub(crate) fn texture_view(&self) -> &wgpu::TextureView {
+    pub(crate) fn get_texture_view(&self) -> &wgpu::TextureView {
         &self.texture_view
     }
 

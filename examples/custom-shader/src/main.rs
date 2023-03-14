@@ -51,10 +51,10 @@ fn main() -> Result<(), Error> {
     event_loop.run(move |event, _, control_flow| {
         // Draw the current frame
         if let Event::RedrawRequested(_) = event {
-            world.draw(pixels.frame_mut());
+            world.draw(pixels.get_frame_mut());
 
             let render_result = pixels.render_with(|encoder, render_target, context| {
-                let noise_texture = noise_renderer.texture_view();
+                let noise_texture = noise_renderer.get_texture_view();
                 context.scaling_renderer.render(encoder, noise_texture);
 
                 noise_renderer.update(&context.queue, time);

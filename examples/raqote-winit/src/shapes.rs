@@ -36,7 +36,7 @@ impl Shapes {
     }
 
     /// Gain access to the underlying pixels
-    pub fn frame(&self) -> &[u32] {
+    pub fn get_frame(&self) -> &[u32] {
         self.dt.get_data()
     }
 

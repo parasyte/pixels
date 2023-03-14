@@ -293,10 +293,10 @@ impl Pixels {
     /// let mut pixels = Pixels::new(320, 240, surface_texture)?;
     ///
     /// // Set clear color to red.
-    /// pixels.clear_color(Color::RED);
+    /// pixels.set_clear_color(Color::RED);
     /// # Ok::<(), pixels::Error>(())
     /// ```
-    pub fn clear_color(&mut self, color: wgpu::Color) {
+    pub fn set_clear_color(&mut self, color: wgpu::Color) {
         self.context.scaling_renderer.clear_color = color;
     }
 
@@ -422,7 +422,7 @@ impl Pixels {
     /// let mut pixels = Pixels::new(320, 240, surface_texture)?;
     ///
     /// // Clear the pixel buffer
-    /// let frame = pixels.frame_mut();
+    /// let frame = pixels.get_frame_mut();
     /// for pixel in frame.chunks_exact_mut(4) {
     ///     pixel[0] = 0x00; // R
     ///     pixel[1] = 0x00; // G
@@ -467,7 +467,7 @@ impl Pixels {
     /// let mut pixels = Pixels::new(320, 240, surface_texture)?;
     ///
     /// // Clear the pixel buffer
-    /// let frame = pixels.frame_mut();
+    /// let frame = pixels.get_frame_mut();
     /// for pixel in frame.chunks_exact_mut(4) {
     ///     pixel[0] = 0x00; // R
     ///     pixel[1] = 0x00; // G
@@ -563,7 +563,7 @@ impl Pixels {
 
     /// Get a mutable byte slice for the pixel buffer. The buffer is _not_ cleared for you; it will
     /// retain the previous frame's contents until you clear it yourself.
-    pub fn frame_mut(&mut self) -> &mut [u8] {
+    pub fn get_frame_mut(&mut self) -> &mut [u8] {
         &mut self.pixels
     }
 
@@ -571,7 +571,7 @@ impl Pixels {
     ///
     /// This may be useful for operations that must sample the buffer, such as blending pixel
     /// colours directly into it.
-    pub fn frame(&self) -> &[u8] {
+    pub fn get_frame(&self) -> &[u8] {
         &self.pixels
     }
 

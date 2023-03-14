@@ -65,7 +65,7 @@ fn main() -> Result<(), Error> {
         }
 
         // Draw the current frame
-        world.draw(pixels.frame_mut());
+        world.draw(pixels.get_frame_mut());
         if let Err(err) = pixels.render() {
             error!("pixels.render() failed: {err}");
             app.quit();
