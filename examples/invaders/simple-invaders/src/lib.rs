@@ -16,8 +16,8 @@ pub use crate::controls::{Controls, Direction};
 use crate::geo::Point;
 use crate::loader::{load_assets, Assets};
 use crate::sprites::{blit, Animation, Drawable, Frame, Sprite, SpriteRef};
-use randomize::PCG32;
 use core::time::Duration;
+use randomize::PCG32;
 
 mod collision;
 mod controls;
