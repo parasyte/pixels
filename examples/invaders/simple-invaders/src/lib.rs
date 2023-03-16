@@ -4,16 +4,20 @@
 //! this in practice. That said, the game is fully functional, and it should not be too difficult
 //! to understand the code.
 
+#![no_std]
 #![deny(clippy::all)]
 #![forbid(unsafe_code)]
+
+extern crate alloc;
+use alloc::vec::Vec;
 
 use crate::collision::Collision;
 pub use crate::controls::{Controls, Direction};
 use crate::geo::Point;
 use crate::loader::{load_assets, Assets};
 use crate::sprites::{blit, Animation, Drawable, Frame, Sprite, SpriteRef};
+use core::time::Duration;
 use randomize::PCG32;
-use std::time::Duration;
 
 mod collision;
 mod controls;
