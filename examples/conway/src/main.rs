@@ -250,7 +250,7 @@ impl ConwayGrid {
         }
     }
 
-    fn count_neibs(&self, x: usize, y: usize) -> usize {
+    fn get_neighbor_indices(&self, x: usize, y: usize) -> Vec<usize> {
         let (xm1, xp1) = if x == 0 {
             (self.width - 1, x + 1)
         } else if x == self.width - 1 {
@@ -265,15 +265,25 @@ impl ConwayGrid {
         } else {
             (y - 1, y + 1)
         };
-        self.cells[xm1 + ym1 * self.width].alive as usize
-            + self.cells[x + ym1 * self.width].alive as usize
-            + self.cells[xp1 + ym1 * self.width].alive as usize
-            + self.cells[xm1 + y * self.width].alive as usize
-            + self.cells[xp1 + y * self.width].alive as usize
-            + self.cells[xm1 + yp1 * self.width].alive as usize
-            + self.cells[x + yp1 * self.width].alive as usize
-            + self.cells[xp1 + yp1 * self.width].alive as usize
+        
+        vec![
+            xm1 + ym1 * self.width,
+            x + ym1 * self.width,
+            xp1 + ym1 * self.width,
+            xm1 + y * self.width,
+            xp1 + y * self.width,
+            xm1 + yp1 * self.width,
+            x + yp1 * self.width,
+            xp1 + yp1 * self.width,
+        ]
     }
+    
+    fn count_neibs(&self, x: usize, y: usize) -> usize {
+        self.get_neighbor_indices(x, y)
+            .iter()
+            .filter(|&&idx| self.cells[idx].alive)
+            .count()
+    }    
 
     fn update(&mut self) {
         for y in 0..self.height {
@@ -326,14 +336,9 @@ impl ConwayGrid {
     }
 
     fn grid_idx<I: std::convert::TryInto<usize>>(&self, x: I, y: I) -> Option<usize> {
-        if let (Ok(x), Ok(y)) = (x.try_into(), y.try_into()) {
-            if x < self.width && y < self.height {
-                Some(x + y * self.width)
-            } else {
-                None
-            }
-        } else {
-            None
+        match (x.try_into(), y.try_into()) {
+            (Ok(x), Ok(y)) if x < self.width && y < self.height => Some(x + y * self.width),
+            _ => None,
         }
     }
 }
