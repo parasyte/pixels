@@ -467,19 +467,14 @@ impl Pixels {
             &PixelsContext,
         ) -> Result<(), DynError>,
     {
-        let frame = self
-            .context
-            .surface
-            .get_current_texture()
-            .or_else(|err| match err {
-                wgpu::SurfaceError::Outdated => {
-                    // Reconfigure the surface to mitigate race condition on window resize.
-                    // See https://github.com/parasyte/pixels/issues/121
-                    self.reconfigure_surface();
-                    self.context.surface.get_current_texture()
-                }
-                err => Err(err),
-            })?;
+        let frame = self.context.surface.get_current_texture().or_else(|_| {
+            // Reconfigure the surface to mitigate race condition on window resize.
+            // See https://github.com/parasyte/pixels/issues/121
+            // And to prevent random failures.
+            // See https://github.com/parasyte/pixels/issues/346
+            self.reconfigure_surface();
+            self.context.surface.get_current_texture()
+        })?;
         let mut encoder =
             self.context
                 .device
