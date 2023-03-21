@@ -12,6 +12,7 @@ default = ["optimize"]
 [dependencies]
 byteorder = "1"
 env_logger = "0.10"
+error-iter = "0.4"
 game-loop = { version = "=0.10.1", features = ["winit"] }
 getrandom = "0.2"
 gilrs = "0.10"
