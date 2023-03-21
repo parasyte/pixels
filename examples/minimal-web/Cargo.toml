@@ -10,6 +10,7 @@ optimize = ["log/release_max_level_warn"]
 default = ["optimize"]
 
 [dependencies]
+error-iter = "0.4"
 log = "0.4"
 pixels = { path = "../.." }
 winit = "0.27"

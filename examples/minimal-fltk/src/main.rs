@@ -2,6 +2,7 @@
 #![forbid(unsafe_code)]
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
+use error_iter::ErrorIter as _;
 use fltk::{app, prelude::*, window::Window};
 use log::error;
 use pixels::{Error, Pixels, SurfaceTexture};
@@ -59,7 +60,7 @@ fn main() -> Result<(), Error> {
         // Resize the window
         if let Some((width, height)) = surface_size.borrow_mut().take() {
             if let Err(err) = pixels.resize_surface(width, height) {
-                error!("pixels.resize_surface() failed: {err}");
+                log_error("pixels.resize_surface", err);
                 app.quit();
             }
         }
@@ -67,7 +68,7 @@ fn main() -> Result<(), Error> {
         // Draw the current frame
         world.draw(pixels.frame_mut());
         if let Err(err) = pixels.render() {
-            error!("pixels.render() failed: {err}");
+            log_error("pixels.render", err);
             app.quit();
         }
 
@@ -76,6 +77,13 @@ fn main() -> Result<(), Error> {
     }
 
     Ok(())
+}
+
+fn log_error<E: std::error::Error + 'static>(method_name: &str, err: E) {
+    error!("{method_name}() failed: {err}");
+    for source in err.sources().skip(1) {
+        error!("  Caused by: {source}");
+    }
 }
 
 impl World {
