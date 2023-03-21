@@ -468,9 +468,8 @@ impl Pixels {
         ) -> Result<(), DynError>,
     {
         let frame = self.context.surface.get_current_texture().or_else(|_| {
-            // Reconfigure the surface to mitigate race condition on window resize.
+            // Reconfigure the surface and retry immediately on any error.
             // See https://github.com/parasyte/pixels/issues/121
-            // And to prevent random failures.
             // See https://github.com/parasyte/pixels/issues/346
             self.reconfigure_surface();
             self.context.surface.get_current_texture()
