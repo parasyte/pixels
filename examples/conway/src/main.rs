@@ -334,14 +334,9 @@ impl ConwayGrid {
     }
 
     fn grid_idx<I: std::convert::TryInto<usize>>(&self, x: I, y: I) -> Option<usize> {
-        if let (Ok(x), Ok(y)) = (x.try_into(), y.try_into()) {
-            if x < self.width && y < self.height {
-                Some(x + y * self.width)
-            } else {
-                None
-            }
-        } else {
-            None
+        match (x.try_into(), y.try_into()) {
+            (Ok(x), Ok(y)) if x < self.width && y < self.height => Some(x + y * self.width),
+            _ => None,
         }
     }
 }
