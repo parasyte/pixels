@@ -250,7 +250,7 @@ impl ConwayGrid {
         }
     }
 
-    fn get_neighbor_indices(&self, x: usize, y: usize) -> Vec<usize> {
+    fn count_neibs(&self, x: usize, y: usize) -> usize {
         let (xm1, xp1) = if x == 0 {
             (self.width - 1, x + 1)
         } else if x == self.width - 1 {
@@ -265,25 +265,15 @@ impl ConwayGrid {
         } else {
             (y - 1, y + 1)
         };
-        
-        vec![
-            xm1 + ym1 * self.width,
-            x + ym1 * self.width,
-            xp1 + ym1 * self.width,
-            xm1 + y * self.width,
-            xp1 + y * self.width,
-            xm1 + yp1 * self.width,
-            x + yp1 * self.width,
-            xp1 + yp1 * self.width,
-        ]
+        self.cells[xm1 + ym1 * self.width].alive as usize
+            + self.cells[x + ym1 * self.width].alive as usize
+            + self.cells[xp1 + ym1 * self.width].alive as usize
+            + self.cells[xm1 + y * self.width].alive as usize
+            + self.cells[xp1 + y * self.width].alive as usize
+            + self.cells[xm1 + yp1 * self.width].alive as usize
+            + self.cells[x + yp1 * self.width].alive as usize
+            + self.cells[xp1 + yp1 * self.width].alive as usize
     }
-    
-    fn count_neibs(&self, x: usize, y: usize) -> usize {
-        self.get_neighbor_indices(x, y)
-            .iter()
-            .filter(|&&idx| self.cells[idx].alive)
-            .count()
-    }    
 
     fn update(&mut self) {
         for y in 0..self.height {
