@@ -1,9 +1,7 @@
+use crate::sprites::{CachedSprite, Frame};
 use alloc::collections::BTreeMap;
 use alloc::rc::Rc;
-
 use alloc::vec::Vec;
-
-use crate::sprites::{CachedSprite, Frame};
 
 /// A list of assets loaded into memory.
 #[derive(Debug)]
