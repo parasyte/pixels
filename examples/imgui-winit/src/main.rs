@@ -2,6 +2,7 @@
 #![forbid(unsafe_code)]
 
 use crate::gui::Gui;
+use error_iter::ErrorIter as _;
 use log::error;
 use pixels::{Error, Pixels, SurfaceTexture};
 use winit::dpi::LogicalSize;
@@ -77,7 +78,7 @@ fn main() -> Result<(), Error> {
 
             // Basic error handling
             if let Err(err) = render_result {
-                error!("pixels.render() failed: {err}");
+                log_error("pixels.render", err);
                 *control_flow = ControlFlow::Exit;
                 return;
             }
@@ -102,7 +103,7 @@ fn main() -> Result<(), Error> {
                 if size.width > 0 && size.height > 0 {
                     // Resize the surface texture
                     if let Err(err) = pixels.resize_surface(size.width, size.height) {
-                        error!("pixels.resize_surface() failed: {err}");
+                        log_error("pixels.resize_surface", err);
                         *control_flow = ControlFlow::Exit;
                         return;
                     }
@@ -111,7 +112,7 @@ fn main() -> Result<(), Error> {
                     let LogicalSize { width, height } = size.to_logical(scale_factor);
                     world.resize(width, height);
                     if let Err(err) = pixels.resize_buffer(width, height) {
-                        error!("pixels.resize_buffer() failed: {err}");
+                        log_error("pixels.resize_buffer", err);
                         *control_flow = ControlFlow::Exit;
                         return;
                     }
@@ -123,6 +124,13 @@ fn main() -> Result<(), Error> {
             window.request_redraw();
         }
     });
+}
+
+fn log_error<E: std::error::Error + 'static>(method_name: &str, err: E) {
+    error!("{method_name}() failed: {err}");
+    for source in err.sources().skip(1) {
+        error!("  Caused by: {source}");
+    }
 }
 
 impl World {

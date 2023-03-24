@@ -2,6 +2,7 @@
 #![forbid(unsafe_code)]
 
 use crate::renderers::NoiseRenderer;
+use error_iter::ErrorIter as _;
 use log::error;
 use pixels::{Error, Pixels, SurfaceTexture};
 use winit::dpi::LogicalSize;
@@ -65,7 +66,7 @@ fn main() -> Result<(), Error> {
             });
 
             if let Err(err) = render_result {
-                error!("pixels.render_with() failed: {err}");
+                log_error("pixels.render_with", err);
                 *control_flow = ControlFlow::Exit;
                 return;
             }
@@ -82,12 +83,12 @@ fn main() -> Result<(), Error> {
             // Resize the window
             if let Some(size) = input.window_resized() {
                 if let Err(err) = pixels.resize_surface(size.width, size.height) {
-                    error!("pixels.resize_surface() failed: {err}");
+                    log_error("pixels.resize_surface", err);
                     *control_flow = ControlFlow::Exit;
                     return;
                 }
                 if let Err(err) = noise_renderer.resize(&pixels, size.width, size.height) {
-                    error!("noise_renderer.resize() failed: {err}");
+                    log_error("noise_renderer.resize", err);
                     *control_flow = ControlFlow::Exit;
                     return;
                 }
@@ -98,6 +99,13 @@ fn main() -> Result<(), Error> {
             window.request_redraw();
         }
     });
+}
+
+fn log_error<E: std::error::Error + 'static>(method_name: &str, err: E) {
+    error!("{method_name}() failed: {err}");
+    for source in err.sources().skip(1) {
+        error!("  Caused by: {source}");
+    }
 }
 
 impl World {

@@ -1,6 +1,7 @@
 #![deny(clippy::all)]
 #![forbid(unsafe_code)]
 
+use error_iter::ErrorIter as _;
 use log::error;
 use pixels::{Pixels, SurfaceTexture};
 use std::rc::Rc;
@@ -112,7 +113,7 @@ async fn run() {
         if let Event::RedrawRequested(_) = event {
             world.draw(pixels.frame_mut());
             if let Err(err) = pixels.render() {
-                error!("pixels.render() failed: {err}");
+                log_error("pixels.render", err);
                 *control_flow = ControlFlow::Exit;
                 return;
             }
@@ -129,7 +130,7 @@ async fn run() {
             // Resize the window
             if let Some(size) = input.window_resized() {
                 if let Err(err) = pixels.resize_surface(size.width, size.height) {
-                    error!("pixels.resize_surface() failed: {err}");
+                    log_error("pixels.resize_surface", err);
                     *control_flow = ControlFlow::Exit;
                     return;
                 }
@@ -140,6 +141,13 @@ async fn run() {
             window.request_redraw();
         }
     });
+}
+
+fn log_error<E: std::error::Error + 'static>(method_name: &str, err: E) {
+    error!("{method_name}() failed: {err}");
+    for source in err.sources().skip(1) {
+        error!("  Caused by: {source}");
+    }
 }
 
 impl World {

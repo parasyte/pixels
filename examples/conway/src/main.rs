@@ -1,6 +1,7 @@
 #![deny(clippy::all)]
 #![forbid(unsafe_code)]
 
+use error_iter::ErrorIter as _;
 use log::{debug, error};
 use pixels::{Error, Pixels, SurfaceTexture};
 use winit::{
@@ -46,7 +47,7 @@ fn main() -> Result<(), Error> {
         if let Event::RedrawRequested(_) = event {
             life.draw(pixels.frame_mut());
             if let Err(err) = pixels.render() {
-                error!("pixels.render() failed: {}", err);
+                log_error("pixels.render", err);
                 *control_flow = ControlFlow::Exit;
                 return;
             }
@@ -123,7 +124,7 @@ fn main() -> Result<(), Error> {
             // Resize the window
             if let Some(size) = input.window_resized() {
                 if let Err(err) = pixels.resize_surface(size.width, size.height) {
-                    error!("pixels.resize_surface() failed: {err}");
+                    log_error("pixels.resize_surface", err);
                     *control_flow = ControlFlow::Exit;
                     return;
                 }
@@ -134,6 +135,13 @@ fn main() -> Result<(), Error> {
             window.request_redraw();
         }
     });
+}
+
+fn log_error<E: std::error::Error + 'static>(method_name: &str, err: E) {
+    error!("{method_name}() failed: {err}");
+    for source in err.sources().skip(1) {
+        error!("  Caused by: {source}");
+    }
 }
 
 /// Generate a pseudorandom seed for the game's PRNG.
@@ -326,14 +334,9 @@ impl ConwayGrid {
     }
 
     fn grid_idx<I: std::convert::TryInto<usize>>(&self, x: I, y: I) -> Option<usize> {
-        if let (Ok(x), Ok(y)) = (x.try_into(), y.try_into()) {
-            if x < self.width && y < self.height {
-                Some(x + y * self.width)
-            } else {
-                None
-            }
-        } else {
-            None
+        match (x.try_into(), y.try_into()) {
+            (Ok(x), Ok(y)) if x < self.width && y < self.height => Some(x + y * self.width),
+            _ => None,
         }
     }
 }

@@ -1,6 +1,7 @@
 #![deny(clippy::all)]
 #![forbid(unsafe_code)]
 
+use error_iter::ErrorIter as _;
 use game_loop::{game_loop, Time, TimeTrait as _};
 use gilrs::{Button, GamepadId, Gilrs};
 use log::{debug, error};
@@ -141,7 +142,7 @@ fn main() -> Result<(), Error> {
             // Drawing
             g.game.world.draw(g.game.pixels.frame_mut());
             if let Err(err) = g.game.pixels.render() {
-                error!("pixels.render() failed: {err}");
+                log_error("pixels.render", err);
                 g.exit();
             }
 
@@ -169,13 +170,20 @@ fn main() -> Result<(), Error> {
                 // Resize the window
                 if let Some(size) = g.game.input.window_resized() {
                     if let Err(err) = g.game.pixels.resize_surface(size.width, size.height) {
-                        error!("pixels.resize_surface() failed: {err}");
+                        log_error("pixels.resize_surface", err);
                         g.exit();
                     }
                 }
             }
         },
     );
+}
+
+fn log_error<E: std::error::Error + 'static>(method_name: &str, err: E) {
+    error!("{method_name}() failed: {err}");
+    for source in err.sources().skip(1) {
+        error!("  Caused by: {source}");
+    }
 }
 
 /// Generate a pseudorandom seed for the game's PRNG.
