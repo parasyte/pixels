@@ -459,6 +459,43 @@ impl World {
             });
         }
     }
+
+    pub fn reset_game(&mut self) {
+        // Recreate the alien
+        self.invaders = Invaders {
+            grid: make_invader_grid(&self.assets),
+            stepper: Point::new(COLS - 1, 0),
+            direction: Direction::Right,
+            descend: false,
+            bounds: Bounds::default(),
+        };
+
+        // Empty laser
+        self.lasers.clear();
+
+        // Recreate the shield
+        self.shields = (0..4)
+            .map(|i| Shield {
+                sprite: Sprite::new(&self.assets, Frame::Shield1),
+                pos: Point::new(i * 45 + 32, 192),
+            })
+            .collect();
+
+        // Reset player position
+        self.player.pos = PLAYER_START;
+
+        // Remove bullet
+        self.bullet = None;
+
+        // Reset collision state
+        self.collision.clear();
+
+        // Reset game score
+        self._score = 0;
+
+        // Set gameover to false
+        self.gameover = false;
+    }
 }
 
 /// Create a default `World` with a static PRNG seed.
@@ -498,46 +535,40 @@ impl Invaders {
         let mut right = 0;
         let mut bottom = 0;
         let mut left = COLS;
-
+    
         // Scan through the entire grid
         for (y, row) in self.grid.iter().enumerate() {
-            for (x, col) in row.iter().enumerate() {
-                if col.is_some() {
-                    // Build a boundary box of invaders in the grid
-                    if top > y {
-                        top = y;
-                    }
-                    if bottom < y {
-                        bottom = y;
-                    }
-                    if left > x {
-                        left = x;
-                    }
-                    if right < x {
-                        right = x;
-                    }
-                }
-            }
+            row.iter().enumerate().filter(|(_, col)| col.is_some()).for_each(|(x, _)| {
+                top = top.min(y);
+                bottom = bottom.max(y);
+                left = left.min(x);
+                right = right.max(x);
+            });
         }
-
+    
         if top > bottom || left > right {
             // No more invaders left alive
             return true;
         }
-
+    
+        let bounds_changed = self.bounds.left_col != left
+            || self.bounds.right_col != right
+            || self.bounds.top_row != top
+            || self.bounds.bottom_row != bottom;
+    
         // Adjust the bounding box position
         self.bounds.pos.x += (left - self.bounds.left_col) * GRID.x;
         self.bounds.pos.y += (top - self.bounds.top_row) * GRID.y;
-
+    
         // Adjust the bounding box columns and rows
         self.bounds.left_col = left;
         self.bounds.right_col = right;
         self.bounds.top_row = top;
         self.bounds.bottom_row = bottom;
-
-        // No more changes
-        false
+    
+        bounds_changed
     }
+    
 
     fn get_closest_invader(&self, mut col: usize) -> &Invader {
         let mut row = ROWS - 1;
