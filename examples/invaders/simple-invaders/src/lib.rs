@@ -554,11 +554,6 @@ impl Invaders {
             return true;
         }
 
-        let bounds_changed = self.bounds.left_col != left
-            || self.bounds.right_col != right
-            || self.bounds.top_row != top
-            || self.bounds.bottom_row != bottom;
-
         // Adjust the bounding box position
         self.bounds.pos.x += (left - self.bounds.left_col) * GRID.x;
         self.bounds.pos.y += (top - self.bounds.top_row) * GRID.y;
@@ -569,7 +564,7 @@ impl Invaders {
         self.bounds.top_row = top;
         self.bounds.bottom_row = bottom;
 
-        bounds_changed
+        false
     }
 
     fn get_closest_invader(&self, mut col: usize) -> &Invader {
