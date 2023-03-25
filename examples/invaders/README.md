@@ -18,7 +18,9 @@ cargo run --release --package invaders
 
 <kbd>Pause</kbd> <kbd>P</kbd>: Pause
 
-<kbd>Reset</kbd> <kbd>R</kbd>: Reset Game
+<kbd>R</kbd>: Reset Game
+
+<kbd>escape</kbd>: Quit
 
 ## GamePad Controls
 
