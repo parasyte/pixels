@@ -564,6 +564,7 @@ impl Invaders {
         self.bounds.top_row = top;
         self.bounds.bottom_row = bottom;
 
+        // No more changes
         false
     }
 
