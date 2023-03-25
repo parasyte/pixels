@@ -18,6 +18,8 @@ cargo run --release --package invaders
 
 <kbd>Pause</kbd> <kbd>P</kbd>: Pause
 
+<kbd>Reset</kbd> <kbd>R</kbd>: Reset Game
+
 ## GamePad Controls
 
 `D-Pad 🡰` `D-Pad 🡲`: Move tank
