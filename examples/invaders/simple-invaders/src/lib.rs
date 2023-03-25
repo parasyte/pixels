@@ -535,40 +535,42 @@ impl Invaders {
         let mut right = 0;
         let mut bottom = 0;
         let mut left = COLS;
-    
+
         // Scan through the entire grid
         for (y, row) in self.grid.iter().enumerate() {
-            row.iter().enumerate().filter(|(_, col)| col.is_some()).for_each(|(x, _)| {
-                top = top.min(y);
-                bottom = bottom.max(y);
-                left = left.min(x);
-                right = right.max(x);
-            });
+            row.iter()
+                .enumerate()
+                .filter(|(_, col)| col.is_some())
+                .for_each(|(x, _)| {
+                    top = top.min(y);
+                    bottom = bottom.max(y);
+                    left = left.min(x);
+                    right = right.max(x);
+                });
         }
-    
+
         if top > bottom || left > right {
             // No more invaders left alive
             return true;
         }
-    
+
         let bounds_changed = self.bounds.left_col != left
             || self.bounds.right_col != right
             || self.bounds.top_row != top
             || self.bounds.bottom_row != bottom;
-    
+
         // Adjust the bounding box position
         self.bounds.pos.x += (left - self.bounds.left_col) * GRID.x;
         self.bounds.pos.y += (top - self.bounds.top_row) * GRID.y;
-    
+
         // Adjust the bounding box columns and rows
         self.bounds.left_col = left;
         self.bounds.right_col = right;
         self.bounds.top_row = top;
         self.bounds.bottom_row = bottom;
-    
+
         bounds_changed
     }
-    
 
     fn get_closest_invader(&self, mut col: usize) -> &Invader {
         let mut row = ROWS - 1;
