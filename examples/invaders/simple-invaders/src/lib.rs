@@ -140,6 +140,17 @@ trait DeltaTime {
     }
 }
 
+impl Player {
+    pub fn new(assets: &Assets) -> Self {
+        let sprite = SpriteRef::new(assets, Frame::Player1, Duration::from_millis(100));
+        let pos = PLAYER_START;
+        let dt = Duration::default();
+        
+        Player { sprite, pos, dt }
+    }
+}
+
+
 impl DeltaTime for Player {
     fn update(&mut self) -> usize {
         Self::update_dt(&mut self.dt, ONE_FRAME)
@@ -184,31 +195,17 @@ impl World {
     /// let world = World::new(seed, false);
     /// ```
     pub fn new(seed: (u64, u64), debug: bool) -> World {
-        use Frame::*;
 
         // Load assets first
         let assets = load_assets();
 
         // TODO: Create invaders one-at-a-time
-        let invaders = Invaders {
-            grid: make_invader_grid(&assets),
-            stepper: Point::new(COLS - 1, 0),
-            direction: Direction::Right,
-            descend: false,
-            bounds: Bounds::default(),
-        };
+        let invaders = Invaders::new(&assets);
         let lasers = Vec::new();
         let shields = (0..4)
-            .map(|i| Shield {
-                sprite: Sprite::new(&assets, Shield1),
-                pos: Point::new(i * 45 + 32, 192),
-            })
+            .map(|i| Shield::new(&assets, Point::new(i * 45 + 32, 192)))
             .collect();
-        let player = Player {
-            sprite: SpriteRef::new(&assets, Player1, Duration::from_millis(100)),
-            pos: PLAYER_START,
-            dt: Duration::default(),
-        };
+        let player = Player::new(&assets);
         let bullet = None;
         let collision = Collision::default();
         let _score = 0;
@@ -462,23 +459,14 @@ impl World {
 
     pub fn reset_game(&mut self) {
         // Recreate the alien
-        self.invaders = Invaders {
-            grid: make_invader_grid(&self.assets),
-            stepper: Point::new(COLS - 1, 0),
-            direction: Direction::Right,
-            descend: false,
-            bounds: Bounds::default(),
-        };
+        self.invaders = Invaders::new(&self.assets);
 
         // Empty laser
         self.lasers.clear();
 
         // Recreate the shield
         self.shields = (0..4)
-            .map(|i| Shield {
-                sprite: Sprite::new(&self.assets, Frame::Shield1),
-                pos: Point::new(i * 45 + 32, 192),
-            })
+            .map(|i| Shield::new(&self.assets, Point::new(i * 45 + 32, 192)))
             .collect();
 
         // Reset player position
@@ -508,6 +496,22 @@ impl Default for World {
 }
 
 impl Invaders {
+    // New
+    pub fn new(assets: &Assets) -> Self {
+        let grid = make_invader_grid(assets);
+        let stepper = Point::new(COLS - 1, 0);
+        let direction = Direction::Right;
+        let descend = false;
+        let bounds = Bounds::default();
+
+        Invaders {
+            grid,
+            stepper,
+            direction,
+            descend,
+            bounds,
+        }
+    }
     /// Compute the bounding box for the Invader fleet.
     ///
     /// # Returns
@@ -585,6 +589,15 @@ impl Invaders {
                 row -= 1;
             }
         }
+    }
+}
+
+impl Shield {
+    // New
+    pub fn new(assets: &Assets, pos: Point) -> Self {
+        let sprite = Sprite::new(assets, Frame::Shield1);
+
+        Shield { sprite, pos }
     }
 }
 
