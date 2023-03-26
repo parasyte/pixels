@@ -145,11 +145,9 @@ impl Player {
         let sprite = SpriteRef::new(assets, Frame::Player1, Duration::from_millis(100));
         let pos = PLAYER_START;
         let dt = Duration::default();
-        
         Player { sprite, pos, dt }
     }
 }
-
 
 impl DeltaTime for Player {
     fn update(&mut self) -> usize {
@@ -195,7 +193,6 @@ impl World {
     /// let world = World::new(seed, false);
     /// ```
     pub fn new(seed: (u64, u64), debug: bool) -> World {
-
         // Load assets first
         let assets = load_assets();
 
