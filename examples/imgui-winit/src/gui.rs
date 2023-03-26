@@ -82,7 +82,7 @@ impl Gui {
         context: &PixelsContext,
     ) -> imgui_wgpu::RendererResult<()> {
         // Start a new Dear ImGui frame and update the cursor
-        let ui = self.imgui.frame();
+        let ui = self.imgui.new_frame();
 
         let mouse_cursor = ui.mouse_cursor();
         if self.last_cursor != mouse_cursor {
