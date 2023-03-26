@@ -15,7 +15,9 @@ use crate::collision::Collision;
 pub use crate::controls::{Controls, Direction};
 use crate::geo::Point;
 use crate::loader::{load_assets, Assets};
-use crate::sprites::{blit, Animation, Drawable, Frame, Sprite, SpriteRef};
+use crate::player::Player;
+use crate::shield::Shield;
+use crate::sprites::{blit, Animation, Drawable, Frame, SpriteRef};
 use core::time::Duration;
 use randomize::PCG32;
 
@@ -24,6 +26,8 @@ mod controls;
 mod debug;
 mod geo;
 mod loader;
+mod player;
+mod shield;
 mod sprites;
 
 /// The screen width is constant (units are in pixels)
@@ -96,22 +100,6 @@ struct Bounds {
     bottom_row: usize,
 }
 
-/// The player entity.
-#[derive(Debug)]
-struct Player {
-    sprite: SpriteRef,
-    pos: Point,
-    dt: Duration,
-}
-
-/// The shield entity.
-#[derive(Debug)]
-struct Shield {
-    // Shield sprite is not referenced because we want to deform it when it gets shot
-    sprite: Sprite,
-    pos: Point,
-}
-
 /// The laser entity.
 #[derive(Debug)]
 struct Laser {
@@ -137,15 +125,6 @@ trait DeltaTime {
         *dest_dt -= Duration::from_nanos((frames * step.as_nanos()) as u64);
 
         frames as usize
-    }
-}
-
-impl Player {
-    pub fn new(assets: &Assets) -> Self {
-        let sprite = SpriteRef::new(assets, Frame::Player1, Duration::from_millis(100));
-        let pos = PLAYER_START;
-        let dt = Duration::default();
-        Player { sprite, pos, dt }
     }
 }
 
@@ -586,15 +565,6 @@ impl Invaders {
                 row -= 1;
             }
         }
-    }
-}
-
-impl Shield {
-    // New
-    pub fn new(assets: &Assets, pos: Point) -> Self {
-        let sprite = Sprite::new(assets, Frame::Shield1);
-
-        Shield { sprite, pos }
     }
 }
 
