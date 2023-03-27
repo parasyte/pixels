@@ -15,7 +15,9 @@ use crate::collision::Collision;
 pub use crate::controls::{Controls, Direction};
 use crate::geo::Point;
 use crate::loader::{load_assets, Assets};
-use crate::sprites::{blit, Animation, Drawable, Frame, Sprite, SpriteRef};
+use crate::player::Player;
+use crate::shield::Shield;
+use crate::sprites::{blit, Animation, Drawable, Frame, SpriteRef};
 use core::time::Duration;
 use randomize::PCG32;
 
@@ -24,6 +26,8 @@ mod controls;
 mod debug;
 mod geo;
 mod loader;
+mod player;
+mod shield;
 mod sprites;
 
 /// The screen width is constant (units are in pixels)
@@ -94,22 +98,6 @@ struct Bounds {
     right_col: usize,
     top_row: usize,
     bottom_row: usize,
-}
-
-/// The player entity.
-#[derive(Debug)]
-struct Player {
-    sprite: SpriteRef,
-    pos: Point,
-    dt: Duration,
-}
-
-/// The shield entity.
-#[derive(Debug)]
-struct Shield {
-    // Shield sprite is not referenced because we want to deform it when it gets shot
-    sprite: Sprite,
-    pos: Point,
 }
 
 /// The laser entity.
@@ -184,31 +172,16 @@ impl World {
     /// let world = World::new(seed, false);
     /// ```
     pub fn new(seed: (u64, u64), debug: bool) -> World {
-        use Frame::*;
-
         // Load assets first
         let assets = load_assets();
 
         // TODO: Create invaders one-at-a-time
-        let invaders = Invaders {
-            grid: make_invader_grid(&assets),
-            stepper: Point::new(COLS - 1, 0),
-            direction: Direction::Right,
-            descend: false,
-            bounds: Bounds::default(),
-        };
+        let invaders = Invaders::new(&assets);
         let lasers = Vec::new();
         let shields = (0..4)
-            .map(|i| Shield {
-                sprite: Sprite::new(&assets, Shield1),
-                pos: Point::new(i * 45 + 32, 192),
-            })
+            .map(|i| Shield::new(&assets, Point::new(i * 45 + 32, 192)))
             .collect();
-        let player = Player {
-            sprite: SpriteRef::new(&assets, Player1, Duration::from_millis(100)),
-            pos: PLAYER_START,
-            dt: Duration::default(),
-        };
+        let player = Player::new(&assets);
         let bullet = None;
         let collision = Collision::default();
         let _score = 0;
@@ -459,6 +432,34 @@ impl World {
             });
         }
     }
+
+    pub fn reset_game(&mut self) {
+        // Recreate the alien
+        self.invaders = Invaders::new(&self.assets);
+
+        // Empty laser
+        self.lasers.clear();
+
+        // Recreate the shield
+        self.shields = (0..4)
+            .map(|i| Shield::new(&self.assets, Point::new(i * 45 + 32, 192)))
+            .collect();
+
+        // Reset player position
+        self.player.pos = PLAYER_START;
+
+        // Remove bullet
+        self.bullet = None;
+
+        // Reset collision state
+        self.collision.clear();
+
+        // Reset game score
+        self._score = 0;
+
+        // Set gameover to false
+        self.gameover = false;
+    }
 }
 
 /// Create a default `World` with a static PRNG seed.
@@ -471,6 +472,22 @@ impl Default for World {
 }
 
 impl Invaders {
+    // New
+    pub fn new(assets: &Assets) -> Self {
+        let grid = make_invader_grid(assets);
+        let stepper = Point::new(COLS - 1, 0);
+        let direction = Direction::Right;
+        let descend = false;
+        let bounds = Bounds::default();
+
+        Invaders {
+            grid,
+            stepper,
+            direction,
+            descend,
+            bounds,
+        }
+    }
     /// Compute the bounding box for the Invader fleet.
     ///
     /// # Returns
@@ -501,23 +518,15 @@ impl Invaders {
 
         // Scan through the entire grid
         for (y, row) in self.grid.iter().enumerate() {
-            for (x, col) in row.iter().enumerate() {
-                if col.is_some() {
-                    // Build a boundary box of invaders in the grid
-                    if top > y {
-                        top = y;
-                    }
-                    if bottom < y {
-                        bottom = y;
-                    }
-                    if left > x {
-                        left = x;
-                    }
-                    if right < x {
-                        right = x;
-                    }
-                }
-            }
+            row.iter()
+                .enumerate()
+                .filter(|(_, col)| col.is_some())
+                .for_each(|(x, _)| {
+                    top = top.min(y);
+                    bottom = bottom.max(y);
+                    left = left.min(x);
+                    right = right.max(x);
+                });
         }
 
         if top > bottom || left > right {
