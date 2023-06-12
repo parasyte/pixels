@@ -57,7 +57,7 @@ fn main() -> Result<(), Error> {
         // It returns `true` when it is time to update our game state and request a redraw.
         if input.update(&event) {
             // Close events
-            if input.key_pressed(VirtualKeyCode::Escape) || input.quit() {
+            if input.key_pressed(VirtualKeyCode::Escape) || input.close_requested() {
                 *control_flow = ControlFlow::Exit;
                 return;
             }

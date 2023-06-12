@@ -13,16 +13,16 @@ default = ["optimize"]
 error-iter = "0.4"
 log = "0.4"
 pixels = { path = "../.." }
-winit = "0.27"
-winit_input_helper = "0.13"
+winit = "0.28"
+winit_input_helper = "0.14"
 
 [target.'cfg(target_arch = "wasm32")'.dependencies]
 console_error_panic_hook = "0.1"
-console_log = "0.2"
+console_log = "1"
 wasm-bindgen = "0.2"
 wasm-bindgen-futures = "0.4"
 web-sys = { version = "0.3", features = ["GpuTextureFormat"] }
 
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
 env_logger = "0.10"
-pollster = "0.2"
+pollster = "0.3"
