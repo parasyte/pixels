@@ -42,7 +42,3 @@ members = [
     "internals/*",
     "run-wasm",
 ]
-
-[patch.crates-io.imgui-wgpu]
-git = "https://github.com/Nelarius/imgui-wgpu-rs.git"
-rev = "1cd675a79a605835c1ea996d68a943cd3c3b4af9"

@@ -2942,6 +2942,21 @@ dependencies = [
 ]
 
 [[package]]
+name = "tiny-skia"
+version = "0.11.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "9906f9f9a01b3f260d82b5f9edba0ecd3512223c70c5fbc5fb54651c2dc89282"
+dependencies = [
+ "arrayref",
+ "arrayvec 0.7.2",
+ "bytemuck",
+ "cfg-if",
+ "log",
+ "png",
+ "tiny-skia-path 0.11.0",
+]
+
+[[package]]
 name = "tiny-skia-path"
 version = "0.7.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2963,6 +2978,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "tiny-skia-path"
+version = "0.11.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "6d8f3ffa4f42f609a86008566fdc08d66f5ccd008f9f413e6ec4bd72395048f5"
+dependencies = [
+ "arrayref",
+ "bytemuck",
+ "strict-num",
+]
+
+[[package]]
 name = "tiny-skia-winit"
 version = "0.1.0"
 dependencies = [
@@ -2970,7 +2996,7 @@ dependencies = [
  "error-iter",
  "log",
  "pixels",
- "tiny-skia 0.8.4",
+ "tiny-skia 0.11.0",
  "winit 0.28.6",
  "winit_input_helper 0.14.1",
 ]

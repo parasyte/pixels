@@ -14,6 +14,6 @@ env_logger = "0.10"
 error-iter = "0.4"
 log = "0.4"
 pixels = { path = "../.." }
-tiny-skia = "0.8"
+tiny-skia = "0.11"
 winit = "0.28"
 winit_input_helper = "0.14"
