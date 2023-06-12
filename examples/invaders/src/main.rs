@@ -95,6 +95,10 @@ impl Game {
             Controls { direction, fire }
         };
     }
+
+    fn reset_game(&mut self) {
+        self.world.reset_game();
+    }
 }
 
 fn main() -> Result<(), Error> {
@@ -165,6 +169,11 @@ fn main() -> Result<(), Error> {
                 {
                     g.exit();
                     return;
+                }
+
+                // Reset game
+                if g.game.input.key_pressed(VirtualKeyCode::R) {
+                    g.game.reset_game();
                 }
 
                 // Resize the window

@@ -53,17 +53,7 @@ impl<'req, 'dev, 'win, W: HasRawWindowHandle + HasRawDisplayHandle>
         Self {
             request_adapter_options: None,
             device_descriptor: None,
-            backend: wgpu::util::backend_bits_from_env().unwrap_or({
-                #[cfg(not(target_arch = "wasm32"))]
-                {
-                    wgpu::Backends::PRIMARY
-                }
-
-                #[cfg(target_arch = "wasm32")]
-                {
-                    wgpu::Backends::all()
-                }
-            }),
+            backend: wgpu::util::backend_bits_from_env().unwrap_or_else(wgpu::Backends::all),
             width,
             height,
             _pixel_aspect_ratio: 1.0,
@@ -94,7 +84,7 @@ impl<'req, 'dev, 'win, W: HasRawWindowHandle + HasRawDisplayHandle>
 
     /// Set which backends wgpu will attempt to use.
     ///
-    /// The default value is `PRIMARY`, which enables the well supported backends for wgpu.
+    /// The default enables all backends, including the backends with "best effort" support in wgpu.
     pub fn wgpu_backend(mut self, backend: wgpu::Backends) -> Self {
         self.backend = backend;
         self

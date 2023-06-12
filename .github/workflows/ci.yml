@@ -52,7 +52,9 @@ jobs:
         with:
           shared-key: common
       - name: Install cargo-machete
-        run: cargo install --locked cargo-machete
+        uses: baptiste0928/cargo-install@v2
+        with:
+          crate: cargo-machete
       - name: Cargo fmt
         run: cargo fmt --all -- --check
       - name: Cargo doc
