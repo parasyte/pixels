@@ -40,7 +40,7 @@ impl NoiseRenderer {
             lod_min_clamp: 0.0,
             lod_max_clamp: 1.0,
             compare: None,
-            anisotropy_clamp: None,
+            anisotropy_clamp: 1,
             border_color: None,
         });
 

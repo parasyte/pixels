@@ -301,7 +301,7 @@ impl<'req, 'dev, 'win, W: HasRawWindowHandle + HasRawDisplayHandle>
             *surface_capabilities
                 .formats
                 .iter()
-                .find(|format| format.describe().srgb)
+                .find(|format| format.is_srgb())
                 .unwrap_or(&wgpu::TextureFormat::Bgra8UnormSrgb)
         });
         let render_texture_format = self.render_texture_format.unwrap_or(surface_texture_format);
@@ -588,7 +588,7 @@ const fn texture_format_size(texture_format: wgpu::TextureFormat) -> f32 {
         | Bc5RgUnorm
         | Bc5RgSnorm
         | Bc6hRgbUfloat
-        | Bc6hRgbSfloat
+        | Bc6hRgbFloat
         | Bc7RgbaUnorm
         | Bc7RgbaUnormSrgb
         | EacRg11Unorm

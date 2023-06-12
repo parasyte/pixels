@@ -35,7 +35,6 @@ pub use crate::builder::{check_texture_size, PixelsBuilder};
 pub use crate::renderers::ScalingRenderer;
 pub use raw_window_handle;
 use raw_window_handle::{HasRawDisplayHandle, HasRawWindowHandle};
-use std::num::NonZeroU32;
 use thiserror::Error;
 pub use wgpu;
 
@@ -494,8 +493,8 @@ impl Pixels {
             &self.pixels,
             wgpu::ImageDataLayout {
                 offset: 0,
-                bytes_per_row: NonZeroU32::new(bytes_per_row),
-                rows_per_image: NonZeroU32::new(self.context.texture_extent.height),
+                bytes_per_row: Some(bytes_per_row),
+                rows_per_image: Some(self.context.texture_extent.height),
             },
             self.context.texture_extent,
         );
