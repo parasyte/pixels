@@ -2,7 +2,7 @@
 
 ![Hello Android](../../img/minimal-winit-android.png)
 
-Minimal example to run on android with `winit`
+Minimal example to run on android using winit with `android-native-activity` feature
 
 ## Running
 ```
