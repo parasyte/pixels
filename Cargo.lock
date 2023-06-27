@@ -495,7 +495,7 @@ dependencies = [
  "getrandom",
  "line_drawing",
  "log",
- "pixels 0.13.0",
+ "pixels",
  "randomize",
  "winit 0.28.6",
  "winit_input_helper 0.14.1",
@@ -619,7 +619,7 @@ dependencies = [
  "env_logger",
  "error-iter",
  "log",
- "pixels 0.13.0",
+ "pixels",
  "winit 0.28.6",
  "winit_input_helper 0.14.1",
 ]
@@ -1553,7 +1553,7 @@ dependencies = [
  "imgui-wgpu",
  "imgui-winit-support",
  "log",
- "pixels 0.13.0",
+ "pixels",
  "winit 0.27.5",
  "winit_input_helper 0.13.0",
 ]
@@ -1601,7 +1601,7 @@ dependencies = [
  "getrandom",
  "gilrs",
  "log",
- "pixels 0.13.0",
+ "pixels",
  "simple-invaders",
  "winit 0.28.6",
  "winit_input_helper 0.14.1",
@@ -1876,7 +1876,7 @@ dependencies = [
  "env_logger",
  "error-iter",
  "log",
- "pixels 0.13.0",
+ "pixels",
  "winit 0.28.6",
  "winit_input_helper 0.14.1",
 ]
@@ -1889,7 +1889,7 @@ dependencies = [
  "error-iter",
  "fltk",
  "log",
- "pixels 0.13.0",
+ "pixels",
 ]
 
 [[package]]
@@ -1905,7 +1905,7 @@ dependencies = [
  "env_logger",
  "error-iter",
  "log",
- "pixels 0.13.0",
+ "pixels",
  "tao",
 ]
 
@@ -1918,7 +1918,7 @@ dependencies = [
  "env_logger",
  "error-iter",
  "log",
- "pixels 0.13.0",
+ "pixels",
  "pollster",
  "wasm-bindgen",
  "wasm-bindgen-futures",
@@ -1934,7 +1934,7 @@ dependencies = [
  "env_logger",
  "error-iter",
  "log",
- "pixels 0.13.0",
+ "pixels",
  "winit 0.28.6",
  "winit_input_helper 0.14.1",
 ]
@@ -1946,7 +1946,7 @@ dependencies = [
  "android_logger",
  "env_logger",
  "log",
- "pixels 0.13.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "pixels",
  "winit 0.28.6",
 ]
 
@@ -2350,20 +2350,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "pixels"
-version = "0.13.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8ba8189b31db4f12fbf0d4a8eab2d7d7343a504a8d8a7ea4b14ffb2e6129136a"
-dependencies = [
- "bytemuck",
- "pollster",
- "raw-window-handle 0.5.2",
- "thiserror",
- "ultraviolet",
- "wgpu",
-]
-
-[[package]]
 name = "pixels-mocks"
 version = "0.1.0"
 dependencies = [
@@ -2485,7 +2471,7 @@ dependencies = [
  "error-iter",
  "euclid",
  "log",
- "pixels 0.13.0",
+ "pixels",
  "raqote",
  "winit 0.28.6",
  "winit_input_helper 0.14.1",
@@ -3038,7 +3024,7 @@ dependencies = [
  "env_logger",
  "error-iter",
  "log",
- "pixels 0.13.0",
+ "pixels",
  "tiny-skia 0.11.0",
  "winit 0.28.6",
  "winit_input_helper 0.14.1",

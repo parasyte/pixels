@@ -9,7 +9,7 @@ publish = false
 
 [dependencies]
 log = "0.4.19"
-pixels = "0.13.0"
+pixels = { path = "../.." }
 winit = { version = "0.28.6", features = ["android-native-activity"] }
 
 [target.'cfg(not(target_os = "android"))'.dependencies]
