@@ -89,6 +89,24 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "fc7eb209b1518d6bb87b283c20095f5228ecda460da70b44f0802523dea6da04"
 
 [[package]]
+name = "android_log-sys"
+version = "0.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "85965b6739a430150bdd138e2374a98af0c3ee0d030b3bb7fc3bddff58d0102e"
+
+[[package]]
+name = "android_logger"
+version = "0.11.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "8619b80c242aa7bd638b5c7ddd952addeecb71f69c75e33f1d47b2804f8f883a"
+dependencies = [
+ "android_log-sys",
+ "env_logger",
+ "log",
+ "once_cell",
+]
+
+[[package]]
 name = "android_system_properties"
 version = "0.1.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -477,7 +495,7 @@ dependencies = [
  "getrandom",
  "line_drawing",
  "log",
- "pixels",
+ "pixels 0.13.0",
  "randomize",
  "winit 0.28.6",
  "winit_input_helper 0.14.1",
@@ -601,7 +619,7 @@ dependencies = [
  "env_logger",
  "error-iter",
  "log",
- "pixels",
+ "pixels 0.13.0",
  "winit 0.28.6",
  "winit_input_helper 0.14.1",
 ]
@@ -1535,7 +1553,7 @@ dependencies = [
  "imgui-wgpu",
  "imgui-winit-support",
  "log",
- "pixels",
+ "pixels 0.13.0",
  "winit 0.27.5",
  "winit_input_helper 0.13.0",
 ]
@@ -1583,7 +1601,7 @@ dependencies = [
  "getrandom",
  "gilrs",
  "log",
- "pixels",
+ "pixels 0.13.0",
  "simple-invaders",
  "winit 0.28.6",
  "winit_input_helper 0.14.1",
@@ -1858,7 +1876,7 @@ dependencies = [
  "env_logger",
  "error-iter",
  "log",
- "pixels",
+ "pixels 0.13.0",
  "winit 0.28.6",
  "winit_input_helper 0.14.1",
 ]
@@ -1871,7 +1889,7 @@ dependencies = [
  "error-iter",
  "fltk",
  "log",
- "pixels",
+ "pixels 0.13.0",
 ]
 
 [[package]]
@@ -1887,7 +1905,7 @@ dependencies = [
  "env_logger",
  "error-iter",
  "log",
- "pixels",
+ "pixels 0.13.0",
  "tao",
 ]
 
@@ -1900,7 +1918,7 @@ dependencies = [
  "env_logger",
  "error-iter",
  "log",
- "pixels",
+ "pixels 0.13.0",
  "pollster",
  "wasm-bindgen",
  "wasm-bindgen-futures",
@@ -1916,9 +1934,20 @@ dependencies = [
  "env_logger",
  "error-iter",
  "log",
- "pixels",
+ "pixels 0.13.0",
  "winit 0.28.6",
  "winit_input_helper 0.14.1",
+]
+
+[[package]]
+name = "minimal-winit-android"
+version = "0.1.0"
+dependencies = [
+ "android_logger",
+ "env_logger",
+ "log",
+ "pixels 0.13.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "winit 0.28.6",
 ]
 
 [[package]]
@@ -2321,6 +2350,20 @@ dependencies = [
 ]
 
 [[package]]
+name = "pixels"
+version = "0.13.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "8ba8189b31db4f12fbf0d4a8eab2d7d7343a504a8d8a7ea4b14ffb2e6129136a"
+dependencies = [
+ "bytemuck",
+ "pollster",
+ "raw-window-handle 0.5.2",
+ "thiserror",
+ "ultraviolet",
+ "wgpu",
+]
+
+[[package]]
 name = "pixels-mocks"
 version = "0.1.0"
 dependencies = [
@@ -2442,7 +2485,7 @@ dependencies = [
  "error-iter",
  "euclid",
  "log",
- "pixels",
+ "pixels 0.13.0",
  "raqote",
  "winit 0.28.6",
  "winit_input_helper 0.14.1",
@@ -2995,7 +3038,7 @@ dependencies = [
  "env_logger",
  "error-iter",
  "log",
- "pixels",
+ "pixels 0.13.0",
  "tiny-skia 0.11.0",
  "winit 0.28.6",
  "winit_input_helper 0.14.1",

@@ -21,9 +21,9 @@ struct World {
 fn _main(event_loop: EventLoop<()>) {
     let mut window: Option<Window> = None;
     let mut pixels: Option<Pixels> = None;
-    
+
     let mut world = World::new();
-    
+
     event_loop.run(move |event, event_loop, control_flow| {
         *control_flow = ControlFlow::Wait;
         match event {
@@ -31,7 +31,8 @@ fn _main(event_loop: EventLoop<()>) {
                 let _window = Window::new(&event_loop).unwrap();
                 let _pixels = {
                     let window_size = _window.inner_size();
-                    let surface_texture = SurfaceTexture::new(window_size.width, window_size.height, &_window);
+                    let surface_texture =
+                        SurfaceTexture::new(window_size.width, window_size.height, &_window);
                     Pixels::new(WIDTH, HEIGHT, surface_texture).unwrap()
                 };
                 _window.request_redraw();
@@ -53,7 +54,9 @@ fn _main(event_loop: EventLoop<()>) {
             }
             _ => {}
         }
-        if let Some(_window) = &window { world.update(); }
+        if let Some(_window) = &window {
+            world.update();
+        }
     });
 }
 
