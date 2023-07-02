@@ -28,7 +28,7 @@ fn _main(event_loop: EventLoop<()>) {
         *control_flow = ControlFlow::Wait;
         match event {
             Event::Resumed => {
-                let _window = Window::new(&event_loop).unwrap();
+                let _window = Window::new(event_loop).unwrap();
                 let _pixels = {
                     let window_size = _window.inner_size();
                     let surface_texture =
@@ -40,21 +40,19 @@ fn _main(event_loop: EventLoop<()>) {
                 pixels = Some(_pixels);
             }
             Event::Suspended => {
-                window = None;
                 pixels = None;
+                window = None;
             }
             Event::RedrawRequested(_) => {
-                if let Some(_pixels) = &mut pixels {
-                    if let Some(_window) = &window {
-                        world.draw(_pixels.frame_mut());
-                        _pixels.render().unwrap();
-                        _window.request_redraw();
-                    }
+                if let (Some(pixels), Some(window)) = (&mut pixels, &window) {
+                    world.draw(pixels.frame_mut());
+                    pixels.render().unwrap();
+                    window.request_redraw();
                 }
             }
             _ => {}
         }
-        if let Some(_window) = &window {
+        if window.is_some() {
             world.update();
         }
     });
