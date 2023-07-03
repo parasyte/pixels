@@ -1,0 +1,27 @@
+[package]
+name = "minimal-winit-android"
+version = "0.1.0"
+authors = ["Randommist <andreq11s@gmail.com>"]
+edition = "2021"
+publish = false
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+log = "0.4.19"
+pixels = { path = "../.." }
+winit = { version = "0.28.6", features = ["android-native-activity"] }
+
+[target.'cfg(not(target_os = "android"))'.dependencies]
+env_logger = "0.10.0"
+
+[target.'cfg(target_os = "android")'.dependencies]
+android_logger = "0.11.0"
+
+[lib]
+crate_type = ["cdylib"]
+
+
+[package.metadata.android.signing.release]
+path = "./path/to/KeyStoreFile.jks"
+keystore_password = "password"
