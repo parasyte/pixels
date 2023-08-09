@@ -398,6 +398,14 @@ impl Pixels {
         self.reconfigure_surface();
     }
 
+    /// Get the `wgpu` present mode.
+    ///
+    /// Returns the present mode currently in use by the surface, which can be changed through
+    /// [`Pixels::enable_vsync`] or [`Pixels::set_present_mode`].
+    pub fn present_mode(&self) -> wgpu::PresentMode {
+        self.present_mode
+    }
+
     /// Set the `wgpu` present mode.
     ///
     /// This differs from [`Pixels::enable_vsync`] by allowing the present mode to be set to
