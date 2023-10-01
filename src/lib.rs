@@ -37,6 +37,7 @@ pub use raw_window_handle;
 use raw_window_handle::{HasRawDisplayHandle, HasRawWindowHandle};
 use thiserror::Error;
 pub use wgpu;
+use crate::renderers::ScalingMatrix;
 
 mod builder;
 mod renderers;
@@ -636,6 +637,64 @@ impl Pixels {
         } else {
             Ok((pixel_x as usize, pixel_y as usize))
         }
+    }
+
+    /// Calculate the physical position on the window from a pixel position,
+    /// Takes a pixel position (x, y), and returns a window position (x, y)
+    ///
+    /// The location must be given in physical units (for example, winit's `PhysicalLocation`)
+    ///
+    /// If the given pixel position is invalid, this
+    /// function returns an `Err` value with the window coordinates outside of
+    /// the screen, using isize instead of usize.
+    ///
+    /// ```no_run
+    /// use winit::dpi::PhysicalPosition;
+    ///
+    /// # use pixels::Pixels;
+    /// # let window = pixels_mocks::Rwh;
+    /// # let surface_texture = pixels::SurfaceTexture::new(320, 240, &window);
+    /// let mut pixels = Pixels::new(320, 240, surface_texture)?;
+    ///
+    /// // A cursor position in physical units
+    /// let pixel_position: (f32, f32) = PhysicalPosition::new(0.0, 0.0).into();
+    ///
+    /// // Convert it to a physical location
+    /// let physical_position: (usize, usize) = pixels.pixel_to_window_pos(pixel_position).unwrap();
+    /// # Ok::<(), pixels::Error>(())
+    /// ```
+    pub fn pixel_to_window_pos(&self, pixel_pos: (f32, f32)) -> Result<(usize, usize), (isize, isize)> {
+
+        let physical_width = self.surface_size.width as f32;
+        let physical_height = self.surface_size.height as f32;
+
+        let pixels_width = self.context.texture_extent.width as f32;
+        let pixels_height = self.context.texture_extent.height as f32;
+
+        let pos = ultraviolet::Vec4::new(
+            (pixel_pos.0 / pixels_width - 0.5) * physical_width,
+            (pixel_pos.1 / pixels_height - 0.5) * physical_height,
+            0.0,
+            1.0,
+        );
+
+        let pos = ScalingMatrix::new((pixels_width, pixels_height), (physical_width, physical_height)).transform * pos;
+        let offset_width = pixels_width.max(physical_width) / 2.0;
+        let offset_height = pixels_height.max(physical_height) / 2.0;
+
+        let win_x = (pos.x / pos.w + offset_width).floor() as isize;
+        let win_y = (pos.y / pos.w + offset_height).floor() as isize;
+
+        if win_x < 0
+            || win_x >= self.surface_size.width as isize
+            || win_y < 0
+            || win_y >= self.surface_size.height as isize
+        {
+            Err((win_x , win_y))
+        } else {
+            Ok((win_x as usize , win_y as usize))
+        }
+
     }
 
     /// Clamp a pixel position to the pixel buffer texture size.
