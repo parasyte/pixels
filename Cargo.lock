@@ -497,7 +497,7 @@ dependencies = [
  "log",
  "pixels",
  "randomize",
- "winit 0.28.6",
+ "winit 0.28.7",
  "winit_input_helper 0.14.1",
 ]
 
@@ -620,7 +620,7 @@ dependencies = [
  "error-iter",
  "log",
  "pixels",
- "winit 0.28.6",
+ "winit 0.28.7",
  "winit_input_helper 0.14.1",
 ]
 
@@ -757,7 +757,7 @@ dependencies = [
  "log",
  "raw-window-handle 0.5.2",
  "webbrowser",
- "winit 0.28.6",
+ "winit 0.28.7",
 ]
 
 [[package]]
@@ -1056,7 +1056,7 @@ checksum = "d96fac7dbca77aeb9f72968756770bdba2063a016166fa130d99232a8988bc36"
 dependencies = [
  "wasm-bindgen",
  "web-sys",
- "winit 0.28.6",
+ "winit 0.28.7",
 ]
 
 [[package]]
@@ -1603,7 +1603,7 @@ dependencies = [
  "log",
  "pixels",
  "simple-invaders",
- "winit 0.28.6",
+ "winit 0.28.7",
  "winit_input_helper 0.14.1",
 ]
 
@@ -1877,7 +1877,7 @@ dependencies = [
  "error-iter",
  "log",
  "pixels",
- "winit 0.28.6",
+ "winit 0.28.7",
  "winit_input_helper 0.14.1",
 ]
 
@@ -1923,7 +1923,7 @@ dependencies = [
  "wasm-bindgen",
  "wasm-bindgen-futures",
  "web-sys",
- "winit 0.28.6",
+ "winit 0.28.7",
  "winit_input_helper 0.14.1",
 ]
 
@@ -1935,7 +1935,7 @@ dependencies = [
  "error-iter",
  "log",
  "pixels",
- "winit 0.28.6",
+ "winit 0.28.7",
  "winit_input_helper 0.14.1",
 ]
 
@@ -1947,7 +1947,7 @@ dependencies = [
  "env_logger",
  "log",
  "pixels",
- "winit 0.28.6",
+ "winit 0.28.7",
 ]
 
 [[package]]
@@ -2346,7 +2346,7 @@ dependencies = [
  "thiserror",
  "ultraviolet",
  "wgpu",
- "winit 0.28.6",
+ "winit 0.28.7",
 ]
 
 [[package]]
@@ -2473,7 +2473,7 @@ dependencies = [
  "log",
  "pixels",
  "raqote",
- "winit 0.28.6",
+ "winit 0.28.7",
  "winit_input_helper 0.14.1",
 ]
 
@@ -3026,7 +3026,7 @@ dependencies = [
  "log",
  "pixels",
  "tiny-skia 0.11.0",
- "winit 0.28.6",
+ "winit 0.28.7",
  "winit_input_helper 0.14.1",
 ]
 
@@ -3874,9 +3874,9 @@ dependencies = [
 
 [[package]]
 name = "winit"
-version = "0.28.6"
+version = "0.28.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "866db3f712fffba75d31bf0cdecf357c8aeafd158c5b7ab51dba2a2b2d47f196"
+checksum = "9596d90b45384f5281384ab204224876e8e8bf7d58366d9b795ad99aa9894b94"
 dependencies = [
  "android-activity",
  "bitflags 1.3.2",
@@ -3922,7 +3922,7 @@ version = "0.14.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "5de0485e86aa2ee87d2d4c373a908c9548357bc65c5bce19fd884c8ea9eac4d7"
 dependencies = [
- "winit 0.28.6",
+ "winit 0.28.7",
 ]
 
 [[package]]

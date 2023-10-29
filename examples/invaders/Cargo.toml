@@ -19,5 +19,5 @@ gilrs = "0.10"
 log = "0.4"
 pixels = { path = "../.." }
 simple-invaders = { path = "simple-invaders" }
-winit = "0.28"
+winit = "0.28.7"
 winit_input_helper = "0.14"
