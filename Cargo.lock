@@ -394,6 +394,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "75476fe966a8af7c0ceae2a3e514afa87d4451741fcdfab8bfaa07ad301842ec"
 
 [[package]]
+name = "clipline"
+version = "0.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "261dc8d360e39175d787ffc8ee5885da0ec7fe167171d574f6857772a348c344"
+
+[[package]]
 name = "cmake"
 version = "0.1.50"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -490,10 +496,10 @@ name = "conway"
 version = "0.1.0"
 dependencies = [
  "byteorder",
+ "clipline",
  "env_logger",
  "error-iter",
  "getrandom",
- "line_drawing",
  "log",
  "pixels",
  "randomize",
@@ -1760,15 +1766,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "line_drawing"
-version = "1.0.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3d1478a313008a3e6c8149995e90a99ee9094034b5c5c3da1eeb81183cb61d1d"
-dependencies = [
- "num-traits",
-]
-
-[[package]]
 name = "linux-raw-sys"
 version = "0.3.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2717,8 +2714,8 @@ name = "simple-invaders"
 version = "0.1.0"
 dependencies = [
  "byteorder",
+ "clipline",
  "getrandom",
- "line_drawing",
  "pcx",
  "randomize",
 ]

@@ -3,9 +3,7 @@ use crate::TIME_STEP;
 use crate::{Point, HEIGHT, WIDTH};
 use alloc::rc::Rc;
 use alloc::vec::Vec;
-use core::cmp::min;
 use core::time::Duration;
-use line_drawing::Bresenham;
 
 // This is the type stored in the `Assets` hash map
 pub(crate) type CachedSprite = (usize, usize, Rc<[u8]>);
@@ -216,16 +214,16 @@ where
 
 /// Draw a line to the pixel buffer using Bresenham's algorithm.
 pub(crate) fn line(screen: &mut [u8], p1: &Point, p2: &Point, color: [u8; 4]) {
-    let p1 = (p1.x as i64, p1.y as i64);
-    let p2 = (p2.x as i64, p2.y as i64);
+    let p1 = (p1.x as isize, p1.y as isize);
+    let p2 = (p2.x as isize, p2.y as isize);
+    let clip_max = (WIDTH as isize - 1, HEIGHT as isize - 1);
 
-    for (x, y) in Bresenham::new(p1, p2) {
-        let x = min(x as usize, WIDTH - 1);
-        let y = min(y as usize, HEIGHT - 1);
+    clipline::clipline((p1, p2), ((0, 0), clip_max), |x, y| {
+        let (x, y) = (x as usize, y as usize);
         let i = x * 4 + y * WIDTH * 4;
 
         screen[i..i + 4].copy_from_slice(&color);
-    }
+    });
 }
 
 /// Draw a rectangle to the pixel buffer using two points in opposite corners.
