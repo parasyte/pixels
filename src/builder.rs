@@ -253,7 +253,7 @@ impl<'req, 'dev, 'win, W: HasRawWindowHandle + HasRawDisplayHandle>
         let surface = unsafe { instance.create_surface(self.surface_texture.window) }?;
         let compatible_surface = Some(&surface);
         let request_adapter_options = &self.request_adapter_options;
-        let adapter = match wgpu::util::initialize_adapter_from_env(&instance, self.backend) {
+        let adapter = match wgpu::util::initialize_adapter_from_env(&instance, compatible_surface) {
             Some(adapter) => Some(adapter),
             None => {
                 instance
