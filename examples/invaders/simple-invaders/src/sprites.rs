@@ -213,17 +213,17 @@ where
 }
 
 /// Draw a line to the pixel buffer using Bresenham's algorithm.
-pub(crate) fn line(screen: &mut [u8], p1: &Point, p2: &Point, color: [u8; 4]) {
+pub(crate) fn line(screen: &mut [u8], p1: &Point, p2: &Point, color: [u8; 4]) -> Option<()> {
     let p1 = (p1.x as isize, p1.y as isize);
     let p2 = (p2.x as isize, p2.y as isize);
     let clip_max = (WIDTH as isize - 1, HEIGHT as isize - 1);
-
-    clipline::clipline((p1, p2), ((0, 0), clip_max), |x, y| {
+    for (x, y) in clipline::Clipline::new((p1, p2), ((0, 0), clip_max))? {
         let (x, y) = (x as usize, y as usize);
         let i = x * 4 + y * WIDTH * 4;
 
         screen[i..i + 4].copy_from_slice(&color);
-    });
+    }
+    Some(())
 }
 
 /// Draw a rectangle to the pixel buffer using two points in opposite corners.

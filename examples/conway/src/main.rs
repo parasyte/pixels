@@ -318,15 +318,16 @@ impl ConwayGrid {
         }
     }
 
-    fn set_line(&mut self, x0: isize, y0: isize, x1: isize, y1: isize, alive: bool) {
-        clipline::clipline(
+    fn set_line(&mut self, x0: isize, y0: isize, x1: isize, y1: isize, alive: bool) -> Option<()> {
+        // possible to optimize by matching on Clipline and iterating over its arms
+        for (x, y) in clipline::Clipline::new(
             ((x0, y0), (x1, y1)),
             ((0, 0), (self.width as isize - 1, self.height as isize - 1)),
-            |x, y| {
-                let (x, y) = (x as usize, y as usize);
-                self.cells[x + y * self.width].set_alive(alive);
-            },
-        );
+        )? {
+            let (x, y) = (x as usize, y as usize);
+            self.cells[x + y * self.width].set_alive(alive);
+        }
+        Some(())
     }
 
     fn grid_idx<I: std::convert::TryInto<usize>>(&self, x: I, y: I) -> Option<usize> {
