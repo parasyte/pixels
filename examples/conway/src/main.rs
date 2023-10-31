@@ -318,19 +318,16 @@ impl ConwayGrid {
         }
     }
 
-    fn set_line(&mut self, x0: isize, y0: isize, x1: isize, y1: isize, alive: bool) {
-        // probably should do sutherland-hodgeman if this were more serious.
-        // instead just clamp the start pos, and draw until moving towards the
-        // end pos takes us out of bounds.
-        let x0 = x0.clamp(0, self.width as isize);
-        let y0 = y0.clamp(0, self.height as isize);
-        for (x, y) in line_drawing::Bresenham::new((x0, y0), (x1, y1)) {
-            if let Some(i) = self.grid_idx(x, y) {
-                self.cells[i].set_alive(alive);
-            } else {
-                break;
-            }
+    fn set_line(&mut self, x0: isize, y0: isize, x1: isize, y1: isize, alive: bool) -> Option<()> {
+        // possible to optimize by matching on Clipline and iterating over its arms
+        for (x, y) in clipline::Clipline::new(
+            ((x0, y0), (x1, y1)),
+            ((0, 0), (self.width as isize - 1, self.height as isize - 1)),
+        )? {
+            let (x, y) = (x as usize, y as usize);
+            self.cells[x + y * self.width].set_alive(alive);
         }
+        Some(())
     }
 
     fn grid_idx<I: std::convert::TryInto<usize>>(&self, x: I, y: I) -> Option<usize> {

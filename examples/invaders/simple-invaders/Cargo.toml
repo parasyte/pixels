@@ -5,7 +5,7 @@ authors = ["Jay Oster <jay@kodewerx.org>"]
 edition = "2018"
 
 [dependencies]
-line_drawing = "1.0"
+clipline = "0.1.1"
 pcx = "0.2"
 randomize = "3.0"
 
