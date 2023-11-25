@@ -34,7 +34,7 @@
 pub use crate::builder::{check_texture_size, PixelsBuilder};
 pub use crate::renderers::ScalingRenderer;
 pub use raw_window_handle;
-use raw_window_handle::{HasRawDisplayHandle, HasRawWindowHandle};
+use raw_window_handle::{HasDisplayHandle, HasWindowHandle};
 use thiserror::Error;
 pub use wgpu;
 
@@ -43,7 +43,7 @@ mod renderers;
 
 /// A logical texture for a window surface.
 #[derive(Debug)]
-pub struct SurfaceTexture<'win, W: HasRawWindowHandle + HasRawDisplayHandle> {
+pub struct SurfaceTexture<'win, W: HasWindowHandle + HasDisplayHandle> {
     window: &'win W,
     size: SurfaceSize,
 }
@@ -147,7 +147,7 @@ pub enum TextureError {
     TextureHeight(u32),
 }
 
-impl<'win, W: HasRawWindowHandle + HasRawDisplayHandle> SurfaceTexture<'win, W> {
+impl<'win, W: HasWindowHandle + HasDisplayHandle> SurfaceTexture<'win, W> {
     /// Create a logical texture for a window surface.
     ///
     /// It is recommended (but not required) that the `width` and `height` are equivalent to the
@@ -213,7 +213,7 @@ impl Pixels {
     ///
     /// Panics when `width` or `height` are 0.
     #[cfg(not(target_arch = "wasm32"))]
-    pub fn new<W: HasRawWindowHandle + HasRawDisplayHandle>(
+    pub fn new<W: HasWindowHandle + HasDisplayHandle>(
         width: u32,
         height: u32,
         surface_texture: SurfaceTexture<'_, W>,
@@ -244,7 +244,7 @@ impl Pixels {
     /// # Panics
     ///
     /// Panics when `width` or `height` are 0.
-    pub async fn new_async<W: HasRawWindowHandle + HasRawDisplayHandle>(
+    pub async fn new_async<W: HasWindowHandle + HasDisplayHandle>(
         width: u32,
         height: u32,
         surface_texture: SurfaceTexture<'_, W>,
