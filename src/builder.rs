@@ -1,9 +1,9 @@
 use crate::renderers::{ScalingMatrix, ScalingRenderer};
 use crate::{Error, Pixels, PixelsContext, SurfaceSize, SurfaceTexture, TextureError};
-use raw_window_handle::{HasRawDisplayHandle, HasRawWindowHandle};
+use raw_window_handle::{HasDisplayHandle, HasWindowHandle};
 
 /// A builder to help create customized pixel buffers.
-pub struct PixelsBuilder<'req, 'dev, 'win, W: HasRawWindowHandle + HasRawDisplayHandle> {
+pub struct PixelsBuilder<'req, 'dev, 'win, W: HasWindowHandle + HasDisplayHandle> {
     request_adapter_options: Option<wgpu::RequestAdapterOptions<'req>>,
     device_descriptor: Option<wgpu::DeviceDescriptor<'dev>>,
     backend: wgpu::Backends,
@@ -19,7 +19,7 @@ pub struct PixelsBuilder<'req, 'dev, 'win, W: HasRawWindowHandle + HasRawDisplay
     blend_state: wgpu::BlendState,
 }
 
-impl<'req, 'dev, 'win, W: HasRawWindowHandle + HasRawDisplayHandle>
+impl<'req, 'dev, 'win, W: HasWindowHandle + HasDisplayHandle>
     PixelsBuilder<'req, 'dev, 'win, W>
 {
     /// Create a builder that can be finalized into a [`Pixels`] pixel buffer.
