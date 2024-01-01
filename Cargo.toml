@@ -24,10 +24,10 @@ bytemuck = "1.12"
 raw-window-handle = "0.5"
 thiserror = "1.0"
 ultraviolet = "0.9"
-wgpu = "0.17"
+wgpu = "0.18"
 
 [target.'cfg(target_arch = "wasm32")'.dependencies]
-wgpu = { version = "0.17", features = ["webgl"] }
+wgpu = { version = "0.18", features = ["webgl"] }
 
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
 pollster = "0.3"
