@@ -534,6 +534,7 @@ const fn texture_format_size(texture_format: wgpu::TextureFormat) -> f32 {
         | Rgba8Sint
         | Bgra8Unorm
         | Bgra8UnormSrgb
+        | Rgb10a2Uint
         | Rgb10a2Unorm
         | Rg11b10Float
         | Depth32Float
