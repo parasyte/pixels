@@ -16,5 +16,5 @@ euclid = "0.22"
 log = "0.4"
 pixels = { path = "../.." }
 raqote = { version = "0.8", default-features = false }
-winit = "0.28"
-winit_input_helper = "0.14"
+winit = "0.29"
+winit_input_helper = "0.15"
