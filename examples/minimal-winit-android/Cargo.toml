@@ -10,7 +10,7 @@ publish = false
 [dependencies]
 log = "0.4.19"
 pixels = { path = "../.." }
-winit = { version = "0.28.6", features = ["android-native-activity"] }
+winit = { version = "0.29", features = ["android-native-activity"] }
 
 [target.'cfg(not(target_os = "android"))'.dependencies]
 env_logger = "0.10.0"
