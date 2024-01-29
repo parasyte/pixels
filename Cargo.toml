@@ -21,20 +21,20 @@ include = [
 
 [dependencies]
 bytemuck = "1.12"
-raw-window-handle = "0.5"
+raw-window-handle = "0.6"
 thiserror = "1.0"
 ultraviolet = "0.9"
-wgpu = "0.17"
+wgpu = "0.19"
 
 [target.'cfg(target_arch = "wasm32")'.dependencies]
-wgpu = { version = "0.17", features = ["webgl"] }
+wgpu = { version = "0.19", features = ["webgl"] }
 
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
 pollster = "0.3"
 
 [dev-dependencies]
 pixels-mocks = { path = "internals/pixels-mocks" }
-winit = "0.28"
+winit = "0.29"
 
 [workspace]
 members = [
