@@ -1116,23 +1116,21 @@ dependencies = [
 
 [[package]]
 name = "fltk"
-version = "1.4.22"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9da639944e8827d048b63fe437e905e8177c41b9c7cb32f898ade7464208b3bd"
+version = "1.4.23"
+source = "git+https://github.com/fltk-rs/fltk-rs#e39959fa962e62a719363765474159e813adb433"
 dependencies = [
  "bitflags 2.4.2",
  "crossbeam-channel",
  "fltk-sys",
  "paste",
- "raw-window-handle 0.5.2",
+ "raw-window-handle 0.6.0",
  "ttf-parser",
 ]
 
 [[package]]
 name = "fltk-sys"
-version = "1.4.22"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f434491b616dce4081d022a503e1a6a0cedd677a292d3c6f173db9dc566cd021"
+version = "1.4.23"
+source = "git+https://github.com/fltk-rs/fltk-rs#e39959fa962e62a719363765474159e813adb433"
 dependencies = [
  "cmake",
 ]
