@@ -7,16 +7,15 @@ use gilrs::{Button, GamepadId, Gilrs};
 use log::{debug, error};
 use pixels::{Error, Pixels, SurfaceTexture};
 use simple_invaders::{Controls, Direction, World, FPS, HEIGHT, TIME_STEP, WIDTH};
+use std::sync::Arc;
 use std::{env, time::Duration};
-use winit::{
-    dpi::LogicalSize, event::VirtualKeyCode, event_loop::EventLoop, window::WindowBuilder,
-};
+use winit::{dpi::LogicalSize, event_loop::EventLoop, keyboard::KeyCode, window::WindowBuilder};
 use winit_input_helper::WinitInputHelper;
 
 /// Uber-struct representing the entire game.
 struct Game {
     /// Software renderer.
-    pixels: Pixels,
+    pixels: Pixels<'static>,
     /// Invaders world.
     world: World,
     /// Player controls for world updates.
@@ -32,7 +31,7 @@ struct Game {
 }
 
 impl Game {
-    fn new(pixels: Pixels, debug: bool) -> Self {
+    fn new(pixels: Pixels<'static>, debug: bool) -> Self {
         Self {
             pixels,
             world: World::new(generate_seed(), debug),
@@ -59,11 +58,11 @@ impl Game {
 
         self.controls = {
             // Keyboard controls
-            let mut left = self.input.key_held(VirtualKeyCode::Left);
-            let mut right = self.input.key_held(VirtualKeyCode::Right);
-            let mut fire = self.input.key_pressed(VirtualKeyCode::Space);
-            let mut pause = self.input.key_pressed(VirtualKeyCode::Pause)
-                | self.input.key_pressed(VirtualKeyCode::P);
+            let mut left = self.input.key_held(KeyCode::ArrowLeft);
+            let mut right = self.input.key_held(KeyCode::ArrowRight);
+            let mut fire = self.input.key_pressed(KeyCode::Space);
+            let mut pause =
+                self.input.key_pressed(KeyCode::Pause) | self.input.key_pressed(KeyCode::KeyP);
 
             // GamePad controls
             if let Some(id) = self.gamepad {
@@ -103,7 +102,7 @@ impl Game {
 
 fn main() -> Result<(), Error> {
     env_logger::init();
-    let event_loop = EventLoop::new();
+    let event_loop = EventLoop::new().unwrap();
 
     // Enable debug mode with `DEBUG=true` environment variable
     let debug = env::var("DEBUG")
@@ -114,23 +113,25 @@ fn main() -> Result<(), Error> {
     let window = {
         let size = LogicalSize::new(WIDTH as f64, HEIGHT as f64);
         let scaled_size = LogicalSize::new(WIDTH as f64 * 3.0, HEIGHT as f64 * 3.0);
-        WindowBuilder::new()
+        let window = WindowBuilder::new()
             .with_title("pixel invaders")
             .with_inner_size(scaled_size)
             .with_min_inner_size(size)
             .build(&event_loop)
-            .unwrap()
+            .unwrap();
+        Arc::new(window)
     };
 
     let pixels = {
         let window_size = window.inner_size();
-        let surface_texture = SurfaceTexture::new(window_size.width, window_size.height, &window);
+        let surface_texture =
+            SurfaceTexture::new(window_size.width, window_size.height, Arc::clone(&window));
         Pixels::new(WIDTH as u32, HEIGHT as u32, surface_texture)?
     };
 
     let game = Game::new(pixels, debug);
 
-    game_loop(
+    let res = game_loop(
         event_loop,
         window,
         game,
@@ -164,15 +165,13 @@ fn main() -> Result<(), Error> {
                 g.game.update_controls();
 
                 // Close events
-                if g.game.input.key_pressed(VirtualKeyCode::Escape)
-                    || g.game.input.close_requested()
-                {
+                if g.game.input.key_pressed(KeyCode::Escape) || g.game.input.close_requested() {
                     g.exit();
                     return;
                 }
 
                 // Reset game
-                if g.game.input.key_pressed(VirtualKeyCode::R) {
+                if g.game.input.key_pressed(KeyCode::KeyR) {
                     g.game.reset_game();
                 }
 
@@ -186,6 +185,7 @@ fn main() -> Result<(), Error> {
             }
         },
     );
+    res.map_err(|e| Error::UserDefined(Box::new(e)))
 }
 
 fn log_error<E: std::error::Error + 'static>(method_name: &str, err: E) {
