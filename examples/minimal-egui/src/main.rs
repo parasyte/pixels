@@ -113,7 +113,6 @@ fn main() -> Result<(), Error> {
                 if let Err(err) = render_result {
                     log_error("pixels.render", err);
                     elwt.exit();
-                    return;
                 }
             }
             Event::WindowEvent { event, .. } => {
