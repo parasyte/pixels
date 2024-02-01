@@ -624,6 +624,7 @@ const fn texture_format_size(texture_format: wgpu::TextureFormat) -> f32 {
         // 12x12 blocks, 16 bytes per block
         Astc { block: B12x12, channel: _ } => 9.0, // 12.0 * 12.0 / 16.0
 
-        NV12 => todo!(),
+        // 8-bit two-plane 4:2:0 YUV
+        NV12 => 3.0, // (8.0 + 16.0) / 8.0
     }
 }
