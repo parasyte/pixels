@@ -625,6 +625,9 @@ const fn texture_format_size(texture_format: wgpu::TextureFormat) -> f32 {
         Astc { block: B12x12, channel: _ } => 9.0, // 12.0 * 12.0 / 16.0
 
         // 8-bit two-plane 4:2:0 YUV
-        NV12 => 3.0, // (8.0 + 16.0) / 8.0
+        // The first plane consists of 8-bit G components.
+        // The second plane consists of 16-bit BR components.
+        // The resolution of the second plane is halved both vertically and horizontally.
+        NV12 => 1.5, // (8.0 + 16.0 / 2.0 / 2.0) / 8.0
     }
 }
