@@ -1,5 +1,5 @@
 use egui::{ClippedPrimitive, Context, TexturesDelta, ViewportId};
-use egui_wgpu::renderer::{Renderer, ScreenDescriptor};
+use egui_wgpu::{Renderer, ScreenDescriptor};
 use pixels::{wgpu, PixelsContext};
 use winit::event_loop::EventLoopWindowTarget;
 use winit::window::Window;
