@@ -196,11 +196,27 @@ impl<'win> Pixels<'win> {
     ///
     /// # Examples
     ///
+    /// Pass a borrowed window object to receive a `Pixels` object tied to the corresponding
+    /// lifetime:
+    ///
     /// ```no_run
-    /// # use pixels::Pixels;
+    /// # use pixels::{Pixels, SurfaceTexture};
     /// # let window = pixels_mocks::Window;
-    /// # let surface_texture = pixels::SurfaceTexture::new(320, 240, &window);
-    /// let mut pixels = Pixels::new(320, 240, surface_texture)?;
+    /// let surface_texture = SurfaceTexture::new(320, 240, &window);
+    /// let mut pixels: Pixels<'_> = Pixels::new(320, 240, surface_texture)?;
+    /// # Ok::<(), pixels::Error>(())
+    /// ```
+    ///
+    /// Pass an owned window object to receive a static `Pixels` object, not tied to any lifetime.
+    /// This includes objects wrapped in smart pointers like `Arc`, `Rc`, or `Box`:
+    ///
+    /// ```no_run
+    /// # use std::sync::Arc;
+    /// # use pixels::{Pixels, SurfaceTexture};
+    /// # let window = pixels_mocks::Window;
+    /// let arc = Arc::new(window);
+    /// let surface_texture = SurfaceTexture::new(320, 240, arc.clone());
+    /// let mut pixels: Pixels<'static> = Pixels::new(320, 240, surface_texture)?;
     /// # Ok::<(), pixels::Error>(())
     /// ```
     ///
