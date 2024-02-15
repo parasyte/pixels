@@ -13,7 +13,7 @@ jobs:
         rust:
           - stable
           - beta
-          - 1.70.0
+          - 1.74.0
     steps:
       - name: Checkout sources
         uses: actions/checkout@v3
@@ -73,7 +73,7 @@ jobs:
         rust:
           - stable
           - beta
-          - 1.70.0
+          - 1.74.0
     steps:
       - name: Checkout sources
         uses: actions/checkout@v3

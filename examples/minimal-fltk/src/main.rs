@@ -32,14 +32,6 @@ fn main() -> Result<(), Error> {
     win.end();
     win.show();
 
-    let mut pixels = {
-        let pixel_width = win.pixel_w() as u32;
-        let pixel_height = win.pixel_h() as u32;
-        let surface_texture = SurfaceTexture::new(pixel_width, pixel_height, &win);
-
-        Pixels::new(WIDTH, HEIGHT, surface_texture)?
-    };
-
     let mut world = World::new();
 
     // Handle resize events
@@ -52,6 +44,14 @@ fn main() -> Result<(), Error> {
 
         surface_resize.borrow_mut().replace((width, height));
     });
+
+    let mut pixels = {
+        let pixel_width = win.pixel_w() as u32;
+        let pixel_height = win.pixel_h() as u32;
+        let surface_texture = SurfaceTexture::new(pixel_width, pixel_height, &win);
+
+        Pixels::new(WIDTH, HEIGHT, surface_texture)?
+    };
 
     while app.wait() {
         // Update internal state

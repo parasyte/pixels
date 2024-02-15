@@ -13,8 +13,8 @@ default = ["optimize"]
 error-iter = "0.4"
 log = "0.4"
 pixels = { path = "../.." }
-winit = "0.28"
-winit_input_helper = "0.14"
+winit = "0.29"
+winit_input_helper = "0.15"
 
 [target.'cfg(target_arch = "wasm32")'.dependencies]
 console_error_panic_hook = "0.1"

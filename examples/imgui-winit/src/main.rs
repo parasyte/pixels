@@ -4,10 +4,11 @@
 use crate::gui::Gui;
 use error_iter::ErrorIter as _;
 use log::error;
-use pixels::{Error, Pixels, SurfaceTexture};
+use pixels::{Pixels, SurfaceTexture};
 use winit::dpi::LogicalSize;
-use winit::event::{Event, VirtualKeyCode};
-use winit::event_loop::{ControlFlow, EventLoop};
+use winit::event::{Event, WindowEvent};
+use winit::event_loop::EventLoop;
+use winit::keyboard::KeyCode;
 use winit::window::WindowBuilder;
 use winit_input_helper::WinitInputHelper;
 
@@ -30,9 +31,9 @@ struct World {
     velocity_y: i16,
 }
 
-fn main() -> Result<(), Error> {
+fn main() -> Result<(), Box<dyn std::error::Error>> {
     env_logger::init();
-    let event_loop = EventLoop::new();
+    let event_loop = EventLoop::new().unwrap();
     let mut input = WinitInputHelper::new();
     let window = {
         let size = LogicalSize::new(WIDTH as f64, HEIGHT as f64);
@@ -56,9 +57,13 @@ fn main() -> Result<(), Error> {
     // Set up Dear ImGui
     let mut gui = Gui::new(&window, &pixels);
 
-    event_loop.run(move |event, _, control_flow| {
+    event_loop.run(|event, elwt| {
         // Draw the current frame
-        if let Event::RedrawRequested(_) = event {
+        if let Event::WindowEvent {
+            event: WindowEvent::RedrawRequested,
+            ..
+        } = event
+        {
             // Draw the world
             world.draw(pixels.frame_mut());
 
@@ -79,7 +84,7 @@ fn main() -> Result<(), Error> {
             // Basic error handling
             if let Err(err) = render_result {
                 log_error("pixels.render", err);
-                *control_flow = ControlFlow::Exit;
+                elwt.exit();
                 return;
             }
         }
@@ -88,8 +93,8 @@ fn main() -> Result<(), Error> {
         gui.handle_event(&window, &event);
         if input.update(&event) {
             // Close events
-            if input.key_pressed(VirtualKeyCode::Escape) || input.quit() {
-                *control_flow = ControlFlow::Exit;
+            if input.key_pressed(KeyCode::Escape) || input.close_requested() || input.destroyed() {
+                elwt.exit();
                 return;
             }
 
@@ -104,7 +109,7 @@ fn main() -> Result<(), Error> {
                     // Resize the surface texture
                     if let Err(err) = pixels.resize_surface(size.width, size.height) {
                         log_error("pixels.resize_surface", err);
-                        *control_flow = ControlFlow::Exit;
+                        elwt.exit();
                         return;
                     }
 
@@ -113,7 +118,7 @@ fn main() -> Result<(), Error> {
                     world.resize(width, height);
                     if let Err(err) = pixels.resize_buffer(width, height) {
                         log_error("pixels.resize_buffer", err);
-                        *control_flow = ControlFlow::Exit;
+                        elwt.exit();
                         return;
                     }
                 }
@@ -123,7 +128,8 @@ fn main() -> Result<(), Error> {
             world.update();
             window.request_redraw();
         }
-    });
+    })?;
+    Ok(())
 }
 
 fn log_error<E: std::error::Error + 'static>(method_name: &str, err: E) {

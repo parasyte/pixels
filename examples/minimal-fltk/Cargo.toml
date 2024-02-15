@@ -11,7 +11,7 @@ default = ["optimize"]
 
 [dependencies]
 error-iter = "0.4"
-fltk = { version = "1", features = ["rwh05", "no-images", "no-pango"] }
+fltk = { version = "1", features = ["rwh06", "no-images", "no-pango"] }
 env_logger = "0.10"
 log = "0.4"
 pixels = { path = "../.." }
