@@ -1297,8 +1297,9 @@ dependencies = [
 
 [[package]]
 name = "game-loop"
-version = "1.0.1"
-source = "git+https://github.com/mkrasnitski/game-loop#59c7d26e215f83debe024dfca6168b5bc063d2b7"
+version = "1.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "2a06ba31889b085d08926f154e554ba0b87d6f6f5d11624ea3445e76df0d0028"
 dependencies = [
  "wasm-bindgen",
  "web-sys",
