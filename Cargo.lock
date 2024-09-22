@@ -2156,7 +2156,7 @@ dependencies = [
  "imgui-wgpu",
  "imgui-winit-support",
  "log",
- "pixels 0.13.0",
+ "pixels 0.14.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "winit 0.27.5",
  "winit_input_helper 0.13.0",
 ]
@@ -3090,19 +3090,6 @@ dependencies = [
 
 [[package]]
 name = "pixels"
-version = "0.13.0"
-source = "git+https://github.com/parasyte/pixels?rev=befb84a#befb84aea80179377554e22fa9350f02b0b2aad6"
-dependencies = [
- "bytemuck",
- "pollster",
- "raw-window-handle 0.5.2",
- "thiserror",
- "ultraviolet",
- "wgpu 0.17.2",
-]
-
-[[package]]
-name = "pixels"
 version = "0.14.0"
 dependencies = [
  "bytemuck",
@@ -3113,6 +3100,20 @@ dependencies = [
  "ultraviolet",
  "wgpu 0.19.4",
  "winit 0.29.15",
+]
+
+[[package]]
+name = "pixels"
+version = "0.14.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "3fe695c41cbcc552b6ad7511479226911e804e6569204ea0bafbe7c5fdddfc11"
+dependencies = [
+ "bytemuck",
+ "pollster",
+ "raw-window-handle 0.5.2",
+ "thiserror",
+ "ultraviolet",
+ "wgpu 0.17.2",
 ]
 
 [[package]]
