@@ -1,3 +1,6 @@
+#![deny(clippy::all)]
+#![forbid(unsafe_code)]
+
 fn main() {
     let css = r#"body {
         background-color: #000;

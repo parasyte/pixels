@@ -1,3 +1,6 @@
+#![deny(clippy::all)]
+#![forbid(unsafe_code)]
+
 #[cfg(target_os = "android")]
 use winit::platform::android::activity::AndroidApp;
 

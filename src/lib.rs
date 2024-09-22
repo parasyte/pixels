@@ -30,6 +30,7 @@
 //! `WGPU_ADAPTER_NAME` takes precedence.
 
 #![deny(clippy::all)]
+#![forbid(unsafe_code)]
 
 pub use crate::builder::{check_texture_size, PixelsBuilder};
 pub use crate::renderers::ScalingRenderer;
