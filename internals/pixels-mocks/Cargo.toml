@@ -6,4 +6,4 @@ edition = "2021"
 publish = false
 
 [dependencies]
-raw-window-handle = "0.5"
+raw-window-handle = "0.6"

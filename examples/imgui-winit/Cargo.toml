@@ -13,9 +13,16 @@ default = ["optimize"]
 env_logger = "0.10"
 error-iter = "0.4"
 imgui = "0.11"
-imgui-wgpu = "0.24"
 imgui-winit-support = "0.11"
 log = "0.4"
-pixels = { path = "../.." }
 winit = "0.27"
 winit_input_helper = "0.13"
+
+# Until this gets updated support, this example is stuck on winit 0.27 and wgpu 0.17
+[dependencies.imgui-wgpu]
+version = "0.24"
+
+# Frozen dep for this specific example
+[dependencies.pixels]
+git = "https://github.com/parasyte/pixels"
+rev = "befb84a"

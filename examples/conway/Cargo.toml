@@ -18,5 +18,5 @@ clipline = "0.1.1"
 log = "0.4"
 pixels = { path = "../.." }
 randomize = "3"
-winit = "0.28"
-winit_input_helper = "0.14"
+winit = "0.29"
+winit_input_helper = "0.15"

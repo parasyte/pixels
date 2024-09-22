@@ -13,11 +13,11 @@ default = ["optimize"]
 byteorder = "1"
 env_logger = "0.10"
 error-iter = "0.4"
-game-loop = { version = "0.10", features = ["winit"] }
+game-loop = { version = "=1.1.0", features = ["winit"] }
 getrandom = "0.2"
 gilrs = "0.10"
 log = "0.4"
 pixels = { path = "../.." }
 simple-invaders = { path = "simple-invaders" }
-winit = "0.28"
-winit_input_helper = "0.14"
+winit = "0.29"
+winit_input_helper = "0.15"

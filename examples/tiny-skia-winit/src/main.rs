@@ -7,8 +7,9 @@ use pixels::{Error, Pixels, SurfaceTexture};
 use std::time::Instant;
 use tiny_skia::Pixmap;
 use winit::dpi::LogicalSize;
-use winit::event::{Event, VirtualKeyCode};
-use winit::event_loop::{ControlFlow, EventLoop};
+use winit::event::{Event, WindowEvent};
+use winit::event_loop::EventLoop;
+use winit::keyboard::KeyCode;
 use winit::window::WindowBuilder;
 use winit_input_helper::WinitInputHelper;
 
@@ -19,7 +20,7 @@ const HEIGHT: u32 = 500;
 
 fn main() -> Result<(), Error> {
     env_logger::init();
-    let event_loop = EventLoop::new();
+    let event_loop = EventLoop::new().unwrap();
     let mut input = WinitInputHelper::new();
     let window = {
         let size = LogicalSize::new(WIDTH as f64, HEIGHT as f64);
@@ -41,13 +42,17 @@ fn main() -> Result<(), Error> {
     let mut drawing = Pixmap::new(WIDTH, HEIGHT).unwrap();
     let now = Instant::now();
 
-    event_loop.run(move |event, _, control_flow| {
+    let res = event_loop.run(|event, elwt| {
         // Draw the current frame
-        if let Event::RedrawRequested(_) = event {
+        if let Event::WindowEvent {
+            event: WindowEvent::RedrawRequested,
+            ..
+        } = event
+        {
             pixels.frame_mut().copy_from_slice(drawing.data());
             if let Err(err) = pixels.render() {
                 log_error("pixels.render", err);
-                *control_flow = ControlFlow::Exit;
+                elwt.exit();
                 return;
             }
         }
@@ -55,8 +60,8 @@ fn main() -> Result<(), Error> {
         // Handle input events
         if input.update(&event) {
             // Close events
-            if input.key_pressed(VirtualKeyCode::Escape) || input.close_requested() {
-                *control_flow = ControlFlow::Exit;
+            if input.key_pressed(KeyCode::Escape) || input.close_requested() {
+                elwt.exit();
                 return;
             }
 
@@ -64,7 +69,7 @@ fn main() -> Result<(), Error> {
             if let Some(size) = input.window_resized() {
                 if let Err(err) = pixels.resize_surface(size.width, size.height) {
                     log_error("pixels.resize_surface", err);
-                    *control_flow = ControlFlow::Exit;
+                    elwt.exit();
                     return;
                 }
             }
@@ -74,6 +79,7 @@ fn main() -> Result<(), Error> {
             window.request_redraw();
         }
     });
+    res.map_err(|e| Error::UserDefined(Box::new(e)))
 }
 
 fn log_error<E: std::error::Error + 'static>(method_name: &str, err: E) {

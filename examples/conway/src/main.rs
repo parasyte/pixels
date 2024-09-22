@@ -6,8 +6,9 @@ use log::{debug, error};
 use pixels::{Error, Pixels, SurfaceTexture};
 use winit::{
     dpi::LogicalSize,
-    event::{Event, VirtualKeyCode},
-    event_loop::{ControlFlow, EventLoop},
+    event::{Event, WindowEvent},
+    event_loop::EventLoop,
+    keyboard::KeyCode,
     window::WindowBuilder,
 };
 use winit_input_helper::WinitInputHelper;
@@ -17,7 +18,7 @@ const HEIGHT: u32 = 300;
 
 fn main() -> Result<(), Error> {
     env_logger::init();
-    let event_loop = EventLoop::new();
+    let event_loop = EventLoop::new().unwrap();
     let mut input = WinitInputHelper::new();
 
     let window = {
@@ -42,13 +43,17 @@ fn main() -> Result<(), Error> {
 
     let mut draw_state: Option<bool> = None;
 
-    event_loop.run(move |event, _, control_flow| {
+    let res = event_loop.run(|event, elwt| {
         // The one and only event that winit_input_helper doesn't have for us...
-        if let Event::RedrawRequested(_) = event {
+        if let Event::WindowEvent {
+            event: WindowEvent::RedrawRequested,
+            ..
+        } = event
+        {
             life.draw(pixels.frame_mut());
             if let Err(err) = pixels.render() {
                 log_error("pixels.render", err);
-                *control_flow = ControlFlow::Exit;
+                elwt.exit();
                 return;
             }
         }
@@ -57,26 +62,26 @@ fn main() -> Result<(), Error> {
         // It returns `true` when it is time to update our game state and request a redraw.
         if input.update(&event) {
             // Close events
-            if input.key_pressed(VirtualKeyCode::Escape) || input.close_requested() {
-                *control_flow = ControlFlow::Exit;
+            if input.key_pressed(KeyCode::Escape) || input.close_requested() {
+                elwt.exit();
                 return;
             }
-            if input.key_pressed(VirtualKeyCode::P) {
+            if input.key_pressed(KeyCode::KeyP) {
                 paused = !paused;
             }
-            if input.key_pressed_os(VirtualKeyCode::Space) {
+            if input.key_pressed_os(KeyCode::Space) {
                 // Space is frame-step, so ensure we're paused
                 paused = true;
             }
-            if input.key_pressed(VirtualKeyCode::R) {
+            if input.key_pressed(KeyCode::KeyR) {
                 life.randomize();
             }
             // Handle mouse. This is a bit involved since support some simple
             // line drawing (mostly because it makes nice looking patterns).
             let (mouse_cell, mouse_prev_cell) = input
-                .mouse()
+                .cursor()
                 .map(|(mx, my)| {
-                    let (dx, dy) = input.mouse_diff();
+                    let (dx, dy) = input.cursor_diff();
                     let prev_x = mx - dx;
                     let prev_y = my - dy;
 
@@ -125,16 +130,17 @@ fn main() -> Result<(), Error> {
             if let Some(size) = input.window_resized() {
                 if let Err(err) = pixels.resize_surface(size.width, size.height) {
                     log_error("pixels.resize_surface", err);
-                    *control_flow = ControlFlow::Exit;
+                    elwt.exit();
                     return;
                 }
             }
-            if !paused || input.key_pressed_os(VirtualKeyCode::Space) {
+            if !paused || input.key_pressed_os(KeyCode::Space) {
                 life.update();
             }
             window.request_redraw();
         }
     });
+    res.map_err(|e| Error::UserDefined(Box::new(e)))
 }
 
 fn log_error<E: std::error::Error + 'static>(method_name: &str, err: E) {
