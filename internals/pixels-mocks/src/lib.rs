@@ -1,4 +1,5 @@
 #![deny(clippy::all)]
+#![forbid(unsafe_code)]
 
 pub struct Window;
 
