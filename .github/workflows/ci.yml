@@ -117,7 +117,7 @@ jobs:
         with:
           shared-key: common
       - name: WASM build
-        run: cargo run-wasm --build-only ${{ matrix.example }}
+        run: cargo run-wasm --build-only --package ${{ matrix.example }}
 
   # See https://github.com/parasyte/pixels-ci-rust-version
   rust-version:
