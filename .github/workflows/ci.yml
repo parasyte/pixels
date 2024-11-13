@@ -25,12 +25,15 @@ jobs:
         uses: dtolnay/rust-toolchain@master
         with:
           toolchain: ${{ matrix.rust }}
+          target: wasm32-unknown-unknown
       - name: Rust cache
         uses: Swatinem/rust-cache@v2
         with:
           shared-key: common
       - name: Cargo check
         run: cargo check --workspace
+      - name: Cargo check WASM
+        run: cargo check --target wasm32-unknown-unknown --package minimal-web
 
   lints:
     name: Lints
@@ -47,6 +50,7 @@ jobs:
         with:
           toolchain: stable
           components: clippy, rustfmt
+          target: wasm32-unknown-unknown
       - name: Rust cache
         uses: Swatinem/rust-cache@v2
         with:
@@ -61,6 +65,8 @@ jobs:
         run: cargo doc --workspace --no-deps
       - name: Cargo clippy
         run: cargo clippy --workspace --tests -- -D warnings
+      - name: Cargo clippy WASM
+        run: cargo clippy --target wasm32-unknown-unknown --package minimal-web --tests -- -D warnings
       - name: Cargo machete
         run: cargo machete
 
@@ -85,12 +91,15 @@ jobs:
         uses: dtolnay/rust-toolchain@master
         with:
           toolchain: ${{ matrix.rust }}
+          target: wasm32-unknown-unknown
       - name: Rust cache
         uses: Swatinem/rust-cache@v2
         with:
           shared-key: common
       - name: Cargo test
         run: cargo test --workspace
+      - name: Cargo test WASM
+        run: cargo test --target wasm32-unknown-unknown --package minimal-web
 
   wasm:
     name: WASM
@@ -105,8 +114,6 @@ jobs:
         uses: actions/checkout@v3
       - name: Update apt repos
         run: sudo apt -y update
-      - name: Install dependencies
-        run: sudo apt -y install libgtk-3-dev libudev-dev
       - name: Install toolchain
         uses: dtolnay/rust-toolchain@master
         with:
