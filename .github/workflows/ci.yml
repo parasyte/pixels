@@ -91,15 +91,12 @@ jobs:
         uses: dtolnay/rust-toolchain@master
         with:
           toolchain: ${{ matrix.rust }}
-          target: wasm32-unknown-unknown
       - name: Rust cache
         uses: Swatinem/rust-cache@v2
         with:
           shared-key: common
       - name: Cargo test
         run: cargo test --workspace
-      - name: Cargo test WASM
-        run: cargo test --target wasm32-unknown-unknown --package minimal-web
 
   wasm:
     name: WASM
