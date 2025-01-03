@@ -16,10 +16,8 @@
         pkgs = nixpkgs.legacyPackages.${system};
 
 	crane = inputs.crane.mkLib pkgs;
-        toolchain = fenix.packages.${system}.fromToolchainFile {
-	   file = ./rust-toolchain.toml;
-	   sha256 = "sha256-s1RPtyvDGJaX/BisLT+ifVfuhDT1nZkZ1NcK8sbwELM=";
-	};
+         
+        toolchain = fenix.packages.${system}.stable.minimalToolchain;
 
 	craneLib = crane.overrideToolchain toolchain;	
       in
