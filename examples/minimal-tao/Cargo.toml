@@ -13,5 +13,6 @@ default = ["optimize"]
 env_logger = "0.10"
 error-iter = "0.4"
 log = "0.4"
+muda = "0.15"
 pixels = { path = "../.." }
-tao = "0.24"
+tao = "0.31"
