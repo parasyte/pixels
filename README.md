@@ -37,6 +37,7 @@ The Minimum Supported Rust Version for `pixels` will always be made available in
 ### Demos 🧪
 
 - [Custom Shader](./examples/custom-shader)
+- [Fill arbitrary window sizes while maintaining the highest possible quality](./examples/fill-window)
 - [Dear ImGui example with `winit`](./examples/imgui-winit)
 - [Egui example with `winit`](./examples/minimal-egui)
 - [Minimal example for WebGL2](./examples/minimal-web)
