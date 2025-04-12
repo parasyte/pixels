@@ -167,7 +167,7 @@ impl<'req, 'dev, 'win, W: wgpu::WindowHandle + 'win> PixelsBuilder<'req, 'dev, '
     /// The default value is chosen automatically by the surface (if it can) with a fallback to
     /// `Bgra8UnormSrgb` (which is 4 unsigned bytes in `BGRA` order using the sRGB color space).
     /// Setting this format correctly depends on the hardware/platform the pixel buffer is rendered
-    /// to. The chosen format can be retrieved later with [`Pixels::render_texture_format`].
+    /// to. The chosen format can be retrieved later with [`Pixels::surface_texture_format`].
     ///
     /// This method controls the format of the surface frame buffer, which has strict texture
     /// format requirements. Applications will never interact directly with the pixel data of this
