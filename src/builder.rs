@@ -328,6 +328,7 @@ impl<'req, 'dev, 'win, W: wgpu::WindowHandle + 'win> PixelsBuilder<'req, 'dev, '
             texture_format: self.texture_format,
             texture_format_size: texture_format_size(self.texture_format),
             scaling_renderer,
+            surface_capabilities,
         };
 
         let pixels = Pixels {
