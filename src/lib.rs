@@ -85,6 +85,10 @@ pub struct PixelsContext<'win> {
 
     /// A default renderer to scale the input texture to the screen size.
     pub scaling_renderer: ScalingRenderer,
+
+    /// Defines the capabilities of the surface and adapter including available present_modes, and
+    /// alpha_modes.
+    pub surface_capabilities: wgpu::SurfaceCapabilities,
 }
 
 /// Represents a 2D pixel buffer with an explicit image resolution.

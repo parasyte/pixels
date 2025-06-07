@@ -125,10 +125,15 @@ impl<'req, 'dev, 'win, W: wgpu::WindowHandle + 'win> PixelsBuilder<'req, 'dev, '
         self
     }
 
-    /// Set the `wgpu` present mode.
+    /// Optimistically set the `wgpu` present mode.
     ///
     /// This differs from [`PixelsBuilder::enable_vsync`] by allowing the present mode to be set to
     /// any value.
+    ///
+    /// When the [`wgpu::Surface`] is created on [`PixelsBuilder::build`], if this present mode is
+    /// not supported, Pixels defaults to `AutoVsync` which is supported on all platforms.
+    /// After building, [`PixelsContext::surface_capabilities`] can be used to check the surface's
+    /// supported present modes.
     pub fn present_mode(mut self, present_mode: wgpu::PresentMode) -> Self {
         self.present_mode = present_mode;
         self
@@ -283,7 +288,14 @@ impl<'req, 'dev, 'win, W: wgpu::WindowHandle + 'win> PixelsBuilder<'req, 'dev, '
         let (device, queue) = adapter.request_device(&device_descriptor, None).await?;
 
         let surface_capabilities = surface.get_capabilities(&adapter);
-        let present_mode = self.present_mode;
+        let present_mode = if surface_capabilities
+            .present_modes
+            .contains(&self.present_mode)
+        {
+            self.present_mode
+        } else {
+            wgpu::PresentMode::AutoVsync
+        };
         let surface_texture_format = self.surface_texture_format.unwrap_or_else(|| {
             *surface_capabilities
                 .formats
@@ -328,6 +340,7 @@ impl<'req, 'dev, 'win, W: wgpu::WindowHandle + 'win> PixelsBuilder<'req, 'dev, '
             texture_format: self.texture_format,
             texture_format_size: texture_format_size(self.texture_format),
             scaling_renderer,
+            surface_capabilities,
         };
 
         let pixels = Pixels {
