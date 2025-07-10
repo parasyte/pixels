@@ -1,4 +1,4 @@
-use crate::SurfaceSize;
+use crate::{SurfaceSize, ScalingMode};
 use ultraviolet::Mat4;
 use wgpu::util::DeviceExt;
 
@@ -7,12 +7,14 @@ use wgpu::util::DeviceExt;
 pub struct ScalingRenderer {
     vertex_buffer: wgpu::Buffer,
     uniform_buffer: wgpu::Buffer,
-    bind_group: wgpu::BindGroup,
+    bind_group_nearest: wgpu::BindGroup,
+    bind_group_linear: wgpu::BindGroup,
     render_pipeline: wgpu::RenderPipeline,
     pub(crate) clear_color: wgpu::Color,
     width: f32,
     height: f32,
     clip_rect: (u32, u32, u32, u32),
+    pub(crate) scaling_mode: ScalingMode,
 }
 
 impl ScalingRenderer {
@@ -24,19 +26,35 @@ impl ScalingRenderer {
         render_texture_format: wgpu::TextureFormat,
         clear_color: wgpu::Color,
         blend_state: wgpu::BlendState,
+        scaling_mode: ScalingMode,
     ) -> Self {
         let shader = wgpu::include_wgsl!("../shaders/scale.wgsl");
         let module = device.create_shader_module(shader);
 
         // Create a texture sampler with nearest neighbor
-        let sampler = device.create_sampler(&wgpu::SamplerDescriptor {
-            label: Some("pixels_scaling_renderer_sampler"),
+        let sampler_nearest = device.create_sampler(&wgpu::SamplerDescriptor {
+            label: Some("pixels_scaling_renderer_sampler_nearest"),
             address_mode_u: wgpu::AddressMode::ClampToEdge,
             address_mode_v: wgpu::AddressMode::ClampToEdge,
             address_mode_w: wgpu::AddressMode::ClampToEdge,
             mag_filter: wgpu::FilterMode::Nearest,
             min_filter: wgpu::FilterMode::Nearest,
             mipmap_filter: wgpu::FilterMode::Nearest,
+            lod_min_clamp: 0.0,
+            lod_max_clamp: 1.0,
+            compare: None,
+            anisotropy_clamp: 1,
+            border_color: None,
+        });
+
+        let sampler_linear = device.create_sampler(&wgpu::SamplerDescriptor {
+            label: Some("pixels_scaling_renderer_sampler_linear"),
+            address_mode_u: wgpu::AddressMode::ClampToEdge,
+            address_mode_v: wgpu::AddressMode::ClampToEdge,
+            address_mode_w: wgpu::AddressMode::ClampToEdge,
+            mag_filter: wgpu::FilterMode::Linear,
+            min_filter: wgpu::FilterMode::Linear,
+            mipmap_filter: wgpu::FilterMode::Linear,
             lod_min_clamp: 0.0,
             lod_max_clamp: 1.0,
             compare: None,
@@ -72,6 +90,7 @@ impl ScalingRenderer {
         let matrix = ScalingMatrix::new(
             (texture_size.width as f32, texture_size.height as f32),
             (surface_size.width as f32, surface_size.height as f32),
+            scaling_mode,
         );
         let transform_bytes = matrix.as_bytes();
         let uniform_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
@@ -112,8 +131,8 @@ impl ScalingRenderer {
                 },
             ],
         });
-        let bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
-            label: Some("pixels_scaling_renderer_bind_group"),
+        let bind_group_nearest = device.create_bind_group(&wgpu::BindGroupDescriptor {
+            label: Some("pixels_scaling_renderer_bind_group_nearest"),
             layout: &bind_group_layout,
             entries: &[
                 wgpu::BindGroupEntry {
@@ -122,7 +141,25 @@ impl ScalingRenderer {
                 },
                 wgpu::BindGroupEntry {
                     binding: 1,
-                    resource: wgpu::BindingResource::Sampler(&sampler),
+                    resource: wgpu::BindingResource::Sampler(&sampler_nearest),
+                },
+                wgpu::BindGroupEntry {
+                    binding: 2,
+                    resource: uniform_buffer.as_entire_binding(),
+                },
+            ],
+        });
+        let bind_group_linear = device.create_bind_group(&wgpu::BindGroupDescriptor {
+            label: Some("pixels_scaling_renderer_bind_group_linear"),
+            layout: &bind_group_layout,
+            entries: &[
+                wgpu::BindGroupEntry {
+                    binding: 0,
+                    resource: wgpu::BindingResource::TextureView(texture_view),
+                },
+                wgpu::BindGroupEntry {
+                    binding: 1,
+                    resource: wgpu::BindingResource::Sampler(&sampler_linear),
                 },
                 wgpu::BindGroupEntry {
                     binding: 2,
@@ -166,12 +203,14 @@ impl ScalingRenderer {
         Self {
             vertex_buffer,
             uniform_buffer,
-            bind_group,
+            bind_group_nearest,
+            bind_group_linear,
             render_pipeline,
             clear_color,
             width: texture_size.width as f32,
             height: texture_size.height as f32,
             clip_rect,
+            scaling_mode,
         }
     }
 
@@ -192,7 +231,12 @@ impl ScalingRenderer {
             occlusion_query_set: None,
         });
         rpass.set_pipeline(&self.render_pipeline);
-        rpass.set_bind_group(0, &self.bind_group, &[]);
+        let bind_group = match self.scaling_mode {
+            ScalingMode::PixelPerfect => &self.bind_group_nearest,
+            ScalingMode::LinearPreserveAspect => &self.bind_group_linear,
+            ScalingMode::LinearStretch => &self.bind_group_linear,
+        };
+        rpass.set_bind_group(0, bind_group, &[]);
         rpass.set_vertex_buffer(0, self.vertex_buffer.slice(..));
         rpass.set_scissor_rect(
             self.clip_rect.0,
@@ -211,7 +255,7 @@ impl ScalingRenderer {
     }
 
     pub(crate) fn resize(&mut self, queue: &wgpu::Queue, width: u32, height: u32) {
-        let matrix = ScalingMatrix::new((self.width, self.height), (width as f32, height as f32));
+        let matrix = ScalingMatrix::new((self.width, self.height), (width as f32, height as f32), self.scaling_mode);
         let transform_bytes = matrix.as_bytes();
         queue.write_buffer(&self.uniform_buffer, 0, transform_bytes);
 
@@ -228,18 +272,30 @@ pub(crate) struct ScalingMatrix {
 impl ScalingMatrix {
     // texture_size is the dimensions of the drawing texture
     // screen_size is the dimensions of the surface being drawn to
-    pub(crate) fn new(texture_size: (f32, f32), screen_size: (f32, f32)) -> Self {
+    pub(crate) fn new(texture_size: (f32, f32), screen_size: (f32, f32), scaling_mode: ScalingMode) -> Self {
         let (texture_width, texture_height) = texture_size;
         let (screen_width, screen_height) = screen_size;
 
-        let width_ratio = (screen_width / texture_width).max(1.0);
-        let height_ratio = (screen_height / texture_height).max(1.0);
-
-        // Get smallest scale size
-        let scale = width_ratio.clamp(1.0, height_ratio).floor();
-
-        let scaled_width = texture_width * scale;
-        let scaled_height = texture_height * scale;
+        let (scaled_width, scaled_height) = match scaling_mode {
+            ScalingMode::PixelPerfect => {
+                // Scale up to nearest integer multiple of screen size
+                let width_ratio = (screen_width / texture_width).max(1.0);
+                let height_ratio = (screen_height / texture_height).max(1.0);
+                let scale = width_ratio.min(height_ratio).floor().max(1.0);
+                (texture_width * scale, texture_height * scale)
+            }
+            ScalingMode::LinearPreserveAspect => {
+                // Scale up or down while preserving aspect ratio
+                let width_ratio = screen_width / texture_width;
+                let height_ratio = screen_height / texture_height;
+                let scale = width_ratio.min(height_ratio);
+                (texture_width * scale, texture_height * scale)
+            }
+            ScalingMode::LinearStretch => {
+                // Always scale to fill the screen
+                (screen_width, screen_height)
+            }
+        };
 
         // Create a transformation matrix
         let sw = scaled_width / screen_width;
