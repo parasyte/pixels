@@ -63,6 +63,9 @@ pub enum ScalingMode {
     /// The buffer is linearly interpolated, scaling up or down if needed, to fill the screen's
     /// width and/or height while preserving the buffer's aspect ratio.
     LinearPreserveAspect,
+    /// Hybrid scaler which targets pixel perfect upscaling but linearly interpolates between
+    /// fractional pixel source positions at screen resolution. Preserves aspect ratio.
+    PixelPerfectHybrid,
     /// The buffer is linearly interpolated, scaling up or down if needed, to fill the entire
     /// screen possibly changing the image aspect ratio.
     LinearStretch,

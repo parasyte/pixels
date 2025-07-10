@@ -10,6 +10,7 @@ pub struct ScalingRenderer {
     bind_group_nearest: wgpu::BindGroup,
     bind_group_linear: wgpu::BindGroup,
     render_pipeline: wgpu::RenderPipeline,
+    render_pipeline_hybrid: wgpu::RenderPipeline,
     pub(crate) clear_color: wgpu::Color,
     width: f32,
     height: f32,
@@ -30,6 +31,9 @@ impl ScalingRenderer {
     ) -> Self {
         let shader = wgpu::include_wgsl!("../shaders/scale.wgsl");
         let module = device.create_shader_module(shader);
+
+        let shader_hybrid = wgpu::include_wgsl!("../shaders/scale_hybrid.wgsl");
+        let module_hybrid = device.create_shader_module(shader_hybrid);
 
         // Create a texture sampler with nearest neighbor
         let sampler_nearest = device.create_sampler(&wgpu::SamplerDescriptor {
@@ -92,10 +96,9 @@ impl ScalingRenderer {
             (surface_size.width as f32, surface_size.height as f32),
             scaling_mode,
         );
-        let transform_bytes = matrix.as_bytes();
         let uniform_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
             label: Some("pixels_scaling_renderer_matrix_uniform_buffer"),
-            contents: transform_bytes,
+            contents: matrix.uniform_buffer.as_slice(),
             usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
         });
 
@@ -121,11 +124,11 @@ impl ScalingRenderer {
                 },
                 wgpu::BindGroupLayoutEntry {
                     binding: 2,
-                    visibility: wgpu::ShaderStages::VERTEX,
+                    visibility: wgpu::ShaderStages::VERTEX_FRAGMENT,
                     ty: wgpu::BindingType::Buffer {
                         ty: wgpu::BufferBindingType::Uniform,
                         has_dynamic_offset: false,
-                        min_binding_size: wgpu::BufferSize::new(transform_bytes.len() as u64),
+                        min_binding_size: wgpu::BufferSize::new(matrix.uniform_buffer.len() as u64),
                     },
                     count: None,
                 },
@@ -180,13 +183,35 @@ impl ScalingRenderer {
             vertex: wgpu::VertexState {
                 module: &module,
                 entry_point: "vs_main",
-                buffers: &[vertex_buffer_layout],
+                buffers: &[vertex_buffer_layout.clone()],
             },
             primitive: wgpu::PrimitiveState::default(),
             depth_stencil: None,
             multisample: wgpu::MultisampleState::default(),
             fragment: Some(wgpu::FragmentState {
                 module: &module,
+                entry_point: "fs_main",
+                targets: &[Some(wgpu::ColorTargetState {
+                    format: render_texture_format,
+                    blend: Some(blend_state),
+                    write_mask: wgpu::ColorWrites::ALL,
+                })],
+            }),
+            multiview: None,
+        });
+        let render_pipeline_hybrid = device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
+            label: Some("pixels_scaling_renderer_pipeline_hybrid"),
+            layout: Some(&pipeline_layout),
+            vertex: wgpu::VertexState {
+                module: &module_hybrid,
+                entry_point: "vs_main",
+                buffers: &[vertex_buffer_layout],
+            },
+            primitive: wgpu::PrimitiveState::default(),
+            depth_stencil: None,
+            multisample: wgpu::MultisampleState::default(),
+            fragment: Some(wgpu::FragmentState {
+                module: &module_hybrid,
                 entry_point: "fs_main",
                 targets: &[Some(wgpu::ColorTargetState {
                     format: render_texture_format,
@@ -206,6 +231,7 @@ impl ScalingRenderer {
             bind_group_nearest,
             bind_group_linear,
             render_pipeline,
+            render_pipeline_hybrid,
             clear_color,
             width: texture_size.width as f32,
             height: texture_size.height as f32,
@@ -230,10 +256,15 @@ impl ScalingRenderer {
             timestamp_writes: None,
             occlusion_query_set: None,
         });
-        rpass.set_pipeline(&self.render_pipeline);
+        let pipeline = match self.scaling_mode {
+            ScalingMode::PixelPerfect | ScalingMode::LinearPreserveAspect | ScalingMode::LinearStretch => &self.render_pipeline,
+            ScalingMode::PixelPerfectHybrid => &self.render_pipeline_hybrid,
+        };
+        rpass.set_pipeline(pipeline);
         let bind_group = match self.scaling_mode {
             ScalingMode::PixelPerfect => &self.bind_group_nearest,
             ScalingMode::LinearPreserveAspect => &self.bind_group_linear,
+            ScalingMode::PixelPerfectHybrid => &self.bind_group_linear,
             ScalingMode::LinearStretch => &self.bind_group_linear,
         };
         rpass.set_bind_group(0, bind_group, &[]);
@@ -256,8 +287,7 @@ impl ScalingRenderer {
 
     pub(crate) fn resize(&mut self, queue: &wgpu::Queue, width: u32, height: u32) {
         let matrix = ScalingMatrix::new((self.width, self.height), (width as f32, height as f32), self.scaling_mode);
-        let transform_bytes = matrix.as_bytes();
-        queue.write_buffer(&self.uniform_buffer, 0, transform_bytes);
+        queue.write_buffer(&self.uniform_buffer, 0, &matrix.uniform_buffer);
 
         self.clip_rect = matrix.clip_rect();
     }
@@ -267,6 +297,7 @@ impl ScalingRenderer {
 pub(crate) struct ScalingMatrix {
     pub(crate) transform: Mat4,
     clip_rect: (u32, u32, u32, u32),
+    uniform_buffer: Vec<u8>,
 }
 
 impl ScalingMatrix {
@@ -284,7 +315,7 @@ impl ScalingMatrix {
                 let scale = width_ratio.min(height_ratio).floor().max(1.0);
                 (texture_width * scale, texture_height * scale)
             }
-            ScalingMode::LinearPreserveAspect => {
+            ScalingMode::LinearPreserveAspect | ScalingMode::PixelPerfectHybrid =>{
                 // Scale up or down while preserving aspect ratio
                 let width_ratio = screen_width / texture_width;
                 let height_ratio = screen_height / texture_height;
@@ -320,14 +351,21 @@ impl ScalingMatrix {
             (x, y, scaled_width as u32, scaled_height as u32)
         };
 
-        Self {
-            transform: Mat4::from(transform),
-            clip_rect,
-        }
-    }
+        let mat = Mat4::from(transform);
 
-    fn as_bytes(&self) -> &[u8] {
-        self.transform.as_byte_slice()
+        // Compute the constant buffer
+        let mut uniform_buffer = Vec::new();
+        uniform_buffer.extend_from_slice(mat.as_byte_slice());
+        uniform_buffer.extend_from_slice(&texture_width.to_le_bytes());
+        uniform_buffer.extend_from_slice(&texture_height.to_le_bytes());
+        uniform_buffer.extend_from_slice(&(1.0 / texture_width).to_le_bytes());
+        uniform_buffer.extend_from_slice(&(1.0 / texture_height).to_le_bytes());
+
+        Self {
+            transform: mat,
+            clip_rect,
+            uniform_buffer,
+        }
     }
 
     pub(crate) fn clip_rect(&self) -> (u32, u32, u32, u32) {
