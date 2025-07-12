@@ -122,12 +122,15 @@ fn main() -> Result<(), Error> {
         Arc::new(window)
     };
 
-    let pixels = {
+    let mut pixels = {
         let window_size = window.inner_size();
         let surface_texture =
             SurfaceTexture::new(window_size.width, window_size.height, Arc::clone(&window));
         Pixels::new(WIDTH as u32, HEIGHT as u32, surface_texture)?
     };
+
+    // Use the fill scaling mode which supports non-integer scaling.
+    pixels.set_scaling_mode(pixels::ScalingMode::Fill);
 
     let game = Game::new(pixels, debug);
 
