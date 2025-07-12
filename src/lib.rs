@@ -32,7 +32,7 @@
 #![deny(clippy::all)]
 #![forbid(unsafe_code)]
 
-pub use crate::builder::{PixelsBuilder, check_texture_size};
+pub use crate::builder::{check_texture_size, PixelsBuilder};
 pub use crate::renderers::ScalingRenderer;
 pub use raw_window_handle;
 use thiserror::Error;
