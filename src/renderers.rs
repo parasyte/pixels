@@ -19,6 +19,7 @@ pub struct ScalingRenderer {
 }
 
 impl ScalingRenderer {
+    #[allow(clippy::too_many_arguments)]
     pub(crate) fn new(
         device: &wgpu::Device,
         texture_view: &wgpu::TextureView,
