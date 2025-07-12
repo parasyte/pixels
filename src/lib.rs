@@ -32,7 +32,7 @@
 #![deny(clippy::all)]
 #![forbid(unsafe_code)]
 
-pub use crate::builder::{check_texture_size, PixelsBuilder};
+pub use crate::builder::{PixelsBuilder, check_texture_size};
 pub use crate::renderers::ScalingRenderer;
 pub use raw_window_handle;
 use thiserror::Error;
@@ -60,15 +60,9 @@ struct SurfaceSize {
 pub enum ScalingMode {
     /// The buffer is scaled up, if needed, to the nearest integer multiple of the buffer size.
     PixelPerfect,
-    /// The buffer is linearly interpolated, scaling up or down if needed, to fill the screen's
-    /// width and/or height while preserving the buffer's aspect ratio.
-    LinearPreserveAspect,
-    /// Hybrid scaler which targets pixel perfect upscaling but linearly interpolates between
-    /// fractional pixel source positions at screen resolution. Preserves aspect ratio.
-    PixelPerfectHybrid,
-    /// The buffer is linearly interpolated, scaling up or down if needed, to fill the entire
-    /// screen possibly changing the image aspect ratio.
-    LinearStretch,
+    /// Fill the screen while preserving aspect ratio. The renderer effectively scales the buffer
+    /// to the nearest integer multiple first, then linearly interpolates to fit.
+    Fill,
 }
 
 /// Provides the internal state for custom shaders.

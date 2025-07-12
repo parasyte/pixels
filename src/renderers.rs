@@ -1,4 +1,4 @@
-use crate::{SurfaceSize, ScalingMode};
+use crate::{ScalingMode, SurfaceSize};
 use ultraviolet::Mat4;
 use wgpu::util::DeviceExt;
 
@@ -199,28 +199,29 @@ impl ScalingRenderer {
             }),
             multiview: None,
         });
-        let render_pipeline_hybrid = device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
-            label: Some("pixels_scaling_renderer_pipeline_hybrid"),
-            layout: Some(&pipeline_layout),
-            vertex: wgpu::VertexState {
-                module: &module_hybrid,
-                entry_point: "vs_main",
-                buffers: &[vertex_buffer_layout],
-            },
-            primitive: wgpu::PrimitiveState::default(),
-            depth_stencil: None,
-            multisample: wgpu::MultisampleState::default(),
-            fragment: Some(wgpu::FragmentState {
-                module: &module_hybrid,
-                entry_point: "fs_main",
-                targets: &[Some(wgpu::ColorTargetState {
-                    format: render_texture_format,
-                    blend: Some(blend_state),
-                    write_mask: wgpu::ColorWrites::ALL,
-                })],
-            }),
-            multiview: None,
-        });
+        let render_pipeline_hybrid =
+            device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
+                label: Some("pixels_scaling_renderer_pipeline_hybrid"),
+                layout: Some(&pipeline_layout),
+                vertex: wgpu::VertexState {
+                    module: &module_hybrid,
+                    entry_point: "vs_main",
+                    buffers: &[vertex_buffer_layout],
+                },
+                primitive: wgpu::PrimitiveState::default(),
+                depth_stencil: None,
+                multisample: wgpu::MultisampleState::default(),
+                fragment: Some(wgpu::FragmentState {
+                    module: &module_hybrid,
+                    entry_point: "fs_main",
+                    targets: &[Some(wgpu::ColorTargetState {
+                        format: render_texture_format,
+                        blend: Some(blend_state),
+                        write_mask: wgpu::ColorWrites::ALL,
+                    })],
+                }),
+                multiview: None,
+            });
 
         // Create clipping rectangle
         let clip_rect = matrix.clip_rect();
@@ -257,15 +258,13 @@ impl ScalingRenderer {
             occlusion_query_set: None,
         });
         let pipeline = match self.scaling_mode {
-            ScalingMode::PixelPerfect | ScalingMode::LinearPreserveAspect | ScalingMode::LinearStretch => &self.render_pipeline,
-            ScalingMode::PixelPerfectHybrid => &self.render_pipeline_hybrid,
+            ScalingMode::PixelPerfect => &self.render_pipeline,
+            ScalingMode::Fill => &self.render_pipeline_hybrid,
         };
         rpass.set_pipeline(pipeline);
         let bind_group = match self.scaling_mode {
             ScalingMode::PixelPerfect => &self.bind_group_nearest,
-            ScalingMode::LinearPreserveAspect => &self.bind_group_linear,
-            ScalingMode::PixelPerfectHybrid => &self.bind_group_linear,
-            ScalingMode::LinearStretch => &self.bind_group_linear,
+            ScalingMode::Fill => &self.bind_group_linear,
         };
         rpass.set_bind_group(0, bind_group, &[]);
         rpass.set_vertex_buffer(0, self.vertex_buffer.slice(..));
@@ -286,7 +285,11 @@ impl ScalingRenderer {
     }
 
     pub(crate) fn resize(&mut self, queue: &wgpu::Queue, width: u32, height: u32) {
-        let matrix = ScalingMatrix::new((self.width, self.height), (width as f32, height as f32), self.scaling_mode);
+        let matrix = ScalingMatrix::new(
+            (self.width, self.height),
+            (width as f32, height as f32),
+            self.scaling_mode,
+        );
         queue.write_buffer(&self.uniform_buffer, 0, &matrix.uniform_buffer);
 
         self.clip_rect = matrix.clip_rect();
@@ -303,7 +306,11 @@ pub(crate) struct ScalingMatrix {
 impl ScalingMatrix {
     // texture_size is the dimensions of the drawing texture
     // screen_size is the dimensions of the surface being drawn to
-    pub(crate) fn new(texture_size: (f32, f32), screen_size: (f32, f32), scaling_mode: ScalingMode) -> Self {
+    pub(crate) fn new(
+        texture_size: (f32, f32),
+        screen_size: (f32, f32),
+        scaling_mode: ScalingMode,
+    ) -> Self {
         let (texture_width, texture_height) = texture_size;
         let (screen_width, screen_height) = screen_size;
 
@@ -315,16 +322,12 @@ impl ScalingMatrix {
                 let scale = width_ratio.min(height_ratio).floor().max(1.0);
                 (texture_width * scale, texture_height * scale)
             }
-            ScalingMode::LinearPreserveAspect | ScalingMode::PixelPerfectHybrid =>{
+            ScalingMode::Fill => {
                 // Scale up or down while preserving aspect ratio
                 let width_ratio = screen_width / texture_width;
                 let height_ratio = screen_height / texture_height;
                 let scale = width_ratio.min(height_ratio);
                 (texture_width * scale, texture_height * scale)
-            }
-            ScalingMode::LinearStretch => {
-                // Always scale to fill the screen
-                (screen_width, screen_height)
             }
         };
 
