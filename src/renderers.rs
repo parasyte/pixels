@@ -10,7 +10,7 @@ pub struct ScalingRenderer {
     bind_group_nearest: wgpu::BindGroup,
     bind_group_linear: wgpu::BindGroup,
     render_pipeline: wgpu::RenderPipeline,
-    render_pipeline_hybrid: wgpu::RenderPipeline,
+    render_pipeline_fill: wgpu::RenderPipeline,
     pub(crate) clear_color: wgpu::Color,
     width: f32,
     height: f32,
@@ -32,8 +32,8 @@ impl ScalingRenderer {
         let shader = wgpu::include_wgsl!("../shaders/scale.wgsl");
         let module = device.create_shader_module(shader);
 
-        let shader_hybrid = wgpu::include_wgsl!("../shaders/scale_hybrid.wgsl");
-        let module_hybrid = device.create_shader_module(shader_hybrid);
+        let shader_fill = wgpu::include_wgsl!("../shaders/scale_fill.wgsl");
+        let module_fill = device.create_shader_module(shader_fill);
 
         // Create a texture sampler with nearest neighbor
         let sampler_nearest = device.create_sampler(&wgpu::SamplerDescriptor {
@@ -199,29 +199,28 @@ impl ScalingRenderer {
             }),
             multiview: None,
         });
-        let render_pipeline_hybrid =
-            device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
-                label: Some("pixels_scaling_renderer_pipeline_hybrid"),
-                layout: Some(&pipeline_layout),
-                vertex: wgpu::VertexState {
-                    module: &module_hybrid,
-                    entry_point: "vs_main",
-                    buffers: &[vertex_buffer_layout],
-                },
-                primitive: wgpu::PrimitiveState::default(),
-                depth_stencil: None,
-                multisample: wgpu::MultisampleState::default(),
-                fragment: Some(wgpu::FragmentState {
-                    module: &module_hybrid,
-                    entry_point: "fs_main",
-                    targets: &[Some(wgpu::ColorTargetState {
-                        format: render_texture_format,
-                        blend: Some(blend_state),
-                        write_mask: wgpu::ColorWrites::ALL,
-                    })],
-                }),
-                multiview: None,
-            });
+        let render_pipeline_fill = device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
+            label: Some("pixels_scaling_renderer_pipeline_fill"),
+            layout: Some(&pipeline_layout),
+            vertex: wgpu::VertexState {
+                module: &module_fill,
+                entry_point: "vs_main",
+                buffers: &[vertex_buffer_layout],
+            },
+            primitive: wgpu::PrimitiveState::default(),
+            depth_stencil: None,
+            multisample: wgpu::MultisampleState::default(),
+            fragment: Some(wgpu::FragmentState {
+                module: &module_fill,
+                entry_point: "fs_main",
+                targets: &[Some(wgpu::ColorTargetState {
+                    format: render_texture_format,
+                    blend: Some(blend_state),
+                    write_mask: wgpu::ColorWrites::ALL,
+                })],
+            }),
+            multiview: None,
+        });
 
         // Create clipping rectangle
         let clip_rect = matrix.clip_rect();
@@ -232,7 +231,7 @@ impl ScalingRenderer {
             bind_group_nearest,
             bind_group_linear,
             render_pipeline,
-            render_pipeline_hybrid,
+            render_pipeline_fill,
             clear_color,
             width: texture_size.width as f32,
             height: texture_size.height as f32,
@@ -259,7 +258,7 @@ impl ScalingRenderer {
         });
         let pipeline = match self.scaling_mode {
             ScalingMode::PixelPerfect => &self.render_pipeline,
-            ScalingMode::Fill => &self.render_pipeline_hybrid,
+            ScalingMode::Fill => &self.render_pipeline_fill,
         };
         rpass.set_pipeline(pipeline);
         let bind_group = match self.scaling_mode {
