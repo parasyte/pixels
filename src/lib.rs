@@ -314,8 +314,8 @@ impl<'win> Pixels<'win> {
     /// # let window = pixels_mocks::Window;
     /// # let surface_texture = pixels::SurfaceTexture::new(1920, 1080, &window);
     /// let mut pixels = Pixels::new(640, 480, surface_texture)?;
-    /// // Scale the buffer up linearly while preserving aspect ratio
-    /// pixels.set_scaling_mode(ScalingMode::LinearPreserveAspect);
+    /// // Scale the buffer up to fill the screen while preserving aspect ratio.
+    /// pixels.set_scaling_mode(ScalingMode::Fill);
     /// # Ok::<(), pixels::Error>(())
     /// ```
     pub fn set_scaling_mode(&mut self, scaling_mode: ScalingMode) {
