@@ -1,5 +1,5 @@
 use crate::renderers::{ScalingMatrix, ScalingRenderer};
-use crate::{Error, Pixels, PixelsContext, SurfaceSize, SurfaceTexture, TextureError};
+use crate::{Error, Pixels, PixelsContext, ScalingMode, SurfaceSize, SurfaceTexture, TextureError};
 
 /// A builder to help create customized pixel buffers.
 pub struct PixelsBuilder<'req, 'dev, 'win, W: wgpu::WindowHandle + 'win> {
@@ -309,6 +309,7 @@ impl<'req, 'dev, 'win, W: wgpu::WindowHandle + 'win> PixelsBuilder<'req, 'dev, '
         let surface_size = self.surface_texture.size;
         let clear_color = self.clear_color;
         let blend_state = self.blend_state;
+        let scaling_mode = ScalingMode::PixelPerfect;
         let (scaling_matrix_inverse, texture_extent, texture, scaling_renderer, pixels_buffer_size) =
             create_backing_texture(
                 &device,
@@ -322,6 +323,7 @@ impl<'req, 'dev, 'win, W: wgpu::WindowHandle + 'win> PixelsBuilder<'req, 'dev, '
                 // Clear color and blending values
                 clear_color,
                 blend_state,
+                scaling_mode,
             )?;
 
         // Create the pixel buffer
@@ -432,6 +434,7 @@ pub(crate) fn create_backing_texture(
     render_texture_format: wgpu::TextureFormat,
     clear_color: wgpu::Color,
     blend_state: wgpu::BlendState,
+    scaling_mode: ScalingMode,
 ) -> Result<
     (
         ultraviolet::Mat4,
@@ -447,6 +450,7 @@ pub(crate) fn create_backing_texture(
     let scaling_matrix_inverse = ScalingMatrix::new(
         (width as f32, height as f32),
         (surface_size.width as f32, surface_size.height as f32),
+        scaling_mode,
     )
     .transform
     .inversed();
@@ -477,6 +481,7 @@ pub(crate) fn create_backing_texture(
         render_texture_format,
         clear_color,
         blend_state,
+        scaling_mode,
     );
 
     let texture_format_size = texture_format_size(backing_texture_format);

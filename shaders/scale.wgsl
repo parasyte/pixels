@@ -7,6 +7,7 @@ struct VertexOutput {
 
 struct Locals {
     transform: mat4x4<f32>,
+    input_size: vec4<f32>
 }
 @group(0) @binding(2) var<uniform> r_locals: Locals;
 

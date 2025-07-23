@@ -55,6 +55,16 @@ struct SurfaceSize {
     height: u32,
 }
 
+/// The scaling mode controls the scaling behavior of [`renderers::ScalingRenderer`].
+#[derive(Debug, Copy, Clone)]
+pub enum ScalingMode {
+    /// The buffer is scaled up, if needed, to the nearest integer multiple of the buffer size.
+    PixelPerfect,
+    /// Fill the screen while preserving aspect ratio. The renderer effectively scales the buffer
+    /// to the nearest integer multiple first, then linearly interpolates to fit.
+    Fill,
+}
+
 /// Provides the internal state for custom shaders.
 ///
 /// A reference to this struct is given to the `render_function` closure when using
@@ -295,6 +305,23 @@ impl<'win> Pixels<'win> {
         self.context.scaling_renderer.clear_color = color;
     }
 
+    /// Set the scaling mode.
+    ///
+    /// Controls how the pixel buffer is scaled to the screen.
+    ///
+    /// ```no_run
+    /// # use pixels::{Pixels, ScalingMode};
+    /// # let window = pixels_mocks::Window;
+    /// # let surface_texture = pixels::SurfaceTexture::new(1920, 1080, &window);
+    /// let mut pixels = Pixels::new(640, 480, surface_texture)?;
+    /// // Scale the buffer up to fill the screen while preserving aspect ratio.
+    /// pixels.set_scaling_mode(ScalingMode::Fill);
+    /// # Ok::<(), pixels::Error>(())
+    /// ```
+    pub fn set_scaling_mode(&mut self, scaling_mode: ScalingMode) {
+        self.context.scaling_renderer.scaling_mode = scaling_mode;
+    }
+
     /// Returns a reference of the `wgpu` adapter used by the crate.
     ///
     /// The adapter can be used to retrieve runtime information about the host system
@@ -343,6 +370,7 @@ impl<'win> Pixels<'win> {
                 self.render_texture_format,
                 self.context.scaling_renderer.clear_color,
                 self.blend_state,
+                self.context.scaling_renderer.scaling_mode,
             )?;
 
         self.scaling_matrix_inverse = scaling_matrix_inverse;
@@ -387,6 +415,7 @@ impl<'win> Pixels<'win> {
                 self.context.texture_extent.height as f32,
             ),
             (width as f32, height as f32),
+            self.context.scaling_renderer.scaling_mode,
         )
         .transform
         .inversed();
