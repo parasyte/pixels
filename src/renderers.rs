@@ -184,7 +184,7 @@ impl ScalingRenderer {
             vertex: wgpu::VertexState {
                 module: &module,
                 entry_point: "vs_main",
-                buffers: &[vertex_buffer_layout.clone()],
+                buffers: std::slice::from_ref(&vertex_buffer_layout),
             },
             primitive: wgpu::PrimitiveState::default(),
             depth_stencil: None,
