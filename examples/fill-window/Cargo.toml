@@ -1,0 +1,19 @@
+[package]
+name = "fill-window"
+version = "0.1.0"
+authors = ["Jay Oster <jay@kodewerx.org>"]
+edition = "2021"
+publish = false
+
+[features]
+optimize = ["log/release_max_level_warn"]
+default = ["optimize"]
+
+[dependencies]
+bytemuck = "1.7"
+env_logger = "0.9"
+log = "0.4"
+pixels = { path = "../.." }
+ultraviolet = "0.8"
+winit = "0.26"
+winit_input_helper = "0.11"
