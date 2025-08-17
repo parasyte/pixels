@@ -1,5 +1,5 @@
 #![deny(clippy::all)]
-#![forbid(unsafe_code)]
+#![cfg_attr(not(target_os = "android"), forbid(unsafe_code))]
 
 #[cfg(target_os = "android")]
 use winit::platform::android::activity::AndroidApp;
@@ -22,14 +22,13 @@ struct World {
     velocity_y: i16,
 }
 
-struct Display<'win> {
+struct Display {
     window: Arc<Window>,
-    pixels: Pixels<'win>,
+    pixels: Pixels<'static>,
 }
 
-fn _main(event_loop: EventLoop<()>) {
-    let mut display: Option<Display> = None;
-
+pub fn _main(event_loop: EventLoop<()>) {
+    let mut display = None;
     let mut world = World::new();
 
     let res = event_loop.run(|event, elwt| {
@@ -53,9 +52,16 @@ fn _main(event_loop: EventLoop<()>) {
                 display = None;
             }
             Event::WindowEvent {
+                event: WindowEvent::CloseRequested,
+                ..
+            } => {
+                elwt.exit();
+            }
+            Event::WindowEvent {
                 event: WindowEvent::RedrawRequested,
                 ..
             } => {
+                world.update();
                 if let Some(display) = &mut display {
                     world.draw(display.pixels.frame_mut());
                     display.pixels.render().unwrap();
@@ -63,9 +69,6 @@ fn _main(event_loop: EventLoop<()>) {
                 }
             }
             _ => {}
-        }
-        if display.is_some() {
-            world.update();
         }
     });
     res.unwrap();
@@ -119,25 +122,18 @@ impl World {
     }
 }
 
-#[allow(dead_code)]
 #[cfg(target_os = "android")]
 #[no_mangle]
 fn android_main(app: AndroidApp) {
+    use android_logger::Config;
+    use winit::event_loop::EventLoopBuilder;
     use winit::platform::android::EventLoopBuilderExtAndroid;
-    android_logger::init_once(android_logger::Config::default().with_min_level(log::Level::Info));
-    let event_loop = EventLoopBuilder::new().with_android_app(app).build();
-    log::info!("Hello from android!");
-    _main(event_loop);
-}
 
-#[allow(dead_code)]
-#[cfg(not(target_os = "android"))]
-fn main() {
-    env_logger::builder()
-        .filter_level(log::LevelFilter::Info) // Default Log Level
-        .parse_default_env()
-        .init();
-    let event_loop = EventLoop::new().unwrap();
-    log::info!("Hello from desktop!");
+    android_logger::init_once(Config::default().with_max_level(log::LevelFilter::Info));
+    let event_loop = EventLoopBuilder::new()
+        .with_android_app(app)
+        .build()
+        .unwrap();
+    log::info!("Hello from android!");
     _main(event_loop);
 }
