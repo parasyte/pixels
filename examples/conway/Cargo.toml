@@ -11,12 +11,13 @@ default = ["optimize"]
 
 [dependencies]
 byteorder = "1"
-env_logger = "0.10"
-error-iter = "0.4"
 getrandom = "0.2"
 clipline = "0.1.1"
-log = "0.4"
-pixels = { path = "../.." }
 randomize = "3"
-winit = "0.29"
-winit_input_helper = "0.15"
+
+env_logger.workspace = true
+error-iter.workspace = true
+log.workspace = true
+pixels.workspace = true
+winit.workspace = true
+winit_input_helper.workspace = true

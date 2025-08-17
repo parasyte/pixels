@@ -10,11 +10,11 @@ optimize = ["log/release_max_level_warn"]
 default = ["optimize"]
 
 [dependencies]
-error-iter = "0.4"
-log = "0.4"
-pixels = { path = "../.." }
-winit = "0.29"
-winit_input_helper = "0.15"
+error-iter.workspace = true
+log.workspace = true
+pixels.workspace = true
+winit.workspace = true
+winit_input_helper.workspace = true
 
 [target.'cfg(target_arch = "wasm32")'.dependencies]
 console_error_panic_hook = "0.1"

@@ -10,9 +10,10 @@ optimize = ["log/release_max_level_warn"]
 default = ["optimize"]
 
 [dependencies]
-env_logger = "0.10"
-error-iter = "0.4"
-log = "0.4"
 muda = "0.15"
-pixels = { path = "../.." }
 tao = "0.31"
+
+env_logger.workspace = true
+error-iter.workspace = true
+log.workspace = true
+pixels.workspace = true
