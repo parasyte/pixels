@@ -35,9 +35,9 @@ jobs:
       - name: Cargo check WASM
         run: cargo check --target wasm32-unknown-unknown --package minimal-web
       - name: Cargo check Android ARMv7
-        run: cargo check --target armv7-linux-androideabi --package minimal-winit-android
+        run: cargo check --target armv7-linux-androideabi --package minimal-winit-android --lib
       - name: Cargo check Android AARCH64
-        run: cargo check --target aarch64-linux-android --package minimal-winit-android
+        run: cargo check --target aarch64-linux-android --package minimal-winit-android --lib
 
   lints:
     name: Lints
@@ -72,9 +72,9 @@ jobs:
       - name: Cargo clippy WASM
         run: cargo clippy --target wasm32-unknown-unknown --package minimal-web --tests -- -D warnings
       - name: Cargo clippy Android ARMv7
-        run: cargo clippy --target armv7-linux-androideabi --package minimal-winit-android
+        run: cargo clippy --target armv7-linux-androideabi --package minimal-winit-android --lib
       - name: Cargo clippy Android AARCH64
-        run: cargo clippy --target aarch64-linux-android --package minimal-winit-android
+        run: cargo clippy --target aarch64-linux-android --package minimal-winit-android --lib
       - name: Cargo machete
         run: cargo machete
 
