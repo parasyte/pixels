@@ -121,6 +121,35 @@ jobs:
       - name: WASM build
         run: cargo run-wasm --build-only --package ${{ matrix.example }}
 
+  android:
+    name: Android
+    runs-on: ubuntu-latest
+    needs: [checks, lints]
+    strategy:
+      matrix:
+        example:
+          - minimal-winit-android
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@v3
+      - name: Install toolchain
+        uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: stable
+          target:
+            - armv7-linux-androideabi
+            - aarch64-linux-android
+      - name: Rust cache
+        uses: Swatinem/rust-cache@v2
+        with:
+          shared-key: common
+      - name: Install cargo-apk
+        uses: baptiste0928/cargo-install@v2
+        with:
+          crate: cargo-apk
+      - name: Android build
+        run: cargo apk build --package ${{ matrix.example }}
+
   # See https://github.com/parasyte/pixels-ci-rust-version
   rust-version:
     name: Rust-Version
