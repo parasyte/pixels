@@ -72,9 +72,9 @@ jobs:
       - name: Cargo clippy WASM
         run: cargo clippy --target wasm32-unknown-unknown --package minimal-web --tests -- -D warnings
       - name: Cargo clippy Android ARMv7
-        run: cargo clippy --target armv7-linux-androideabi --package minimal-winit-android --lib
+        run: cargo clippy --target armv7-linux-androideabi --package minimal-winit-android --lib --tests -- -D warnings
       - name: Cargo clippy Android AARCH64
-        run: cargo clippy --target aarch64-linux-android --package minimal-winit-android --lib
+        run: cargo clippy --target aarch64-linux-android --package minimal-winit-android --lib --tests -- -D warnings
       - name: Cargo machete
         run: cargo machete
 
@@ -164,7 +164,7 @@ jobs:
         with:
           crate: cargo-apk
       - name: Android build
-        run: cargo apk build --package ${{ matrix.example }}
+        run: cargo apk build --package ${{ matrix.example }} --lib
 
   # See https://github.com/parasyte/pixels-ci-rust-version
   rust-version:
