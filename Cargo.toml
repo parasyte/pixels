@@ -42,3 +42,19 @@ members = [
     "internals/*",
     "run-wasm",
 ]
+
+# Dependencies that are shared by the workspace.
+[workspace.dependencies]
+env_logger = "0.10"
+error-iter = "0.4"
+log = "0.4"
+winit = "0.29"
+winit_input_helper = "0.15"
+
+# Note that `pixels` is pinned to a published version to allow users to copy working code from the
+# examples into their own projects. The example packages that use this workspace version will not be
+# able to build against the local working copy while developing by default.
+#
+# Temporarily change the dependency to use a path specification while testing in development.
+pixels = "0.15"
+# pixels = { path = "." }

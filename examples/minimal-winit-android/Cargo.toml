@@ -5,22 +5,19 @@ authors = ["Randommist <andreq11s@gmail.com>"]
 edition = "2021"
 publish = false
 
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
-
 [dependencies]
-log = "0.4.19"
-pixels = { path = "../.." }
-winit = { version = "0.29", features = ["android-native-activity"] }
+log.workspace = true
+pixels.workspace = true
+winit = { workspace = true, features = ["android-native-activity"] }
 
 [target.'cfg(not(target_os = "android"))'.dependencies]
-env_logger = "0.10.0"
+env_logger.workspace = true
 
 [target.'cfg(target_os = "android")'.dependencies]
 android_logger = "0.11.0"
 
 [lib]
 crate-type = ["cdylib"]
-
 
 [package.metadata.android.signing.release]
 path = "./path/to/KeyStoreFile.jks"

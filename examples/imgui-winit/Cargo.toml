@@ -10,17 +10,20 @@ optimize = ["log/release_max_level_warn"]
 default = ["optimize"]
 
 [dependencies]
-env_logger = "0.10"
-error-iter = "0.4"
 imgui = "0.11"
+imgui-wgpu = "0.24"
 imgui-winit-support = "0.11"
-log = "0.4"
-winit = "0.27"
-winit_input_helper = "0.13"
+
+env_logger.workspace = true
+error-iter.workspace = true
+log.workspace = true
 
 # Until this gets updated support, this example is stuck on winit 0.27 and wgpu 0.17
-[dependencies.imgui-wgpu]
-version = "0.24"
+[dependencies.winit]
+version = "0.27"
+
+[dependencies.winit_input_helper]
+version = "0.13"
 
 # Frozen dep for this specific example
 [dependencies.pixels]

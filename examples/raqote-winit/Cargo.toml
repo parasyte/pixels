@@ -10,11 +10,12 @@ optimize = ["log/release_max_level_warn"]
 default = ["optimize"]
 
 [dependencies]
-env_logger = "0.10"
-error-iter = "0.4"
 euclid = "0.22"
-log = "0.4"
-pixels = { path = "../.." }
 raqote = { version = "0.8", default-features = false }
-winit = "0.29"
-winit_input_helper = "0.15"
+
+env_logger.workspace = true
+error-iter.workspace = true
+log.workspace = true
+pixels.workspace = true
+winit.workspace = true
+winit_input_helper.workspace = true
