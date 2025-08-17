@@ -22,10 +22,10 @@ jobs:
       - name: Install dependencies
         run: sudo apt -y install libgtk-3-dev libudev-dev libxdo-dev
       - name: Install toolchain
-        uses: dtolnay/rust-toolchain@master
+        uses: dtolnay/rust-toolchain@stable
         with:
           toolchain: ${{ matrix.rust }}
-          target: wasm32-unknown-unknown
+          targets: wasm32-unknown-unknown,armv7-linux-androideabi,aarch64-linux-android
       - name: Rust cache
         uses: Swatinem/rust-cache@v2
         with:
@@ -34,6 +34,10 @@ jobs:
         run: cargo check --workspace
       - name: Cargo check WASM
         run: cargo check --target wasm32-unknown-unknown --package minimal-web
+      - name: Cargo check Android ARMv7
+        run: cargo check --target armv7-linux-androideabi --package minimal-winit-android
+      - name: Cargo check Android AARCH64
+        run: cargo check --target aarch64-linux-android --package minimal-winit-android
 
   lints:
     name: Lints
@@ -46,11 +50,11 @@ jobs:
       - name: Install dependencies
         run: sudo apt -y install libgtk-3-dev libudev-dev libxdo-dev
       - name: Install toolchain
-        uses: dtolnay/rust-toolchain@master
+        uses: dtolnay/rust-toolchain@stable
         with:
           toolchain: stable
           components: clippy, rustfmt
-          target: wasm32-unknown-unknown
+          targets: wasm32-unknown-unknown,armv7-linux-androideabi,aarch64-linux-android
       - name: Rust cache
         uses: Swatinem/rust-cache@v2
         with:
@@ -67,6 +71,10 @@ jobs:
         run: cargo clippy --workspace --tests -- -D warnings
       - name: Cargo clippy WASM
         run: cargo clippy --target wasm32-unknown-unknown --package minimal-web --tests -- -D warnings
+      - name: Cargo clippy Android ARMv7
+        run: cargo clippy --target armv7-linux-androideabi --package minimal-winit-android
+      - name: Cargo clippy Android AARCH64
+        run: cargo clippy --target aarch64-linux-android --package minimal-winit-android
       - name: Cargo machete
         run: cargo machete
 
@@ -88,7 +96,7 @@ jobs:
       - name: Install dependencies
         run: sudo apt -y install libgtk-3-dev libudev-dev libxdo-dev
       - name: Install toolchain
-        uses: dtolnay/rust-toolchain@master
+        uses: dtolnay/rust-toolchain@stable
         with:
           toolchain: ${{ matrix.rust }}
       - name: Rust cache
@@ -110,10 +118,10 @@ jobs:
       - name: Checkout sources
         uses: actions/checkout@v3
       - name: Install toolchain
-        uses: dtolnay/rust-toolchain@master
+        uses: dtolnay/rust-toolchain@stable
         with:
           toolchain: stable
-          target: wasm32-unknown-unknown
+          targets: wasm32-unknown-unknown
       - name: Rust cache
         uses: Swatinem/rust-cache@v2
         with:
@@ -127,19 +135,26 @@ jobs:
     needs: [checks, lints]
     strategy:
       matrix:
-        target:
-          - armv7-linux-androideabi
-          - aarch64-linux-android
         example:
           - minimal-winit-android
     steps:
       - name: Checkout sources
         uses: actions/checkout@v3
       - name: Install toolchain
-        uses: dtolnay/rust-toolchain@master
+        uses: dtolnay/rust-toolchain@stable
         with:
           toolchain: stable
-          target: ${{ matrix.target }}
+          targets: armv7-linux-androideabi,aarch64-linux-android
+      - name: Set up JDK 17
+        uses: actions/setup-java@v3
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+        with:
+          cmdline-tools-version: 13114758
+          packages: build-tools;35.0.1 ndk;28.2.13676358 platforms;android-35
       - name: Rust cache
         uses: Swatinem/rust-cache@v2
         with:
@@ -166,7 +181,7 @@ jobs:
         with:
           repository: parasyte/pixels-ci-rust-version
       - name: Install toolchain
-        uses: dtolnay/rust-toolchain@master
+        uses: dtolnay/rust-toolchain@stable
         with:
           toolchain: ${{ matrix.rust }}
       - name: Rust cache
