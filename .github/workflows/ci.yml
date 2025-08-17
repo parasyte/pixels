@@ -127,6 +127,9 @@ jobs:
     needs: [checks, lints]
     strategy:
       matrix:
+        target:
+          - armv7-linux-androideabi
+          - aarch64-linux-android
         example:
           - minimal-winit-android
     steps:
@@ -136,9 +139,7 @@ jobs:
         uses: dtolnay/rust-toolchain@master
         with:
           toolchain: stable
-          target:
-            - armv7-linux-androideabi
-            - aarch64-linux-android
+          target: ${{ matrix.target }}
       - name: Rust cache
         uses: Swatinem/rust-cache@v2
         with:
