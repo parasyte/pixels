@@ -16,6 +16,7 @@ pub struct PixelsBuilder<'req, 'dev, 'win, W: wgpu::WindowHandle + 'win> {
     surface_texture_format: Option<wgpu::TextureFormat>,
     clear_color: wgpu::Color,
     blend_state: wgpu::BlendState,
+    alpha_mode: wgpu::CompositeAlphaMode,
 }
 
 impl<'req, 'dev, 'win, W: wgpu::WindowHandle + 'win> PixelsBuilder<'req, 'dev, 'win, W> {
@@ -61,6 +62,7 @@ impl<'req, 'dev, 'win, W: wgpu::WindowHandle + 'win> PixelsBuilder<'req, 'dev, '
             surface_texture_format: None,
             clear_color: wgpu::Color::BLACK,
             blend_state: wgpu::BlendState::ALPHA_BLENDING,
+            alpha_mode: wgpu::CompositeAlphaMode::Auto,
         }
     }
 
@@ -237,6 +239,22 @@ impl<'req, 'dev, 'win, W: wgpu::WindowHandle + 'win> PixelsBuilder<'req, 'dev, '
         self
     }
 
+    /// Sets the alpha mode.
+    ///
+    /// Default value is `Auto`.
+    ///
+    ///```
+    ///use pixels::wgpu::CompositeAlphaMode;
+    ///
+    ///let mut pixels = PixelsBuilder::new(320, 240, surface_texture)
+    ///    .alpha_mode(CompositeAlphaMode::PostMultiplied)
+    ///    .build()?;
+    ///```
+    pub fn alpha_mode(mut self, alpha_mode: wgpu::CompositeAlphaMode) -> Self {
+        self.alpha_mode = alpha_mode;
+        self
+    }
+
     /// Create a pixel buffer from the options builder.
     ///
     /// This is the private implementation shared by [`PixelsBuilder::build`] and
@@ -330,7 +348,7 @@ impl<'req, 'dev, 'win, W: wgpu::WindowHandle + 'win> PixelsBuilder<'req, 'dev, '
         let mut pixels = Vec::with_capacity(pixels_buffer_size);
         pixels.resize_with(pixels_buffer_size, Default::default);
 
-        let alpha_mode = surface_capabilities.alpha_modes[0];
+        let alpha_mode = self.alpha_mode;
 
         // Instantiate the Pixels struct
         let context = PixelsContext {
