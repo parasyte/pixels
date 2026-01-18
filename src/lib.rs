@@ -566,14 +566,14 @@ impl<'win> Pixels<'win> {
         let bytes_per_row =
             (self.context.texture_extent.width as f32 * self.context.texture_format_size) as u32;
         self.context.queue.write_texture(
-            wgpu::ImageCopyTexture {
+            wgpu::TexelCopyTextureInfo {
                 texture: &self.context.texture,
                 mip_level: 0,
                 origin: wgpu::Origin3d { x: 0, y: 0, z: 0 },
                 aspect: wgpu::TextureAspect::All,
             },
             &self.pixels,
-            wgpu::ImageDataLayout {
+            wgpu::TexelCopyBufferLayout {
                 offset: 0,
                 bytes_per_row: Some(bytes_per_row),
                 rows_per_image: Some(self.context.texture_extent.height),

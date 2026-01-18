@@ -184,7 +184,7 @@ impl ScalingRenderer {
             layout: Some(&pipeline_layout),
             vertex: wgpu::VertexState {
                 module: &module,
-                entry_point: "vs_main",
+                entry_point: Some("vs_main"),
                 buffers: std::slice::from_ref(&vertex_buffer_layout),
                 compilation_options: wgpu::PipelineCompilationOptions::default(),
             },
@@ -193,7 +193,7 @@ impl ScalingRenderer {
             multisample: wgpu::MultisampleState::default(),
             fragment: Some(wgpu::FragmentState {
                 module: &module,
-                entry_point: "fs_main",
+                entry_point: Some("fs_main"),
                 compilation_options: wgpu::PipelineCompilationOptions::default(),
                 targets: &[Some(wgpu::ColorTargetState {
                     format: render_texture_format,
@@ -208,8 +208,8 @@ impl ScalingRenderer {
             layout: Some(&pipeline_layout),
             vertex: wgpu::VertexState {
                 module: &module_fill,
-                entry_point: "vs_main",
-                buffers: &[vertex_buffer_layout],
+                entry_point: Some("vs_main"),
+                buffers: std::slice::from_ref(&vertex_buffer_layout),
                 compilation_options: wgpu::PipelineCompilationOptions::default(),
             },
             primitive: wgpu::PrimitiveState::default(),
@@ -217,7 +217,7 @@ impl ScalingRenderer {
             multisample: wgpu::MultisampleState::default(),
             fragment: Some(wgpu::FragmentState {
                 module: &module_fill,
-                entry_point: "fs_main",
+                entry_point: Some("fs_main"),
                 compilation_options: wgpu::PipelineCompilationOptions::default(),
                 targets: &[Some(wgpu::ColorTargetState {
                     format: render_texture_format,
@@ -258,6 +258,7 @@ impl ScalingRenderer {
                     load: wgpu::LoadOp::Clear(self.clear_color),
                     store: wgpu::StoreOp::Store,
                 },
+                depth_slice: None,
             })],
             depth_stencil_attachment: None,
             timestamp_writes: None,

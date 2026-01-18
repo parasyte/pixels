@@ -50,7 +50,7 @@ impl<'req, 'dev, 'win, W: wgpu::WindowHandle + 'win> PixelsBuilder<'req, 'dev, '
         Self {
             request_adapter_options: None,
             device_descriptor: None,
-            backend: wgpu::util::backend_bits_from_env().unwrap_or_else(wgpu::Backends::all),
+            backend: wgpu::Backends::from_env().unwrap_or_else(wgpu::Backends::all),
             width,
             height,
             _pixel_aspect_ratio: 1.0,
@@ -246,7 +246,7 @@ impl<'req, 'dev, 'win, W: wgpu::WindowHandle + 'win> PixelsBuilder<'req, 'dev, '
     ///
     /// Returns an error when a [`wgpu::Adapter`] cannot be found.
     async fn build_impl(self) -> Result<Pixels<'win>, Error> {
-        let instance = wgpu::Instance::new(wgpu::InstanceDescriptor {
+        let instance = wgpu::Instance::new(&wgpu::InstanceDescriptor {
             backends: self.backend,
             ..Default::default()
         });
@@ -256,15 +256,14 @@ impl<'req, 'dev, 'win, W: wgpu::WindowHandle + 'win> PixelsBuilder<'req, 'dev, '
         let compatible_surface = Some(&surface);
         let request_adapter_options = &self.request_adapter_options;
         let adapter = match wgpu::util::initialize_adapter_from_env(&instance, compatible_surface) {
-            Some(adapter) => Some(adapter),
-            None => {
+            Ok(adapter) => Ok(adapter),
+            Err(_) => {
                 instance
                     .request_adapter(&request_adapter_options.as_ref().map_or_else(
                         || wgpu::RequestAdapterOptions {
                             compatible_surface,
                             force_fallback_adapter: false,
-                            power_preference:
-                                wgpu::util::power_preference_from_env().unwrap_or_default(),
+                            power_preference: wgpu::PowerPreference::from_env().unwrap_or_default(),
                         },
                         |rao| wgpu::RequestAdapterOptions {
                             compatible_surface: rao.compatible_surface.or(compatible_surface),
@@ -276,7 +275,7 @@ impl<'req, 'dev, 'win, W: wgpu::WindowHandle + 'win> PixelsBuilder<'req, 'dev, '
             }
         };
 
-        let adapter = adapter.ok_or(Error::AdapterNotFound)?;
+        let adapter = adapter.map_err(|_| Error::AdapterNotFound)?;
 
         let device_descriptor = self
             .device_descriptor
@@ -285,7 +284,7 @@ impl<'req, 'dev, 'win, W: wgpu::WindowHandle + 'win> PixelsBuilder<'req, 'dev, '
                 ..wgpu::DeviceDescriptor::default()
             });
 
-        let (device, queue) = adapter.request_device(&device_descriptor, None).await?;
+        let (device, queue) = adapter.request_device(&device_descriptor).await?;
 
         let surface_capabilities = surface.get_capabilities(&adapter);
         let present_mode = if surface_capabilities
@@ -551,13 +550,14 @@ const fn texture_format_size(texture_format: wgpu::TextureFormat) -> f32 {
         | Bgra8UnormSrgb
         | Rgb10a2Uint
         | Rgb10a2Unorm
-        | Rg11b10Float
+        | Rg11b10Ufloat
         | Depth32Float
         | Depth24Plus
         | Depth24PlusStencil8 => 4.0, // 32.0 / 8.0
 
         // 64-bit formats, 8 bits per component
-        Rg32Uint
+        R64Uint
+        | Rg32Uint
         | Rg32Sint
         | Rg32Float
         | Rgba16Uint
@@ -647,5 +647,7 @@ const fn texture_format_size(texture_format: wgpu::TextureFormat) -> f32 {
         // The second plane consists of 16-bit BR components.
         // The resolution of the second plane is halved both vertically and horizontally.
         NV12 => 1.5, // (8.0 + 16.0 / 2.0 / 2.0) / 8.0
+
+        P010 => 3.0 // Double NV12?
     }
 }

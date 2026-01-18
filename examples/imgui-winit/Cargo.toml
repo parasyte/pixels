@@ -10,7 +10,7 @@ optimize = ["log/release_max_level_warn"]
 default = ["optimize"]
 
 [dependencies]
-imgui = "0.11"
+imgui = "0.12"
 imgui-wgpu = "0.24"
 imgui-winit-support = "0.11"
 
