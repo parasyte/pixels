@@ -174,7 +174,7 @@ jobs:
     strategy:
       matrix:
         rust:
-          - 1.74.0
+          - 1.88.0
     steps:
       - name: Checkout sources
         uses: actions/checkout@v3
