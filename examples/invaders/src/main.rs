@@ -9,7 +9,7 @@ use pixels::{Error, Pixels, SurfaceTexture};
 use simple_invaders::{Controls, Direction, World, FPS, HEIGHT, TIME_STEP, WIDTH};
 use std::sync::Arc;
 use std::{env, time::Duration};
-use winit::{dpi::LogicalSize, event_loop::EventLoop, keyboard::KeyCode, window::WindowBuilder};
+use winit::{dpi::LogicalSize, event_loop::EventLoop, keyboard::KeyCode, window::WindowAttributes};
 use winit_input_helper::WinitInputHelper;
 
 /// Uber-struct representing the entire game.
@@ -113,11 +113,14 @@ fn main() -> Result<(), Error> {
     let window = {
         let size = LogicalSize::new(WIDTH as f64, HEIGHT as f64);
         let scaled_size = LogicalSize::new(WIDTH as f64 * 3.0, HEIGHT as f64 * 3.0);
-        let window = WindowBuilder::new()
-            .with_title("pixel invaders")
-            .with_inner_size(scaled_size)
-            .with_min_inner_size(size)
-            .build(&event_loop)
+        #[allow(deprecated)]
+        let window = event_loop
+            .create_window(
+                WindowAttributes::new()
+                    .with_title("pixel invaders")
+                    .with_inner_size(scaled_size)
+                    .with_min_inner_size(size),
+            )
             .unwrap();
         Arc::new(window)
     };

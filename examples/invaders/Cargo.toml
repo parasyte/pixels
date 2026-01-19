@@ -11,7 +11,7 @@ default = ["optimize"]
 
 [dependencies]
 byteorder = "1"
-game-loop = { version = "=1.1.0", features = ["winit"] }
+game-loop = { version = "=1.3.0", features = ["winit"] }
 getrandom = "0.2"
 gilrs = "0.10"
 pixels = { path = "../.." }
