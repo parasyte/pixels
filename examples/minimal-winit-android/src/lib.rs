@@ -131,10 +131,7 @@ fn android_main(app: AndroidApp) {
     use winit::platform::android::EventLoopBuilderExtAndroid;
 
     android_logger::init_once(Config::default().with_max_level(log::LevelFilter::Info));
-    let event_loop = EventLoop::builder()
-        .with_android_app(app)
-        .build()
-        .unwrap();
+    let event_loop = EventLoop::builder().with_android_app(app).build().unwrap();
     log::info!("Hello from android!");
     _main(event_loop);
 }
