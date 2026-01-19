@@ -648,6 +648,10 @@ const fn texture_format_size(texture_format: wgpu::TextureFormat) -> f32 {
         // The resolution of the second plane is halved both vertically and horizontally.
         NV12 => 1.5, // (8.0 + 16.0 / 2.0 / 2.0) / 8.0
 
-        P010 => 3.0 // Double NV12?
+        // 16-bit two-plane 4:2:0 YUV
+        // The first plane consists of 16-bit G components.
+        // The second plane consists of 32-bit BR components.
+        // The resolution of the second plane is halved both vertically and horizontally.
+        P010 => 3.0, // (16.0 + 32.0 / 2.0 / 2.0) / 8.0
     }
 }
