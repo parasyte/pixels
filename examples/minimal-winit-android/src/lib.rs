@@ -31,11 +31,12 @@ pub fn _main(event_loop: EventLoop<()>) {
     let mut display = None;
     let mut world = World::new();
 
+    #[allow(deprecated)]
     let res = event_loop.run(|event, elwt| {
         elwt.set_control_flow(ControlFlow::Wait);
         match event {
             Event::Resumed => {
-                let window = Arc::new(Window::new(elwt).unwrap());
+                let window = Arc::new(elwt.create_window(Window::default_attributes()).unwrap());
                 let pixels = {
                     let window_size = window.inner_size();
                     let surface_texture = SurfaceTexture::new(
