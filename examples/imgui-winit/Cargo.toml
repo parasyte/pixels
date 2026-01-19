@@ -10,21 +10,13 @@ optimize = ["log/release_max_level_warn"]
 default = ["optimize"]
 
 [dependencies]
+pixels = { path = "../.." }
 imgui = "0.12"
-imgui-wgpu = "0.24"
-imgui-winit-support = "0.11"
+imgui-wgpu = { git = "https://github.com/Yatekii/imgui-wgpu-rs", rev = "3db5c5a" }
+imgui-winit-support = "0.13"
+winit = "0.30"
+winit_input_helper = "0.17"
 
 env_logger.workspace = true
 error-iter.workspace = true
 log.workspace = true
-
-# Until this gets updated support, this example is stuck on winit 0.27 and wgpu 0.17
-[dependencies.winit]
-version = "0.27"
-
-[dependencies.winit_input_helper]
-version = "0.13"
-
-# Frozen dep for this specific example
-[dependencies.pixels]
-version = "0.14"

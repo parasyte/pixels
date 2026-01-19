@@ -1,14 +1,17 @@
 #![deny(clippy::all)]
 #![forbid(unsafe_code)]
 
+use std::sync::Arc;
+
 use crate::gui::Gui;
 use error_iter::ErrorIter as _;
 use log::error;
 use pixels::{Error, Pixels, SurfaceTexture};
 use winit::dpi::LogicalSize;
-use winit::event::{Event, VirtualKeyCode};
-use winit::event_loop::{ControlFlow, EventLoop};
-use winit::window::WindowBuilder;
+use winit::event::{Event, WindowEvent};
+use winit::event_loop::EventLoop;
+use winit::keyboard::KeyCode;
+use winit::window::WindowAttributes;
 use winit_input_helper::WinitInputHelper;
 
 mod gui;
@@ -32,23 +35,29 @@ struct World {
 
 fn main() -> Result<(), Error> {
     env_logger::init();
-    let event_loop = EventLoop::new();
+    let event_loop = EventLoop::new().unwrap();
     let mut input = WinitInputHelper::new();
     let window = {
         let size = LogicalSize::new(WIDTH as f64, HEIGHT as f64);
-        WindowBuilder::new()
-            .with_title("Hello Pixels + Dear ImGui")
-            .with_inner_size(size)
-            .with_min_inner_size(size)
-            .build(&event_loop)
-            .unwrap()
+        #[allow(deprecated)]
+        Arc::new(
+            event_loop
+                .create_window(
+                    WindowAttributes::new()
+                        .with_title("Hello Pixels + Dear ImGui")
+                        .with_inner_size(size)
+                        .with_min_inner_size(size),
+                )
+                .unwrap(),
+        )
     };
 
     let mut scale_factor = window.scale_factor();
 
     let mut pixels = {
         let window_size = window.inner_size();
-        let surface_texture = SurfaceTexture::new(window_size.width, window_size.height, &window);
+        let surface_texture =
+            SurfaceTexture::new(window_size.width, window_size.height, window.clone());
         Pixels::new(WIDTH, HEIGHT, surface_texture)?
     };
     let mut world = World::new(WIDTH, HEIGHT);
@@ -56,74 +65,88 @@ fn main() -> Result<(), Error> {
     // Set up Dear ImGui
     let mut gui = Gui::new(&window, &pixels);
 
-    event_loop.run(move |event, _, control_flow| {
-        // Draw the current frame
-        if let Event::RedrawRequested(_) = event {
-            // Draw the world
-            world.draw(pixels.frame_mut());
+    #[allow(deprecated)]
+    event_loop
+        .run(move |event, event_loop| {
+            // Handle input events
+            gui.handle_event(&window, &event);
 
-            // Prepare Dear ImGui
-            gui.prepare(&window).expect("gui.prepare() failed");
+            match event {
+                Event::Resumed => {}
+                Event::NewEvents(_) => input.step(),
+                Event::AboutToWait => input.end_step(),
+                Event::DeviceEvent { event, .. } => {
+                    input.process_device_event(&event);
+                }
+                Event::WindowEvent { event, .. } => {
+                    // Draw the current frame
+                    if event == WindowEvent::RedrawRequested {
+                        // Draw the world
+                        world.draw(pixels.frame_mut());
 
-            // Render everything together
-            let render_result = pixels.render_with(|encoder, render_target, context| {
-                // Render the world texture
-                context.scaling_renderer.render(encoder, render_target);
+                        // Prepare Dear ImGui
+                        gui.prepare(&window).expect("gui.prepare() failed");
 
-                // Render Dear ImGui
-                gui.render(&window, encoder, render_target, context)?;
+                        // Render everything together
+                        let render_result =
+                            pixels.render_with(|encoder, render_target, context| {
+                                // Render the world texture
+                                context.scaling_renderer.render(encoder, render_target);
 
-                Ok(())
-            });
+                                // Render Dear ImGui
+                                gui.render(&window, encoder, render_target, context)?;
 
-            // Basic error handling
-            if let Err(err) = render_result {
-                log_error("pixels.render", err);
-                *control_flow = ControlFlow::Exit;
-                return;
-            }
-        }
+                                Ok(())
+                            });
 
-        // Handle input events
-        gui.handle_event(&window, &event);
-        if input.update(&event) {
-            // Close events
-            if input.key_pressed(VirtualKeyCode::Escape) || input.quit() {
-                *control_flow = ControlFlow::Exit;
-                return;
-            }
-
-            // Update the scale factor
-            if let Some(factor) = input.scale_factor() {
-                scale_factor = factor;
-            }
-
-            // Resize the window
-            if let Some(size) = input.window_resized() {
-                if size.width > 0 && size.height > 0 {
-                    // Resize the surface texture
-                    if let Err(err) = pixels.resize_surface(size.width, size.height) {
-                        log_error("pixels.resize_surface", err);
-                        *control_flow = ControlFlow::Exit;
-                        return;
+                        // Basic error handling
+                        if let Err(err) = render_result {
+                            log_error("pixels.render", err);
+                            return event_loop.exit();
+                        }
                     }
 
-                    // Resize the world
-                    let LogicalSize { width, height } = size.to_logical(scale_factor);
-                    world.resize(width, height);
-                    if let Err(err) = pixels.resize_buffer(width, height) {
-                        log_error("pixels.resize_buffer", err);
-                        *control_flow = ControlFlow::Exit;
-                        return;
+                    if input.process_window_event(&event) {
+                        // Close events
+                        if input.key_pressed(KeyCode::Escape) || input.close_requested() {
+                            return event_loop.exit();
+                        }
+
+                        // Update the scale factor
+                        if let Some(factor) = input.scale_factor() {
+                            scale_factor = factor;
+                        }
+
+                        // Resize the window
+                        if let Some(size) = input.window_resized() {
+                            if size.width > 0 && size.height > 0 {
+                                // Resize the surface texture
+                                if let Err(err) = pixels.resize_surface(size.width, size.height) {
+                                    log_error("pixels.resize_surface", err);
+                                    return event_loop.exit();
+                                }
+
+                                // Resize the world
+                                let LogicalSize { width, height } = size.to_logical(scale_factor);
+                                world.resize(width, height);
+                                if let Err(err) = pixels.resize_buffer(width, height) {
+                                    log_error("pixels.resize_buffer", err);
+                                    return event_loop.exit();
+                                }
+                            }
+                        }
+
+                        // Update internal state and request a redraw
+                        world.update();
+                        window.request_redraw();
                     }
                 }
-            }
+                _ => {}
+            };
+        })
+        .unwrap();
 
-            // Update internal state and request a redraw
-            world.update();
-            window.request_redraw();
-        }
-    });
+    Ok(())
 }
 
 fn log_error<E: std::error::Error + 'static>(method_name: &str, err: E) {

@@ -19,7 +19,7 @@ impl Gui {
         imgui.set_ini_filename(None);
 
         // Initialize winit platform support
-        let mut platform = imgui_winit_support::WinitPlatform::init(&mut imgui);
+        let mut platform = imgui_winit_support::WinitPlatform::new(&mut imgui);
         platform.attach_window(
             imgui.io_mut(),
             window,
@@ -113,10 +113,13 @@ impl Gui {
                 resolve_target: None,
                 ops: wgpu::Operations {
                     load: wgpu::LoadOp::Load,
-                    store: true,
+                    store: wgpu::StoreOp::Store,
                 },
+                depth_slice: None,
             })],
             depth_stencil_attachment: None,
+            timestamp_writes: None,
+            occlusion_query_set: None,
         });
 
         self.renderer.render(
