@@ -9,7 +9,10 @@ use pixels::{Error, Pixels, SurfaceTexture};
 use simple_invaders::{Controls, Direction, World, FPS, HEIGHT, TIME_STEP, WIDTH};
 use std::sync::Arc;
 use std::{env, time::Duration};
-use winit::{dpi::LogicalSize, event_loop::EventLoop, keyboard::KeyCode, window::WindowAttributes};
+use winit::{
+    dpi::LogicalSize, event::Event, event_loop::EventLoop, keyboard::KeyCode,
+    window::WindowAttributes,
+};
 use winit_input_helper::WinitInputHelper;
 
 /// Uber-struct representing the entire game.
@@ -165,29 +168,43 @@ fn main() -> Result<(), Error> {
             }
         },
         |g, event| {
-            // Let winit_input_helper collect events to build its state.
-            if g.game.input.update(event) {
-                // Update controls
-                g.game.update_controls();
-
-                // Close events
-                if g.game.input.key_pressed(KeyCode::Escape) || g.game.input.close_requested() {
-                    g.exit();
-                    return;
+            match event {
+                Event::Resumed => {}
+                Event::NewEvents(_) => g.game.input.step(),
+                Event::AboutToWait => g.game.input.end_step(),
+                Event::DeviceEvent { event, .. } => {
+                    g.game.input.process_device_event(event);
                 }
+                Event::WindowEvent { event, .. } => {
+                    // Let winit_input_helper collect events to build its state.
+                    if g.game.input.process_window_event(event) {
+                        // Update controls
+                        g.game.update_controls();
 
-                // Reset game
-                if g.game.input.key_pressed(KeyCode::KeyR) {
-                    g.game.reset_game();
-                }
+                        // Close events
+                        if g.game.input.key_pressed(KeyCode::Escape)
+                            || g.game.input.close_requested()
+                        {
+                            g.exit();
+                            return;
+                        }
 
-                // Resize the window
-                if let Some(size) = g.game.input.window_resized() {
-                    if let Err(err) = g.game.pixels.resize_surface(size.width, size.height) {
-                        log_error("pixels.resize_surface", err);
-                        g.exit();
+                        // Reset game
+                        if g.game.input.key_pressed(KeyCode::KeyR) {
+                            g.game.reset_game();
+                        }
+
+                        // Resize the window
+                        if let Some(size) = g.game.input.window_resized() {
+                            if let Err(err) = g.game.pixels.resize_surface(size.width, size.height)
+                            {
+                                log_error("pixels.resize_surface", err);
+                                g.exit();
+                            }
+                        }
                     }
                 }
+                _ => {}
             }
         },
     );
