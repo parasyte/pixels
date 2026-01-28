@@ -5,11 +5,12 @@ use error_iter::ErrorIter as _;
 use log::error;
 use pixels::{PixelsBuilder, SurfaceTexture};
 use std::rc::Rc;
+use std::sync::Arc;
 use winit::dpi::LogicalSize;
 use winit::event::{Event, WindowEvent};
 use winit::event_loop::EventLoop;
 use winit::keyboard::KeyCode;
-use winit::window::WindowBuilder;
+use winit::window::Window;
 use winit_input_helper::WinitInputHelper;
 
 const WIDTH: u32 = 320;
@@ -55,12 +56,17 @@ async fn run() {
     let event_loop = EventLoop::new().unwrap();
     let window = {
         let size = LogicalSize::new(WIDTH as f64, HEIGHT as f64);
-        WindowBuilder::new()
-            .with_title("Hello Pixels + Web")
-            .with_inner_size(size)
-            .with_min_inner_size(size)
-            .build(&event_loop)
-            .expect("WindowBuilder error")
+        #[allow(deprecated)]
+        Arc::new(
+            event_loop
+                .create_window(
+                    Window::default_attributes()
+                        .with_title("Hello Pixels + Web")
+                        .with_inner_size(size)
+                        .with_min_inner_size(size),
+                )
+                .unwrap(),
+        )
     };
 
     let window = Rc::new(window);
@@ -123,43 +129,47 @@ async fn run() {
     };
     let mut world = World::new();
 
+    #[allow(deprecated)]
     let res = event_loop.run(|event, elwt| {
         match event {
-            Event::WindowEvent {
-                event: WindowEvent::RedrawRequested,
-                ..
-            } => {
+            Event::Resumed => {}
+            Event::NewEvents(_) => input.step(),
+            Event::AboutToWait => input.end_step(),
+            Event::DeviceEvent { event, .. } => {
+                input.process_device_event(&event);
+            }
+            Event::WindowEvent { event, .. } => {
                 // Draw the current frame
-                world.draw(pixels.frame_mut());
-                if let Err(err) = pixels.render() {
-                    log_error("pixels.render", err);
-                    elwt.exit();
-                    return;
+                if event == WindowEvent::RedrawRequested {
+                    world.draw(pixels.frame_mut());
+                    if let Err(err) = pixels.render() {
+                        log_error("pixels.render", err);
+                        elwt.exit();
+                        return;
+                    }
+
+                    // Update internal state and request a redraw
+                    world.update();
+                    window.request_redraw();
                 }
 
-                // Update internal state and request a redraw
-                world.update();
-                window.request_redraw();
-            }
+                if let WindowEvent::Resized(size) = event {
+                    // Resize the window
+                    if let Err(err) = pixels.resize_surface(size.width, size.height) {
+                        log_error("pixels.resize_surface", err);
+                        elwt.exit();
+                        return;
+                    }
+                }
 
-            Event::WindowEvent {
-                event: WindowEvent::Resized(size),
-                ..
-            } => {
-                // Resize the window
-                if let Err(err) = pixels.resize_surface(size.width, size.height) {
-                    log_error("pixels.resize_surface", err);
+                // Handle input events
+                if input.process_window_event(&event)
+                    && (input.key_pressed(KeyCode::Escape) || input.close_requested())
+                {
                     elwt.exit();
-                    return;
                 }
             }
-
             _ => (),
-        }
-
-        // Handle input events
-        if input.update(&event) && (input.key_pressed(KeyCode::Escape) || input.close_requested()) {
-            elwt.exit();
         }
     });
     res.unwrap();

@@ -179,19 +179,22 @@ impl ScalingRenderer {
             push_constant_ranges: &[],
         });
         let render_pipeline = device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
+            cache: None,
             label: Some("pixels_scaling_renderer_pipeline"),
             layout: Some(&pipeline_layout),
             vertex: wgpu::VertexState {
                 module: &module,
-                entry_point: "vs_main",
+                entry_point: Some("vs_main"),
                 buffers: std::slice::from_ref(&vertex_buffer_layout),
+                compilation_options: wgpu::PipelineCompilationOptions::default(),
             },
             primitive: wgpu::PrimitiveState::default(),
             depth_stencil: None,
             multisample: wgpu::MultisampleState::default(),
             fragment: Some(wgpu::FragmentState {
                 module: &module,
-                entry_point: "fs_main",
+                entry_point: Some("fs_main"),
+                compilation_options: wgpu::PipelineCompilationOptions::default(),
                 targets: &[Some(wgpu::ColorTargetState {
                     format: render_texture_format,
                     blend: Some(blend_state),
@@ -205,15 +208,17 @@ impl ScalingRenderer {
             layout: Some(&pipeline_layout),
             vertex: wgpu::VertexState {
                 module: &module_fill,
-                entry_point: "vs_main",
-                buffers: &[vertex_buffer_layout],
+                entry_point: Some("vs_main"),
+                buffers: std::slice::from_ref(&vertex_buffer_layout),
+                compilation_options: wgpu::PipelineCompilationOptions::default(),
             },
             primitive: wgpu::PrimitiveState::default(),
             depth_stencil: None,
             multisample: wgpu::MultisampleState::default(),
             fragment: Some(wgpu::FragmentState {
                 module: &module_fill,
-                entry_point: "fs_main",
+                entry_point: Some("fs_main"),
+                compilation_options: wgpu::PipelineCompilationOptions::default(),
                 targets: &[Some(wgpu::ColorTargetState {
                     format: render_texture_format,
                     blend: Some(blend_state),
@@ -221,6 +226,7 @@ impl ScalingRenderer {
                 })],
             }),
             multiview: None,
+            cache: None,
         });
 
         // Create clipping rectangle
@@ -252,6 +258,7 @@ impl ScalingRenderer {
                     load: wgpu::LoadOp::Clear(self.clear_color),
                     store: wgpu::StoreOp::Store,
                 },
+                depth_slice: None,
             })],
             depth_stencil_attachment: None,
             timestamp_writes: None,

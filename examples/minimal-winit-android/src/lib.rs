@@ -31,11 +31,12 @@ pub fn _main(event_loop: EventLoop<()>) {
     let mut display = None;
     let mut world = World::new();
 
+    #[allow(deprecated)]
     let res = event_loop.run(|event, elwt| {
         elwt.set_control_flow(ControlFlow::Wait);
         match event {
             Event::Resumed => {
-                let window = Arc::new(Window::new(elwt).unwrap());
+                let window = Arc::new(elwt.create_window(Window::default_attributes()).unwrap());
                 let pixels = {
                     let window_size = window.inner_size();
                     let surface_texture = SurfaceTexture::new(
@@ -126,14 +127,11 @@ impl World {
 #[no_mangle]
 fn android_main(app: AndroidApp) {
     use android_logger::Config;
-    use winit::event_loop::EventLoopBuilder;
+    use winit::event_loop::EventLoop;
     use winit::platform::android::EventLoopBuilderExtAndroid;
 
     android_logger::init_once(Config::default().with_max_level(log::LevelFilter::Info));
-    let event_loop = EventLoopBuilder::new()
-        .with_android_app(app)
-        .build()
-        .unwrap();
+    let event_loop = EventLoop::builder().with_android_app(app).build().unwrap();
     log::info!("Hello from android!");
     _main(event_loop);
 }
