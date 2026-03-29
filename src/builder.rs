@@ -314,9 +314,7 @@ impl<'req, 'dev, 'win, W: wgpu::WindowHandle + 'win> PixelsBuilder<'req, 'dev, '
             wgpu::PresentMode::AutoVsync
         };
         if self.alpha_mode != wgpu::CompositeAlphaMode::Auto
-            && !surface_capabilities
-                .alpha_modes
-                .contains(&self.alpha_mode)
+            && !surface_capabilities.alpha_modes.contains(&self.alpha_mode)
         {
             return Err(Error::InvalidAlphaMode(self.alpha_mode));
         }
