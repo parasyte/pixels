@@ -16,6 +16,7 @@ pub struct PixelsBuilder<'req, 'dev, 'win, W: wgpu::WindowHandle + 'win> {
     surface_texture_format: Option<wgpu::TextureFormat>,
     clear_color: wgpu::Color,
     blend_state: wgpu::BlendState,
+    alpha_mode: wgpu::CompositeAlphaMode,
 }
 
 impl<'req, 'dev, 'win, W: wgpu::WindowHandle + 'win> PixelsBuilder<'req, 'dev, 'win, W> {
@@ -61,6 +62,7 @@ impl<'req, 'dev, 'win, W: wgpu::WindowHandle + 'win> PixelsBuilder<'req, 'dev, '
             surface_texture_format: None,
             clear_color: wgpu::Color::BLACK,
             blend_state: wgpu::BlendState::ALPHA_BLENDING,
+            alpha_mode: wgpu::CompositeAlphaMode::Auto,
         }
     }
 
@@ -208,6 +210,22 @@ impl<'req, 'dev, 'win, W: wgpu::WindowHandle + 'win> PixelsBuilder<'req, 'dev, '
         self
     }
 
+    /// Sets the alpha mode.
+    ///
+    /// Default value is `Auto`.
+    ///
+    ///```no_run
+    /// use pixels::wgpu::CompositeAlphaMode;
+    ///
+    /// let mut pixels = PixelsBuilder::new(320, 240, surface_texture)
+    ///     .alpha_mode(CompositeAlphaMode::PostMultiplied)
+    ///     .build()?;
+    ///```
+    pub fn alpha_mode(mut self, alpha_mode: wgpu::CompositeAlphaMode) -> Self {
+        self.alpha_mode = alpha_mode;
+        self
+    }
+
     /// Set the clear color.
     ///
     /// Allows customization of the background color and the border drawn for non-integer scale
@@ -295,6 +313,14 @@ impl<'req, 'dev, 'win, W: wgpu::WindowHandle + 'win> PixelsBuilder<'req, 'dev, '
         } else {
             wgpu::PresentMode::AutoVsync
         };
+        if self.alpha_mode != wgpu::CompositeAlphaMode::Auto
+            && !surface_capabilities
+                .alpha_modes
+                .contains(&self.alpha_mode)
+        {
+            return Err(Error::InvalidAlphaMode(self.alpha_mode));
+        }
+
         let surface_texture_format = self.surface_texture_format.unwrap_or_else(|| {
             *surface_capabilities
                 .formats
@@ -329,8 +355,6 @@ impl<'req, 'dev, 'win, W: wgpu::WindowHandle + 'win> PixelsBuilder<'req, 'dev, '
         let mut pixels = Vec::with_capacity(pixels_buffer_size);
         pixels.resize_with(pixels_buffer_size, Default::default);
 
-        let alpha_mode = surface_capabilities.alpha_modes[0];
-
         // Instantiate the Pixels struct
         let context = PixelsContext {
             device,
@@ -344,6 +368,7 @@ impl<'req, 'dev, 'win, W: wgpu::WindowHandle + 'win> PixelsBuilder<'req, 'dev, '
             surface_capabilities,
         };
 
+        let alpha_mode = self.alpha_mode;
         let pixels = Pixels {
             context,
             adapter,
