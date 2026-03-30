@@ -1,7 +1,6 @@
 use pixels::{
-    check_texture_size,
+    TextureError, check_texture_size,
     wgpu::{self, util::DeviceExt},
-    TextureError,
 };
 
 pub(crate) struct NoiseRenderer {

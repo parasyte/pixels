@@ -1,6 +1,6 @@
 use egui::{ClippedPrimitive, Context, TexturesDelta, ViewportId};
 use egui_wgpu::{Renderer, RendererOptions, ScreenDescriptor};
-use pixels::{wgpu, PixelsContext};
+use pixels::{PixelsContext, wgpu};
 use winit::{event_loop::ActiveEventLoop, window::Window};
 
 /// Manages all state required for rendering egui over `Pixels`.

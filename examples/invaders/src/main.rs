@@ -2,11 +2,11 @@
 #![forbid(unsafe_code)]
 
 use error_iter::ErrorIter as _;
-use game_loop::{game_loop, Time, TimeTrait as _};
+use game_loop::{Time, TimeTrait as _, game_loop};
 use gilrs::{Button, GamepadId, Gilrs};
 use log::{debug, error};
 use pixels::{Error, Pixels, SurfaceTexture};
-use simple_invaders::{Controls, Direction, World, FPS, HEIGHT, TIME_STEP, WIDTH};
+use simple_invaders::{Controls, Direction, FPS, HEIGHT, TIME_STEP, WIDTH, World};
 use std::sync::Arc;
 use std::{env, time::Duration};
 use winit::{
