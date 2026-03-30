@@ -70,6 +70,8 @@ fn main() -> Result<(), Error> {
 
                     // Resize the window
                     if let Some(size) = input.window_resized()
+                        && size.width > 0
+                        && size.height > 0
                         && let Err(err) = pixels.resize_surface(size.width, size.height)
                     {
                         log_error("pixels.resize_surface", err);

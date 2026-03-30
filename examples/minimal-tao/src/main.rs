@@ -103,7 +103,7 @@ fn main() -> Result<(), Error> {
                 }
 
                 // Resize the window
-                WindowEvent::Resized(size) => {
+                WindowEvent::Resized(size) if size.width > 0 && size.height > 0 => {
                     if let Err(err) = pixels.resize_surface(size.width, size.height) {
                         log_error("pixels.resize_surface", err);
                         *control_flow = ControlFlow::Exit;
