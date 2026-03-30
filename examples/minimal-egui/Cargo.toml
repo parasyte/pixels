@@ -10,9 +10,8 @@ optimize = ["log/release_max_level_warn"]
 default = ["optimize"]
 
 [dependencies]
-pixels = { path = "../.." }
 egui = "0.33"
-egui-wgpu = "0.33.0"
+egui-wgpu = "0.33"
 egui-winit = { version = "0.33", default-features = false, features = ["links"] }
 winit = "0.30"
 winit_input_helper = "0.17"
@@ -20,4 +19,4 @@ winit_input_helper = "0.17"
 env_logger.workspace = true
 error-iter.workspace = true
 log.workspace = true
-
+pixels.workspace = true

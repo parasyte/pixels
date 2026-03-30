@@ -1720,8 +1720,9 @@ dependencies = [
 
 [[package]]
 name = "imgui-wgpu"
-version = "0.25.0"
-source = "git+https://github.com/Yatekii/imgui-wgpu-rs?rev=3db5c5a#3db5c5ad6a63f46428d836e34b1f4557ded0b6b4"
+version = "0.26.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "8fea1e37b751bba5e320cbf7a323b150b5ac0233982a6059e7e0d457fc3f8570"
 dependencies = [
  "bytemuck",
  "imgui",
@@ -1740,7 +1741,7 @@ dependencies = [
  "imgui-wgpu",
  "imgui-winit-support",
  "log",
- "pixels 0.16.0",
+ "pixels 0.16.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "winit",
  "winit_input_helper",
 ]
@@ -1798,7 +1799,7 @@ dependencies = [
  "getrandom 0.2.17",
  "gilrs",
  "log",
- "pixels 0.16.0",
+ "pixels 0.16.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "simple-invaders",
  "winit",
  "winit_input_helper",
@@ -2183,7 +2184,7 @@ dependencies = [
  "env_logger 0.11.10",
  "error-iter",
  "log",
- "pixels 0.16.0",
+ "pixels 0.16.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "winit",
  "winit_input_helper",
 ]
@@ -2292,7 +2293,7 @@ dependencies = [
  "objc2-app-kit",
  "objc2-foundation 0.2.2",
  "once_cell",
- "png",
+ "png 0.17.16",
  "thiserror 1.0.69",
  "windows-sys 0.59.0",
 ]
@@ -2783,7 +2784,7 @@ dependencies = [
  "pixels-mocks",
  "pollster 0.4.0",
  "raw-window-handle",
- "thiserror 1.0.69",
+ "thiserror 2.0.18",
  "ultraviolet",
  "wgpu",
  "winit",
@@ -2829,6 +2830,19 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "82151a2fc869e011c153adc57cf2789ccb8d9906ce52c0b39a6b5697749d7526"
 dependencies = [
  "bitflags 1.3.2",
+ "crc32fast",
+ "fdeflate",
+ "flate2",
+ "miniz_oxide",
+]
+
+[[package]]
+name = "png"
+version = "0.18.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "60769b8b31b2a9f263dae2776c37b1b28ae246943cf719eb6946a1db05128a61"
+dependencies = [
+ "bitflags 2.11.0",
  "crc32fast",
  "fdeflate",
  "flate2",
@@ -3215,7 +3229,7 @@ dependencies = [
  "log",
  "memmap2",
  "smithay-client-toolkit",
- "tiny-skia",
+ "tiny-skia 0.11.4",
 ]
 
 [[package]]
@@ -3563,8 +3577,22 @@ dependencies = [
  "bytemuck",
  "cfg-if",
  "log",
- "png",
- "tiny-skia-path",
+ "tiny-skia-path 0.11.4",
+]
+
+[[package]]
+name = "tiny-skia"
+version = "0.12.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "47ffee5eaaf5527f630fb0e356b90ebdec84d5d18d937c5e440350f88c5a91ea"
+dependencies = [
+ "arrayref",
+ "arrayvec",
+ "bytemuck",
+ "cfg-if",
+ "log",
+ "png 0.18.1",
+ "tiny-skia-path 0.12.0",
 ]
 
 [[package]]
@@ -3579,6 +3607,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "tiny-skia-path"
+version = "0.12.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "edca365c3faccca67d06593c5980fa6c57687de727a03131735bb85f01fdeeb9"
+dependencies = [
+ "arrayref",
+ "bytemuck",
+ "strict-num",
+]
+
+[[package]]
 name = "tiny-skia-winit"
 version = "0.1.0"
 dependencies = [
@@ -3586,7 +3625,7 @@ dependencies = [
  "error-iter",
  "log",
  "pixels 0.16.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "tiny-skia",
+ "tiny-skia 0.12.0",
  "winit",
  "winit_input_helper",
 ]

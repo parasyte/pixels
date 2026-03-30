@@ -12,7 +12,7 @@ default = ["optimize"]
 [dependencies]
 byteorder = "1"
 getrandom = "0.2"
-clipline = "0.1.1"
+clipline = "0.1"
 randomize = "3"
 
 env_logger.workspace = true
