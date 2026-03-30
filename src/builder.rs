@@ -214,7 +214,7 @@ impl<'req, 'dev, 'win, W: wgpu::WindowHandle + 'win> PixelsBuilder<'req, 'dev, '
     ///
     /// Default value is `Auto`.
     ///
-    ///```no_run
+    /// ```no_run
     /// use pixels::wgpu::CompositeAlphaMode;
     ///
     /// # use pixels::PixelsBuilder;
@@ -224,7 +224,7 @@ impl<'req, 'dev, 'win, W: wgpu::WindowHandle + 'win> PixelsBuilder<'req, 'dev, '
     ///     .alpha_mode(CompositeAlphaMode::PostMultiplied)
     ///     .build()?;
     /// # Ok::<(), pixels::Error>(())
-    ///```
+    /// ```
     pub fn alpha_mode(mut self, alpha_mode: wgpu::CompositeAlphaMode) -> Self {
         self.alpha_mode = alpha_mode;
         self
