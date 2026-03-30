@@ -22,7 +22,7 @@ include = [
 [dependencies]
 bytemuck = "1"
 raw-window-handle = "0.6"
-thiserror = "1"
+thiserror = "2"
 ultraviolet = "0.10"
 wgpu = "27"
 

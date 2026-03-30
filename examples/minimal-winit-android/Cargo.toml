@@ -14,7 +14,7 @@ winit = { workspace = true, features = ["android-native-activity"] }
 env_logger.workspace = true
 
 [target.'cfg(target_os = "android")'.dependencies]
-android_logger = "0.15.0"
+android_logger = "0.15"
 
 [[bin]]
 # Rename the bin to avoid https://github.com/rust-lang/cargo/issues/6313
