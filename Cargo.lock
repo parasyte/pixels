@@ -535,7 +535,7 @@ dependencies = [
  "error-iter",
  "getrandom 0.2.17",
  "log",
- "pixels",
+ "pixels 0.16.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "randomize",
  "winit",
  "winit_input_helper",
@@ -678,7 +678,7 @@ dependencies = [
  "env_logger 0.11.10",
  "error-iter",
  "log",
- "pixels",
+ "pixels 0.16.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "winit",
  "winit_input_helper",
 ]
@@ -1740,7 +1740,7 @@ dependencies = [
  "imgui-wgpu",
  "imgui-winit-support",
  "log",
- "pixels",
+ "pixels 0.16.0",
  "winit",
  "winit_input_helper",
 ]
@@ -1798,7 +1798,7 @@ dependencies = [
  "getrandom 0.2.17",
  "gilrs",
  "log",
- "pixels",
+ "pixels 0.16.0",
  "simple-invaders",
  "winit",
  "winit_input_helper",
@@ -2183,7 +2183,7 @@ dependencies = [
  "env_logger 0.11.10",
  "error-iter",
  "log",
- "pixels",
+ "pixels 0.16.0",
  "winit",
  "winit_input_helper",
 ]
@@ -2196,7 +2196,7 @@ dependencies = [
  "error-iter",
  "fltk",
  "log",
- "pixels",
+ "pixels 0.16.0 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
@@ -2207,7 +2207,7 @@ dependencies = [
  "error-iter",
  "log",
  "muda",
- "pixels",
+ "pixels 0.16.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "tao",
 ]
 
@@ -2220,7 +2220,7 @@ dependencies = [
  "env_logger 0.10.2",
  "error-iter",
  "log",
- "pixels",
+ "pixels 0.16.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "pollster 0.3.0",
  "wasm-bindgen",
  "wasm-bindgen-futures",
@@ -2236,7 +2236,7 @@ dependencies = [
  "env_logger 0.11.10",
  "error-iter",
  "log",
- "pixels",
+ "pixels 0.16.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "winit",
  "winit_input_helper",
 ]
@@ -2248,7 +2248,7 @@ dependencies = [
  "android_logger",
  "env_logger 0.11.10",
  "log",
- "pixels",
+ "pixels 0.16.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "winit",
 ]
 
@@ -2790,6 +2790,20 @@ dependencies = [
 ]
 
 [[package]]
+name = "pixels"
+version = "0.16.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "143fe156756a0adab1a0f7e63a9f674703e0623e59e480f5dff64e20496f439c"
+dependencies = [
+ "bytemuck",
+ "pollster 0.4.0",
+ "raw-window-handle",
+ "thiserror 1.0.69",
+ "ultraviolet",
+ "wgpu",
+]
+
+[[package]]
 name = "pixels-mocks"
 version = "0.1.0"
 dependencies = [
@@ -3001,7 +3015,7 @@ dependencies = [
  "error-iter",
  "euclid",
  "log",
- "pixels",
+ "pixels 0.16.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "raqote",
  "winit",
  "winit_input_helper",
@@ -3571,7 +3585,7 @@ dependencies = [
  "env_logger 0.11.10",
  "error-iter",
  "log",
- "pixels",
+ "pixels 0.16.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "tiny-skia",
  "winit",
  "winit_input_helper",
