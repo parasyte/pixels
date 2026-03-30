@@ -139,6 +139,9 @@ pub enum Error {
     /// Equivalent to [`wgpu::CreateSurfaceError`]
     #[error("Unable to create a surface.")]
     CreateSurface(#[from] wgpu::CreateSurfaceError),
+    /// The selected [`wgpu::CompositeAlphaMode`] is not supported by the surface
+    #[error("Alpha mode `{0:?}` is not supported by the surface.")]
+    InvalidAlphaMode(wgpu::CompositeAlphaMode),
     /// Equivalent to [`TextureError`]
     #[error("Texture creation failed: {0}")]
     InvalidTexture(#[from] TextureError),
