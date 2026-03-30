@@ -5,10 +5,10 @@ authors = ["Jay Oster <jay@kodewerx.org>"]
 edition = "2018"
 
 [dependencies]
-clipline = "0.2"
+clipline = "0.4"
 pcx = "0.2"
-randomize = "3.0"
+randomize = "5"
 
 [dev-dependencies]
-byteorder = "1.3"
-getrandom = "0.2"
+byteorder = "1"
+getrandom = "0.4"

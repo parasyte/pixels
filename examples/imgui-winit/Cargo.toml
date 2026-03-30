@@ -11,12 +11,12 @@ default = ["optimize"]
 
 [dependencies]
 imgui = "0.12"
-imgui-wgpu = "0.26"
+imgui-wgpu = "0.28"
 imgui-winit-support = "0.13"
-winit = "0.30"
-winit_input_helper = "0.17"
 
 env_logger.workspace = true
 error-iter.workspace = true
 log.workspace = true
 pixels.workspace = true
+winit.workspace = true
+winit_input_helper.workspace = true
