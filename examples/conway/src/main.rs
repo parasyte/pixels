@@ -60,18 +60,7 @@ fn main() -> Result<(), Error> {
                 input.process_device_event(&event);
             }
             Event::WindowEvent { event, .. } => {
-                // The one and only event that winit_input_helper doesn't have for us...
-                if event == WindowEvent::RedrawRequested {
-                    life.draw(pixels.frame_mut());
-                    if let Err(err) = pixels.render() {
-                        log_error("pixels.render", err);
-                        elwt.exit();
-                        return;
-                    }
-                }
-
-                // For everything else, for let winit_input_helper collect events to build its state.
-                // It returns `true` when it is time to update our game state and request a redraw.
+                // Handle input events
                 if input.process_window_event(&event) {
                     // Close events
                     if input.key_pressed(KeyCode::Escape) || input.close_requested() {
@@ -146,6 +135,18 @@ fn main() -> Result<(), Error> {
                             return;
                         }
                     }
+                }
+
+                // Draw the current frame
+                if event == WindowEvent::RedrawRequested {
+                    life.draw(pixels.frame_mut());
+                    if let Err(err) = pixels.render() {
+                        log_error("pixels.render", err);
+                        elwt.exit();
+                        return;
+                    }
+
+                    // Update internal state and request a redraw
                     if !paused || input.key_pressed_os(KeyCode::Space) {
                         life.update();
                     }

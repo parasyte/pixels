@@ -79,33 +79,6 @@ fn main() -> Result<(), Error> {
                     input.process_device_event(&event);
                 }
                 Event::WindowEvent { event, .. } => {
-                    // Draw the current frame
-                    if event == WindowEvent::RedrawRequested {
-                        // Draw the world
-                        world.draw(pixels.frame_mut());
-
-                        // Prepare Dear ImGui
-                        gui.prepare(&window).expect("gui.prepare() failed");
-
-                        // Render everything together
-                        let render_result =
-                            pixels.render_with(|encoder, render_target, context| {
-                                // Render the world texture
-                                context.scaling_renderer.render(encoder, render_target);
-
-                                // Render Dear ImGui
-                                gui.render(&window, encoder, render_target, context)?;
-
-                                Ok(())
-                            });
-
-                        // Basic error handling
-                        if let Err(err) = render_result {
-                            log_error("pixels.render", err);
-                            return event_loop.exit();
-                        }
-                    }
-
                     if input.process_window_event(&event) {
                         // Close events
                         if input.key_pressed(KeyCode::Escape) || input.close_requested() {
@@ -134,6 +107,33 @@ fn main() -> Result<(), Error> {
                                     return event_loop.exit();
                                 }
                             }
+                        }
+                    }
+
+                    // Draw the current frame
+                    if event == WindowEvent::RedrawRequested {
+                        // Draw the world
+                        world.draw(pixels.frame_mut());
+
+                        // Prepare Dear ImGui
+                        gui.prepare(&window).expect("gui.prepare() failed");
+
+                        // Render everything together
+                        let render_result =
+                            pixels.render_with(|encoder, render_target, context| {
+                                // Render the world texture
+                                context.scaling_renderer.render(encoder, render_target);
+
+                                // Render Dear ImGui
+                                gui.render(&window, encoder, render_target, context)?;
+
+                                Ok(())
+                            });
+
+                        // Basic error handling
+                        if let Err(err) = render_result {
+                            log_error("pixels.render", err);
+                            return event_loop.exit();
                         }
 
                         // Update internal state and request a redraw

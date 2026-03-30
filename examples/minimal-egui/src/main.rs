@@ -102,10 +102,6 @@ fn main() -> Result<(), Error> {
                         }
                         framework.resize(size.width, size.height);
                     }
-
-                    // Update internal state and request a redraw
-                    world.update();
-                    window.request_redraw();
                 }
 
                 match event {
@@ -134,6 +130,10 @@ fn main() -> Result<(), Error> {
                             log_error("pixels.render", err);
                             event_loop.exit();
                         }
+
+                        // Update internal state and request a redraw
+                        world.update();
+                        window.request_redraw();
                     }
                     event => {
                         // Update egui inputs
