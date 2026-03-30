@@ -58,11 +58,11 @@ fn main() -> Result<(), Error> {
         world.update();
 
         // Resize the window
-        if let Some((width, height)) = surface_size.borrow_mut().take() {
-            if let Err(err) = pixels.resize_surface(width, height) {
-                log_error("pixels.resize_surface", err);
-                app.quit();
-            }
+        if let Some((width, height)) = surface_size.borrow_mut().take()
+            && let Err(err) = pixels.resize_surface(width, height)
+        {
+            log_error("pixels.resize_surface", err);
+            app.quit();
         }
 
         // Draw the current frame

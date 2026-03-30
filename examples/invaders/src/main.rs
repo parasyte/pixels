@@ -2,11 +2,11 @@
 #![forbid(unsafe_code)]
 
 use error_iter::ErrorIter as _;
-use game_loop::{game_loop, Time, TimeTrait as _};
+use game_loop::{Time, TimeTrait as _, game_loop};
 use gilrs::{Button, GamepadId, Gilrs};
 use log::{debug, error};
 use pixels::{Error, Pixels, SurfaceTexture};
-use simple_invaders::{Controls, Direction, World, FPS, HEIGHT, TIME_STEP, WIDTH};
+use simple_invaders::{Controls, Direction, FPS, HEIGHT, TIME_STEP, WIDTH, World};
 use std::sync::Arc;
 use std::{env, time::Duration};
 use winit::{
@@ -175,9 +175,9 @@ fn main() -> Result<(), Error> {
                 Event::DeviceEvent { event, .. } => {
                     g.game.input.process_device_event(event);
                 }
-                Event::WindowEvent { event, .. } => {
+                Event::WindowEvent { event, .. }
                     // Let winit_input_helper collect events to build its state.
-                    if g.game.input.process_window_event(event) {
+                    if g.game.input.process_window_event(event) => {
                         // Update controls
                         g.game.update_controls();
 
@@ -195,15 +195,13 @@ fn main() -> Result<(), Error> {
                         }
 
                         // Resize the window
-                        if let Some(size) = g.game.input.window_resized() {
-                            if let Err(err) = g.game.pixels.resize_surface(size.width, size.height)
+                        if let Some(size) = g.game.input.window_resized()
+                            && let Err(err) = g.game.pixels.resize_surface(size.width, size.height)
                             {
                                 log_error("pixels.resize_surface", err);
                                 g.exit();
                             }
-                        }
                     }
-                }
                 _ => {}
             }
         },

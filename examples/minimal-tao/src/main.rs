@@ -130,10 +130,10 @@ fn main() -> Result<(), Error> {
 
             _ => {
                 // Handle menu events
-                if let Ok(event) = MenuEvent::receiver().try_recv() {
-                    if event.id.0 == "quit" {
-                        *control_flow = ControlFlow::Exit;
-                    }
+                if let Ok(event) = MenuEvent::receiver().try_recv()
+                    && event.id.0 == "quit"
+                {
+                    *control_flow = ControlFlow::Exit;
                 }
             }
         }

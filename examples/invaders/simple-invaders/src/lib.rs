@@ -408,18 +408,14 @@ impl World {
         let width = self.player.sprite.width();
 
         match controls.direction {
-            Direction::Left => {
-                if self.player.pos.x > width {
-                    self.player.pos.x -= frames;
-                    self.player.sprite.animate(&self.assets);
-                }
+            Direction::Left if self.player.pos.x > width => {
+                self.player.pos.x -= frames;
+                self.player.sprite.animate(&self.assets);
             }
 
-            Direction::Right => {
-                if self.player.pos.x < WIDTH - width * 2 {
-                    self.player.pos.x += frames;
-                    self.player.sprite.animate(&self.assets);
-                }
+            Direction::Right if self.player.pos.x < WIDTH - width * 2 => {
+                self.player.pos.x += frames;
+                self.player.sprite.animate(&self.assets);
             }
             _ => (),
         }

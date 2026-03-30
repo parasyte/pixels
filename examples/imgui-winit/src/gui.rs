@@ -1,4 +1,4 @@
-use pixels::{wgpu, PixelsContext};
+use pixels::{PixelsContext, wgpu};
 use std::time::Instant;
 
 /// Manages all state required for rendering Dear ImGui over `Pixels`.

@@ -91,21 +91,22 @@ fn main() -> Result<(), Error> {
                         }
 
                         // Resize the window
-                        if let Some(size) = input.window_resized() {
-                            if size.width > 0 && size.height > 0 {
-                                // Resize the surface texture
-                                if let Err(err) = pixels.resize_surface(size.width, size.height) {
-                                    log_error("pixels.resize_surface", err);
-                                    return event_loop.exit();
-                                }
+                        if let Some(size) = input.window_resized()
+                            && size.width > 0
+                            && size.height > 0
+                        {
+                            // Resize the surface texture
+                            if let Err(err) = pixels.resize_surface(size.width, size.height) {
+                                log_error("pixels.resize_surface", err);
+                                return event_loop.exit();
+                            }
 
-                                // Resize the world
-                                let LogicalSize { width, height } = size.to_logical(scale_factor);
-                                world.resize(width, height);
-                                if let Err(err) = pixels.resize_buffer(width, height) {
-                                    log_error("pixels.resize_buffer", err);
-                                    return event_loop.exit();
-                                }
+                            // Resize the world
+                            let LogicalSize { width, height } = size.to_logical(scale_factor);
+                            world.resize(width, height);
+                            if let Err(err) = pixels.resize_buffer(width, height) {
+                                log_error("pixels.resize_buffer", err);
+                                return event_loop.exit();
                             }
                         }
                     }
