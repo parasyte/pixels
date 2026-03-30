@@ -217,6 +217,9 @@ impl<'req, 'dev, 'win, W: wgpu::WindowHandle + 'win> PixelsBuilder<'req, 'dev, '
     ///```no_run
     /// use pixels::wgpu::CompositeAlphaMode;
     ///
+    /// # use pixels::PixelsBuilder;
+    /// # let window = pixels_mocks::Window;
+    /// # let surface_texture = pixels::SurfaceTexture::new(320, 240, &window);
     /// let mut pixels = PixelsBuilder::new(320, 240, surface_texture)
     ///     .alpha_mode(CompositeAlphaMode::PostMultiplied)
     ///     .build()?;
