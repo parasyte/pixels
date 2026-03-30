@@ -61,7 +61,7 @@ pub fn _main(event_loop: EventLoop<()>) {
             Event::WindowEvent {
                 event: WindowEvent::Resized(size),
                 ..
-            } => {
+            } if size.width > 0 && size.height > 0 => {
                 if let Some(display) = &mut display {
                     display
                         .pixels
