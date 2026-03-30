@@ -223,6 +223,7 @@ impl<'req, 'dev, 'win, W: wgpu::WindowHandle + 'win> PixelsBuilder<'req, 'dev, '
     /// let mut pixels = PixelsBuilder::new(320, 240, surface_texture)
     ///     .alpha_mode(CompositeAlphaMode::PostMultiplied)
     ///     .build()?;
+    /// # Ok::<(), pixels::Error>(())
     ///```
     pub fn alpha_mode(mut self, alpha_mode: wgpu::CompositeAlphaMode) -> Self {
         self.alpha_mode = alpha_mode;
