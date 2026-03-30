@@ -66,6 +66,29 @@ fn main() -> Result<(), Error> {
                 input.process_device_event(&event);
             }
             Event::WindowEvent { event, .. } => {
+                // Handle input events
+                if input.process_window_event(&event) {
+                    // Close events
+                    if input.key_pressed(KeyCode::Escape) || input.close_requested() {
+                        elwt.exit();
+                        return;
+                    }
+
+                    // Resize the window
+                    if let Some(size) = input.window_resized() {
+                        if let Err(err) = pixels.resize_surface(size.width, size.height) {
+                            log_error("pixels.resize_surface", err);
+                            elwt.exit();
+                            return;
+                        }
+                        if let Err(err) = noise_renderer.resize(&pixels, size.width, size.height) {
+                            log_error("noise_renderer.resize", err);
+                            elwt.exit();
+                            return;
+                        }
+                    }
+                }
+
                 // Draw the current frame
                 if event == WindowEvent::RedrawRequested {
                     world.draw(pixels.frame_mut());
@@ -90,29 +113,6 @@ fn main() -> Result<(), Error> {
                         log_error("pixels.render_with", err);
                         elwt.exit();
                         return;
-                    }
-                }
-
-                // Handle input events
-                if input.process_window_event(&event) {
-                    // Close events
-                    if input.key_pressed(KeyCode::Escape) || input.close_requested() {
-                        elwt.exit();
-                        return;
-                    }
-
-                    // Resize the window
-                    if let Some(size) = input.window_resized() {
-                        if let Err(err) = pixels.resize_surface(size.width, size.height) {
-                            log_error("pixels.resize_surface", err);
-                            elwt.exit();
-                            return;
-                        }
-                        if let Err(err) = noise_renderer.resize(&pixels, size.width, size.height) {
-                            log_error("noise_renderer.resize", err);
-                            elwt.exit();
-                            return;
-                        }
                     }
 
                     // Update internal state and request a redraw

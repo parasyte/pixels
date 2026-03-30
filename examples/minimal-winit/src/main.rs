@@ -61,16 +61,6 @@ fn main() -> Result<(), Error> {
                 input.process_device_event(&event);
             }
             Event::WindowEvent { event, .. } => {
-                // Draw the current frame
-                if event == WindowEvent::RedrawRequested {
-                    world.draw(pixels.frame_mut());
-                    if let Err(err) = pixels.render() {
-                        log_error("pixels.render", err);
-                        elwt.exit();
-                        return;
-                    }
-                }
-
                 // Handle input events
                 if input.process_window_event(&event) {
                     // Close events
@@ -86,6 +76,16 @@ fn main() -> Result<(), Error> {
                             elwt.exit();
                             return;
                         }
+                    }
+                }
+
+                // Draw the current frame
+                if event == WindowEvent::RedrawRequested {
+                    world.draw(pixels.frame_mut());
+                    if let Err(err) = pixels.render() {
+                        log_error("pixels.render", err);
+                        elwt.exit();
+                        return;
                     }
 
                     // Update internal state and request a redraw

@@ -139,6 +139,15 @@ async fn run() {
                 input.process_device_event(&event);
             }
             Event::WindowEvent { event, .. } => {
+                if let WindowEvent::Resized(size) = event {
+                    // Resize the window
+                    if let Err(err) = pixels.resize_surface(size.width, size.height) {
+                        log_error("pixels.resize_surface", err);
+                        elwt.exit();
+                        return;
+                    }
+                }
+
                 // Draw the current frame
                 if event == WindowEvent::RedrawRequested {
                     world.draw(pixels.frame_mut());
@@ -151,15 +160,6 @@ async fn run() {
                     // Update internal state and request a redraw
                     world.update();
                     window.request_redraw();
-                }
-
-                if let WindowEvent::Resized(size) = event {
-                    // Resize the window
-                    if let Err(err) = pixels.resize_surface(size.width, size.height) {
-                        log_error("pixels.resize_surface", err);
-                        elwt.exit();
-                        return;
-                    }
                 }
 
                 // Handle input events
