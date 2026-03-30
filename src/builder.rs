@@ -19,7 +19,9 @@ pub struct PixelsBuilder<'req, 'dev, 'win, W: wgpu::WindowHandle + 'win> {
     alpha_mode: wgpu::CompositeAlphaMode,
 }
 
-impl<'req, 'dev, 'win, W: wgpu::WindowHandle + 'win> PixelsBuilder<'req, 'dev, 'win, W> {
+impl<'req, 'dev, 'win, W: wgpu::WindowHandle + raw_window_handle::HasDisplayHandle + 'win>
+    PixelsBuilder<'req, 'dev, 'win, W>
+{
     /// Create a builder that can be finalized into a [`Pixels`] pixel buffer.
     ///
     /// # Examples
@@ -268,16 +270,18 @@ impl<'req, 'dev, 'win, W: wgpu::WindowHandle + 'win> PixelsBuilder<'req, 'dev, '
     ///
     /// Returns an error when a [`wgpu::Adapter`] cannot be found.
     async fn build_impl(self) -> Result<Pixels<'win>, Error> {
-        let instance = wgpu::Instance::new(&wgpu::InstanceDescriptor {
+        let instance = wgpu::Instance::new(wgpu::InstanceDescriptor {
             backends: self.backend,
-            ..Default::default()
+            ..wgpu::InstanceDescriptor::new_without_display_handle().with_env()
         });
 
         // TODO: Use `options.pixel_aspect_ratio` to stretch the scaled texture
         let surface = instance.create_surface(self.surface_texture.window)?;
         let compatible_surface = Some(&surface);
         let request_adapter_options = &self.request_adapter_options;
-        let adapter = match wgpu::util::initialize_adapter_from_env(&instance, compatible_surface) {
+        let adapter = match wgpu::util::initialize_adapter_from_env(&instance, compatible_surface)
+            .await
+        {
             Ok(adapter) => Ok(adapter),
             Err(_) => {
                 instance

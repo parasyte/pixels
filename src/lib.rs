@@ -37,6 +37,7 @@ pub use crate::renderers::ScalingRenderer;
 pub use raw_window_handle;
 use thiserror::Error;
 pub use wgpu;
+use wgpu::CurrentSurfaceTexture;
 
 mod builder;
 mod renderers;
@@ -133,9 +134,6 @@ pub enum Error {
     /// Equivalent to [`wgpu::RequestDeviceError`]
     #[error("No wgpu::Device found.")]
     DeviceNotFound(#[from] wgpu::RequestDeviceError),
-    /// Equivalent to [`wgpu::SurfaceError`]
-    #[error("The GPU failed to acquire a surface frame.")]
-    Surface(#[from] wgpu::SurfaceError),
     /// Equivalent to [`wgpu::CreateSurfaceError`]
     #[error("Unable to create a surface.")]
     CreateSurface(#[from] wgpu::CreateSurfaceError),
@@ -148,6 +146,9 @@ pub enum Error {
     /// User-defined error from custom render function
     #[error("User-defined error.")]
     UserDefined(#[from] DynError),
+    /// wgpu validation error
+    #[error("wgpu validation error")]
+    Validation,
 }
 
 type DynError = Box<dyn std::error::Error + Send + Sync + 'static>;
@@ -246,7 +247,7 @@ impl<'win> Pixels<'win> {
     ///
     /// Panics when `width` or `height` are 0.
     #[cfg(not(target_arch = "wasm32"))]
-    pub fn new<W: wgpu::WindowHandle + 'win>(
+    pub fn new<W: wgpu::WindowHandle + raw_window_handle::HasDisplayHandle + 'win>(
         width: u32,
         height: u32,
         surface_texture: SurfaceTexture<W>,
@@ -277,7 +278,7 @@ impl<'win> Pixels<'win> {
     /// # Panics
     ///
     /// Panics when `width` or `height` are 0.
-    pub async fn new_async<W: wgpu::WindowHandle + 'win>(
+    pub async fn new_async<W: wgpu::WindowHandle + raw_window_handle::HasDisplayHandle + 'win>(
         width: u32,
         height: u32,
         surface_texture: SurfaceTexture<W>,
@@ -551,13 +552,24 @@ impl<'win> Pixels<'win> {
             &PixelsContext,
         ) -> Result<(), DynError>,
     {
-        let frame = self.context.surface.get_current_texture().or_else(|_| {
-            // Reconfigure the surface and retry immediately on any error.
-            // See https://github.com/parasyte/pixels/issues/121
-            // See https://github.com/parasyte/pixels/issues/346
-            self.reconfigure_surface();
-            self.context.surface.get_current_texture()
-        })?;
+        let frame = loop {
+            match self.context.surface.get_current_texture() {
+                CurrentSurfaceTexture::Success(surface_texture) => break surface_texture,
+
+                CurrentSurfaceTexture::Suboptimal(_)
+                | CurrentSurfaceTexture::Outdated
+                | CurrentSurfaceTexture::Lost => {
+                    // Reconfigure the surface and retry immediately on any error.
+                    // See https://github.com/parasyte/pixels/issues/121
+                    // See https://github.com/parasyte/pixels/issues/346
+                    self.reconfigure_surface();
+                }
+
+                CurrentSurfaceTexture::Occluded | CurrentSurfaceTexture::Timeout => return Ok(()),
+
+                CurrentSurfaceTexture::Validation => return Err(Error::Validation),
+            }
+        };
         let mut encoder =
             self.context
                 .device
