@@ -32,7 +32,7 @@
 #![deny(clippy::all)]
 #![forbid(unsafe_code)]
 
-pub use crate::builder::{check_texture_size, PixelsBuilder};
+pub use crate::builder::{PixelsBuilder, check_texture_size};
 pub use crate::renderers::ScalingRenderer;
 pub use raw_window_handle;
 use thiserror::Error;
@@ -178,7 +178,7 @@ impl<W: wgpu::WindowHandle> SurfaceTexture<W> {
     /// use winit::window::Window;
     ///
     /// let event_loop = EventLoop::new().unwrap();
-    /// let window = Window::new(&event_loop).unwrap();
+    /// let window = event_loop.create_window(Window::default_attributes()).unwrap();
     /// let size = window.inner_size();
     ///
     /// let surface_texture = SurfaceTexture::new(size.width, size.height, &window);
