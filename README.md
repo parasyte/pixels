@@ -75,4 +75,4 @@ The [`minifb`](https://crates.io/crates/minifb) crate shares some similarities w
 
 ## Comparison with `softbuffer`
 
-There is a more recent project called [`softbuffer`](https://github.com/john01dav/softbuffer). It provides similar capabilities to what `pixels` offers, but is intentionally limited to software-only (not hardware-accelerated) rasterization.
+There is a more recent project called [`softbuffer`](https://crates.io/crates/softbuffer). It provides similar capabilities to what `pixels` offers, but is intentionally limited to software-only (not hardware-accelerated) rasterization.
