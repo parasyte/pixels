@@ -135,7 +135,7 @@ impl World {
 }
 
 #[cfg(target_os = "android")]
-#[no_mangle]
+#[unsafe(no_mangle)]
 fn android_main(app: AndroidApp) {
     use android_logger::Config;
     use winit::event_loop::EventLoop;
