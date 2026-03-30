@@ -178,7 +178,7 @@ impl<W: wgpu::WindowHandle> SurfaceTexture<W> {
     /// use winit::window::Window;
     ///
     /// let event_loop = EventLoop::new().unwrap();
-    /// let window = Window::new(&event_loop).unwrap();
+    /// let window = event_loop.create_window(Window::default_attributes()).unwrap();
     /// let size = window.inner_size();
     ///
     /// let surface_texture = SurfaceTexture::new(size.width, size.height, &window);
