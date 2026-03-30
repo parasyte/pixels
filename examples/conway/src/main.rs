@@ -6,6 +6,7 @@ use std::sync::Arc;
 use error_iter::ErrorIter as _;
 use log::{debug, error};
 use pixels::{Error, Pixels, SurfaceTexture};
+use randomize::Gen32 as _;
 use winit::{
     dpi::LogicalSize,
     event::{Event, MouseButton, WindowEvent},
@@ -171,11 +172,10 @@ fn log_error<E: std::error::Error + 'static>(method_name: &str, err: E) {
 /// Generate a pseudorandom seed for the game's PRNG.
 fn generate_seed() -> (u64, u64) {
     use byteorder::{ByteOrder, NativeEndian};
-    use getrandom::getrandom;
 
     let mut seed = [0_u8; 16];
 
-    getrandom(&mut seed).expect("failed to getrandom");
+    getrandom::fill(&mut seed).expect("failed to getrandom");
 
     (
         NativeEndian::read_u64(&seed[0..8]),
@@ -266,9 +266,10 @@ impl ConwayGrid {
     }
 
     fn randomize(&mut self) {
-        let mut rng: randomize::PCG32 = generate_seed().into();
+        let seed = generate_seed();
+        let mut rng = randomize::PCG32::new(seed.0, seed.1);
         for c in self.cells.iter_mut() {
-            let alive = randomize::f32_half_open_right(rng.next_u32()) > INITIAL_FILL;
+            let alive = rng.next_f32_unit() > INITIAL_FILL;
             *c = Cell::new(alive);
         }
         // run a few simulation iterations for aesthetics (If we don't, the
@@ -343,11 +344,8 @@ impl ConwayGrid {
     }
 
     fn set_line(&mut self, x0: isize, y0: isize, x1: isize, y1: isize, alive: bool) -> Option<()> {
-        // possible to optimize by matching on Clipline and iterating over its arms
-        for (x, y) in clipline::Clipline::new(
-            ((x0, y0), (x1, y1)),
-            ((0, 0), (self.width as isize - 1, self.height as isize - 1)),
-        )? {
+        // possible to optimize by matching on LineB and iterating over its arms
+        for (x, y) in clipline::LineB::<isize>::new(x0, y0, x1, y1) {
             let (x, y) = (x as usize, y as usize);
             self.cells[x + y * self.width].set_alive(alive);
         }

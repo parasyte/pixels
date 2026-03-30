@@ -5,4 +5,4 @@ edition = "2024"
 publish = false
 
 [dependencies]
-cargo-run-wasm = "0.3"
+cargo-run-wasm = "0.4"

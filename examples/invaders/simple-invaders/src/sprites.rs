@@ -1,6 +1,6 @@
-use crate::loader::Assets;
 use crate::TIME_STEP;
-use crate::{Point, HEIGHT, WIDTH};
+use crate::loader::Assets;
+use crate::{HEIGHT, Point, WIDTH};
 use alloc::rc::Rc;
 use alloc::vec::Vec;
 use core::time::Duration;
@@ -214,11 +214,7 @@ where
 
 /// Draw a line to the pixel buffer using Bresenham's algorithm.
 pub(crate) fn line(screen: &mut [u8], p1: &Point, p2: &Point, color: [u8; 4]) -> Option<()> {
-    let p1 = (p1.x as isize, p1.y as isize);
-    let p2 = (p2.x as isize, p2.y as isize);
-    let clip_max = (WIDTH as isize - 1, HEIGHT as isize - 1);
-    for (x, y) in clipline::Clipline::new((p1, p2), ((0, 0), clip_max))? {
-        let (x, y) = (x as usize, y as usize);
+    for (x, y) in clipline::LineB::<usize>::new(p1.x, p1.y, p2.x, p2.y) {
         let i = x * 4 + y * WIDTH * 4;
 
         screen[i..i + 4].copy_from_slice(&color);
