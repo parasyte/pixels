@@ -91,8 +91,8 @@ fn main() -> Result<(), Error> {
                         }
 
                         // Resize the window
-                        if let Some(size) = input.window_resized() {
-                            if size.width > 0 && size.height > 0 {
+                        if let Some(size) = input.window_resized()
+                            && size.width > 0 && size.height > 0 {
                                 // Resize the surface texture
                                 if let Err(err) = pixels.resize_surface(size.width, size.height) {
                                     log_error("pixels.resize_surface", err);
@@ -107,7 +107,6 @@ fn main() -> Result<(), Error> {
                                     return event_loop.exit();
                                 }
                             }
-                        }
                     }
 
                     // Draw the current frame
