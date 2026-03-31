@@ -313,10 +313,13 @@ impl<'req, 'dev, 'win, W: wgpu::WindowHandle + raw_window_handle::HasDisplayHand
         let (device, queue) = adapter.request_device(&device_descriptor).await?;
 
         let surface_capabilities = surface.get_capabilities(&adapter);
-        let present_mode = if surface_capabilities
-            .present_modes
-            .contains(&self.present_mode)
-        {
+        let present_mode_supported = match self.present_mode {
+            wgpu::PresentMode::AutoVsync | wgpu::PresentMode::AutoNoVsync => true,
+            _ => surface_capabilities
+                .present_modes
+                .contains(&self.present_mode),
+        };
+        let present_mode = if present_mode_supported {
             self.present_mode
         } else {
             wgpu::PresentMode::AutoVsync
