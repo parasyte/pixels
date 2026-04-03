@@ -221,11 +221,10 @@ fn log_error<E: std::error::Error + 'static>(method_name: &str, err: E) {
 /// Generate a pseudorandom seed for the game's PRNG.
 fn generate_seed() -> (u64, u64) {
     use byteorder::{ByteOrder, NativeEndian};
-    use getrandom::getrandom;
 
     let mut seed = [0_u8; 16];
 
-    getrandom(&mut seed).expect("failed to getrandom");
+    getrandom::fill(&mut seed).expect("failed to getrandom");
 
     (
         NativeEndian::read_u64(&seed[0..8]),

@@ -1,7 +1,7 @@
 use crate::collision::{BulletDetail, Collision, LaserDetail};
 use crate::geo::Point;
-use crate::sprites::{rect, Drawable};
-use crate::{Bullet, Invaders, Laser, Player, Shield, GRID};
+use crate::sprites::{Drawable, rect};
+use crate::{Bullet, GRID, Invaders, Laser, Player, Shield};
 
 // Colors
 const RED: [u8; 4] = [255, 0, 0, 255];

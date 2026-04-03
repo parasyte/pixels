@@ -1,7 +1,7 @@
 //! Collision detection primitives.
 
 use crate::geo::{Point, Rect};
-use crate::{Bullet, Invaders, Laser, Player, Shield, COLS, GRID, ROWS};
+use crate::{Bullet, COLS, GRID, Invaders, Laser, Player, ROWS, Shield};
 use alloc::collections::BTreeSet;
 
 /// Store information about collisions (for debug mode).
