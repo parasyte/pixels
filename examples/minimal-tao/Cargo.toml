@@ -10,7 +10,7 @@ optimize = ["log/release_max_level_warn"]
 default = ["optimize"]
 
 [dependencies]
-muda = "0.17"
+muda = "0.18"
 tao = "0.35"
 
 env_logger.workspace = true
