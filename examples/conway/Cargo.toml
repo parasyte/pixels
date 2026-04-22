@@ -11,9 +11,9 @@ default = ["optimize"]
 
 [dependencies]
 byteorder = "1"
-getrandom = "0.2"
-clipline = "0.1"
-randomize = "3"
+getrandom = "0.4"
+clipline = "0.4"
+randomize = "5"
 
 env_logger.workspace = true
 error-iter.workspace = true

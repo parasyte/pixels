@@ -14,10 +14,10 @@ use alloc::vec::Vec;
 use crate::collision::Collision;
 pub use crate::controls::{Controls, Direction};
 use crate::geo::Point;
-use crate::loader::{load_assets, Assets};
+use crate::loader::{Assets, load_assets};
 use crate::player::Player;
 use crate::shield::Shield;
-use crate::sprites::{blit, Animation, Drawable, Frame, SpriteRef};
+use crate::sprites::{Animation, Drawable, Frame, SpriteRef, blit};
 use core::time::Duration;
 use randomize::PCG32;
 
@@ -158,12 +158,11 @@ impl World {
     ///
     /// ```
     /// use byteorder::{ByteOrder, NativeEndian};
-    /// use getrandom::getrandom;
     /// use simple_invaders::World;
     ///
     /// // Create a seed for the PRNG
     /// let mut seed = [0_u8; 16];
-    /// getrandom(&mut seed).expect("failed to getrandom");
+    /// getrandom::fill(&mut seed).expect("failed to getrandom");
     /// let seed = (
     ///     NativeEndian::read_u64(&seed[0..8]),
     ///     NativeEndian::read_u64(&seed[8..16]),

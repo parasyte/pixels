@@ -87,9 +87,9 @@ impl Framework {
     pub(crate) fn prepare(&mut self, window: &Window) {
         // Run the egui frame and create all paint jobs to prepare for rendering.
         let raw_input = self.egui_state.take_egui_input(window);
-        let output = self.egui_ctx.run(raw_input, |egui_ctx| {
+        let output = self.egui_ctx.run_ui(raw_input, |ui| {
             // Draw the demo application.
-            self.gui.ui(egui_ctx);
+            self.gui.ui(&self.egui_ctx, ui);
         });
 
         self.textures.append(output.textures_delta);
@@ -137,6 +137,7 @@ impl Framework {
                     depth_stencil_attachment: None,
                     timestamp_writes: None,
                     occlusion_query_set: None,
+                    multiview_mask: None,
                 })
                 .forget_lifetime();
 
@@ -159,8 +160,8 @@ impl Gui {
     }
 
     /// Create the UI using egui.
-    fn ui(&mut self, ctx: &Context) {
-        egui::TopBottomPanel::top("menubar_container").show(ctx, |ui| {
+    fn ui(&mut self, ctx: &Context, ui: &mut egui::Ui) {
+        egui::Panel::top("menubar_container").show_inside(ui, |ui| {
             egui::MenuBar::new().ui(ui, |ui| {
                 ui.menu_button("File", |ui| {
                     if ui.button("About...").clicked() {
@@ -172,6 +173,7 @@ impl Gui {
         });
 
         egui::Window::new("Hello, egui!")
+            .default_pos((30.0, 30.0))
             .open(&mut self.window_open)
             .show(ctx, |ui| {
                 ui.label("This example demonstrates using egui with pixels.");

@@ -56,5 +56,5 @@ winit_input_helper = "0.17"
 # able to build against the local working copy while developing by default.
 #
 # Temporarily change the dependency to use a path specification while testing in development.
-pixels = "0.16"
+pixels = "0.17"
 # pixels = { path = "." }
