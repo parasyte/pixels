@@ -556,9 +556,14 @@ impl<'win> Pixels<'win> {
             match self.context.surface.get_current_texture() {
                 CurrentSurfaceTexture::Success(surface_texture) => break surface_texture,
 
-                CurrentSurfaceTexture::Suboptimal(_)
-                | CurrentSurfaceTexture::Outdated
-                | CurrentSurfaceTexture::Lost => {
+                CurrentSurfaceTexture::Suboptimal(surface) => {
+                    // It's important to drop the current surface before reconfiguring it, otherwise
+                    // wgpu will panic.
+                    // see https://github.com/parasyte/pixels/issues/450
+                    drop(surface);
+                    self.reconfigure_surface();
+                }
+                CurrentSurfaceTexture::Outdated | CurrentSurfaceTexture::Lost => {
                     // Reconfigure the surface and retry immediately on any error.
                     // See https://github.com/parasyte/pixels/issues/121
                     // See https://github.com/parasyte/pixels/issues/346
