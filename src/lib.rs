@@ -691,8 +691,8 @@ impl<'win> Pixels<'win> {
         );
 
         let pos = self.scaling_matrix_inverse * pos;
-        let offset_width = pixels_width.min(physical_width) / 2.0;
-        let offset_height = pixels_height.min(physical_height) / 2.0;
+        let offset_width = pixels_width / 2.0;
+        let offset_height = pixels_height / 2.0;
 
         let pixel_x = (pos.x / pos.w + offset_width).floor() as isize;
         let pixel_y = (pos.y / pos.w + offset_height).floor() as isize;
