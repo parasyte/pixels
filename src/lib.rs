@@ -146,12 +146,32 @@ pub enum Error {
     /// User-defined error from custom render function
     #[error("User-defined error.")]
     UserDefined(#[from] DynError),
+    /// Surface acquisition still failed after reconfiguration
+    #[error("The GPU failed to acquire a surface frame.")]
+    Surface,
     /// wgpu validation error
     #[error("wgpu validation error")]
     Validation,
 }
 
 type DynError = Box<dyn std::error::Error + Send + Sync + 'static>;
+
+// This matches the bounded recovery behavior from before wgpu 29 replaced `SurfaceError` with
+// `CurrentSurfaceTexture`.
+const MAX_SURFACE_RECONFIGURATIONS: usize = 1;
+
+fn retry_surface_acquisition(
+    reconfigurations: &mut usize,
+    reconfigure: impl FnOnce(),
+) -> Result<(), Error> {
+    if *reconfigurations >= MAX_SURFACE_RECONFIGURATIONS {
+        return Err(Error::Surface);
+    }
+
+    *reconfigurations += 1;
+    reconfigure();
+    Ok(())
+}
 
 /// All the ways in which creating a texture can fail.
 #[derive(Error, Debug)]
@@ -552,6 +572,7 @@ impl<'win> Pixels<'win> {
             &PixelsContext,
         ) -> Result<(), DynError>,
     {
+        let mut reconfigurations = 0;
         let frame = loop {
             match self.context.surface.get_current_texture() {
                 CurrentSurfaceTexture::Success(surface_texture) => break surface_texture,
@@ -561,13 +582,17 @@ impl<'win> Pixels<'win> {
                     // wgpu will panic.
                     // see https://github.com/parasyte/pixels/issues/450
                     drop(surface);
-                    self.reconfigure_surface();
+                    retry_surface_acquisition(&mut reconfigurations, || {
+                        self.reconfigure_surface();
+                    })?;
                 }
                 CurrentSurfaceTexture::Outdated | CurrentSurfaceTexture::Lost => {
-                    // Reconfigure the surface and retry immediately on any error.
+                    // Reconfigure the surface and retry immediately once.
                     // See https://github.com/parasyte/pixels/issues/121
                     // See https://github.com/parasyte/pixels/issues/346
-                    self.reconfigure_surface();
+                    retry_surface_acquisition(&mut reconfigurations, || {
+                        self.reconfigure_surface();
+                    })?;
                 }
 
                 CurrentSurfaceTexture::Occluded | CurrentSurfaceTexture::Timeout => return Ok(()),
@@ -771,5 +796,23 @@ impl<'win> Pixels<'win> {
     /// See [`PixelsBuilder::render_texture_format`] for more information.
     pub fn render_texture_format(&self) -> wgpu::TextureFormat {
         self.render_texture_format
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{Error, retry_surface_acquisition};
+
+    #[test]
+    fn surface_reconfiguration_is_bounded() {
+        let mut attempts = 0;
+        let mut reconfigurations = 0;
+
+        retry_surface_acquisition(&mut attempts, || reconfigurations += 1).unwrap();
+        assert_eq!(reconfigurations, 1);
+
+        let result = retry_surface_acquisition(&mut attempts, || reconfigurations += 1);
+        assert!(matches!(result, Err(Error::Surface)));
+        assert_eq!(reconfigurations, 1);
     }
 }
