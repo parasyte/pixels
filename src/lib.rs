@@ -137,6 +137,9 @@ pub enum Error {
     /// Equivalent to [`wgpu::CreateSurfaceError`]
     #[error("Unable to create a surface.")]
     CreateSurface(#[from] wgpu::CreateSurfaceError),
+    /// Error while getting the current surface texture
+    #[error("Getting the current surface texture failed with error: {0:?}")]
+    GetSurface(GetSurfaceError),
     /// The selected [`wgpu::CompositeAlphaMode`] is not supported by the surface
     #[error("Alpha mode `{0:?}` is not supported by the surface.")]
     InvalidAlphaMode(wgpu::CompositeAlphaMode),
@@ -152,6 +155,19 @@ pub enum Error {
 }
 
 type DynError = Box<dyn std::error::Error + Send + Sync + 'static>;
+
+/// The last error received while getting the current surface texture.
+#[derive(Debug)]
+pub enum GetSurfaceError {
+    /// The loop exited without initializing the `frame` variable.
+    ///
+    /// This is a bug in the retry loop when returned in [`Error::GetSurface`].
+    Init,
+    /// Equivalent to [`wgpu::CurrentSurfaceTexture::Outdated`]
+    Outdated,
+    /// Equivalent to [`wgpu::CurrentSurfaceTexture::Lost`]
+    Lost,
+}
 
 /// All the ways in which creating a texture can fail.
 #[derive(Error, Debug)]
@@ -552,21 +568,40 @@ impl<'win> Pixels<'win> {
             &PixelsContext,
         ) -> Result<(), DynError>,
     {
-        let frame = loop {
+        // The compiler demands that `frame` is initialized, even though the loop can only exit with
+        // it fully initialized.
+        let mut frame = Err(Error::GetSurface(GetSurfaceError::Init));
+        // Getting the current surface texture is bounded to at most 2 attempts.
+        const ATTEMPTS: usize = 2;
+        for i in 0..ATTEMPTS {
             match self.context.surface.get_current_texture() {
-                CurrentSurfaceTexture::Success(surface_texture) => break surface_texture,
+                CurrentSurfaceTexture::Success(surface_texture) => {
+                    frame = Ok(surface_texture);
+                    break;
+                }
 
+                // Reconfigure the surface and retry immediately on any error.
+                // See https://github.com/parasyte/pixels/issues/121
+                // See https://github.com/parasyte/pixels/issues/346
                 CurrentSurfaceTexture::Suboptimal(surface) => {
-                    // It's important to drop the current surface before reconfiguring it, otherwise
-                    // wgpu will panic.
-                    // see https://github.com/parasyte/pixels/issues/450
-                    drop(surface);
+                    if i == ATTEMPTS - 1 {
+                        // Use the suboptimal surface on the last attempt.
+                        // TBD: It may be better to skip this frame by returning `Ok(())`.
+                        frame = Ok(surface);
+                    } else {
+                        // It's important to drop the current surface before reconfiguring it,
+                        // otherwise wgpu will panic.
+                        // See https://github.com/parasyte/pixels/issues/450
+                        drop(surface);
+                        self.reconfigure_surface();
+                    }
+                }
+                CurrentSurfaceTexture::Outdated => {
+                    frame = Err(Error::GetSurface(GetSurfaceError::Outdated));
                     self.reconfigure_surface();
                 }
-                CurrentSurfaceTexture::Outdated | CurrentSurfaceTexture::Lost => {
-                    // Reconfigure the surface and retry immediately on any error.
-                    // See https://github.com/parasyte/pixels/issues/121
-                    // See https://github.com/parasyte/pixels/issues/346
+                CurrentSurfaceTexture::Lost => {
+                    frame = Err(Error::GetSurface(GetSurfaceError::Lost));
                     self.reconfigure_surface();
                 }
 
@@ -574,7 +609,8 @@ impl<'win> Pixels<'win> {
 
                 CurrentSurfaceTexture::Validation => return Err(Error::Validation),
             }
-        };
+        }
+        let frame = frame?;
         let mut encoder =
             self.context
                 .device
