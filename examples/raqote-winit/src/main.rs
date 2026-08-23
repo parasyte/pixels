@@ -84,7 +84,9 @@ fn main() -> Result<(), Error> {
                 if event == WindowEvent::RedrawRequested {
                     for (dst, &src) in pixels
                         .frame_mut()
-                        .chunks_exact_mut(4)
+                        .as_chunks_mut::<4>()
+                        .0
+                        .iter_mut()
                         .zip(shapes.frame().iter())
                     {
                         dst[0] = (src >> 16) as u8;

@@ -199,7 +199,7 @@ impl World {
     ///
     /// Assumes the default texture format: `wgpu::TextureFormat::Rgba8UnormSrgb`
     fn draw(&self, frame: &mut [u8]) {
-        for (i, pixel) in frame.chunks_exact_mut(4).enumerate() {
+        for (i, pixel) in frame.as_chunks_mut::<4>().0.iter_mut().enumerate() {
             let x = (i % self.width as usize) as i16;
             let y = (i / self.width as usize) as i16;
 

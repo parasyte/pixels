@@ -333,7 +333,7 @@ impl ConwayGrid {
 
     fn draw(&self, screen: &mut [u8]) {
         debug_assert_eq!(screen.len(), 4 * self.cells.len());
-        for (c, pix) in self.cells.iter().zip(screen.chunks_exact_mut(4)) {
+        for (c, pix) in self.cells.iter().zip(screen.as_chunks_mut::<4>().0) {
             let color = if c.alive {
                 [0, 0xff, 0xff, 0xff]
             } else {
