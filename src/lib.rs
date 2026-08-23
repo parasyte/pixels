@@ -106,8 +106,9 @@ pub struct PixelsContext<'win> {
 ///
 /// See [`PixelsBuilder`] for building a customized pixel buffer.
 #[derive(Debug)]
-pub struct Pixels<'win> {
+pub struct Pixels<'win, W: 'win> {
     context: PixelsContext<'win>,
+    _window: W,
     surface_size: SurfaceSize,
     present_mode: wgpu::PresentMode,
     render_texture_format: wgpu::TextureFormat,
@@ -215,7 +216,10 @@ impl<W: wgpu::WindowHandle> SurfaceTexture<W> {
     }
 }
 
-impl<'win> Pixels<'win> {
+impl<'win, W> Pixels<'win, W>
+where
+    W: Clone + wgpu::WindowHandle + raw_window_handle::HasDisplayHandle + 'win,
+{
     /// Create a pixel buffer instance with default options.
     ///
     /// Any ratio differences between the pixel buffer texture size and surface texture size will
@@ -238,7 +242,7 @@ impl<'win> Pixels<'win> {
     /// # use pixels::{Pixels, SurfaceTexture};
     /// # let window = pixels_mocks::Window;
     /// let surface_texture = SurfaceTexture::new(320, 240, &window);
-    /// let mut pixels: Pixels<'_> = Pixels::new(320, 240, surface_texture)?;
+    /// let mut pixels: Pixels<'_, _> = Pixels::new(320, 240, surface_texture)?;
     /// # Ok::<(), pixels::Error>(())
     /// ```
     ///
@@ -251,7 +255,7 @@ impl<'win> Pixels<'win> {
     /// # let window = pixels_mocks::Window;
     /// let arc = Arc::new(window);
     /// let surface_texture = SurfaceTexture::new(320, 240, arc.clone());
-    /// let mut pixels: Pixels<'static> = Pixels::new(320, 240, surface_texture)?;
+    /// let mut pixels: Pixels<'static, _> = Pixels::new(320, 240, surface_texture)?;
     /// # Ok::<(), pixels::Error>(())
     /// ```
     ///
@@ -263,11 +267,7 @@ impl<'win> Pixels<'win> {
     ///
     /// Panics when `width` or `height` are 0.
     #[cfg(not(target_arch = "wasm32"))]
-    pub fn new<W: wgpu::WindowHandle + raw_window_handle::HasDisplayHandle + 'win>(
-        width: u32,
-        height: u32,
-        surface_texture: SurfaceTexture<W>,
-    ) -> Result<Self, Error> {
+    pub fn new(width: u32, height: u32, surface_texture: SurfaceTexture<W>) -> Result<Self, Error> {
         PixelsBuilder::new(width, height, surface_texture).build()
     }
 
@@ -294,7 +294,7 @@ impl<'win> Pixels<'win> {
     /// # Panics
     ///
     /// Panics when `width` or `height` are 0.
-    pub async fn new_async<W: wgpu::WindowHandle + raw_window_handle::HasDisplayHandle + 'win>(
+    pub async fn new_async(
         width: u32,
         height: u32,
         surface_texture: SurfaceTexture<W>,

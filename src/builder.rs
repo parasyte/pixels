@@ -19,8 +19,9 @@ pub struct PixelsBuilder<'req, 'dev, 'win, W: wgpu::WindowHandle + 'win> {
     alpha_mode: wgpu::CompositeAlphaMode,
 }
 
-impl<'req, 'dev, 'win, W: wgpu::WindowHandle + raw_window_handle::HasDisplayHandle + 'win>
-    PixelsBuilder<'req, 'dev, 'win, W>
+impl<'req, 'dev, 'win, W> PixelsBuilder<'req, 'dev, 'win, W>
+where
+    W: Clone + wgpu::WindowHandle + raw_window_handle::HasDisplayHandle + 'win,
 {
     /// Create a builder that can be finalized into a [`Pixels`] pixel buffer.
     ///
@@ -269,14 +270,14 @@ impl<'req, 'dev, 'win, W: wgpu::WindowHandle + raw_window_handle::HasDisplayHand
     /// # Errors
     ///
     /// Returns an error when a [`wgpu::Adapter`] cannot be found.
-    async fn build_impl(self) -> Result<Pixels<'win>, Error> {
+    async fn build_impl(self) -> Result<Pixels<'win, W>, Error> {
         let instance = wgpu::Instance::new(wgpu::InstanceDescriptor {
             backends: self.backend,
             ..wgpu::InstanceDescriptor::new_without_display_handle().with_env()
         });
 
         // TODO: Use `options.pixel_aspect_ratio` to stretch the scaled texture
-        let surface = instance.create_surface(self.surface_texture.window)?;
+        let surface = instance.create_surface(self.surface_texture.window.clone())?;
         let compatible_surface = Some(&surface);
         let request_adapter_options = &self.request_adapter_options;
         let adapter = match wgpu::util::initialize_adapter_from_env(&instance, compatible_surface)
@@ -380,6 +381,7 @@ impl<'req, 'dev, 'win, W: wgpu::WindowHandle + raw_window_handle::HasDisplayHand
         let alpha_mode = self.alpha_mode;
         let pixels = Pixels {
             context,
+            _window: self.surface_texture.window,
             adapter,
             surface_size,
             present_mode,
@@ -404,7 +406,7 @@ impl<'req, 'dev, 'win, W: wgpu::WindowHandle + raw_window_handle::HasDisplayHand
     ///
     /// Returns an error when a [`wgpu::Adapter`] or [`wgpu::Device`] cannot be found.
     #[cfg(not(target_arch = "wasm32"))]
-    pub fn build(self) -> Result<Pixels<'win>, Error> {
+    pub fn build(self) -> Result<Pixels<'win, W>, Error> {
         pollster::block_on(self.build_impl())
     }
 
@@ -430,7 +432,7 @@ impl<'req, 'dev, 'win, W: wgpu::WindowHandle + raw_window_handle::HasDisplayHand
     /// # Errors
     ///
     /// Returns an error when a [`wgpu::Adapter`] or [`wgpu::Device`] cannot be found.
-    pub async fn build_async(self) -> Result<Pixels<'win>, Error> {
+    pub async fn build_async(self) -> Result<Pixels<'win, W>, Error> {
         self.build_impl().await
     }
 }
