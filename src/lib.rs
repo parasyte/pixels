@@ -340,6 +340,16 @@ impl<'win> Pixels<'win> {
     /// ```
     pub fn set_scaling_mode(&mut self, scaling_mode: ScalingMode) {
         self.context.scaling_renderer.scaling_mode = scaling_mode;
+        self.update_scaling_matrix();
+    }
+
+    /// Recompute the scaling matrix and its inverse for the current sizes and scaling mode.
+    fn update_scaling_matrix(&mut self) {
+        self.scaling_matrix_inverse = self.context.scaling_renderer.resize(
+            &self.context.queue,
+            self.surface_size.width,
+            self.surface_size.height,
+        );
     }
 
     /// Returns a reference of the `wgpu` adapter used by the crate.
@@ -415,7 +425,9 @@ impl<'win> Pixels<'win> {
     /// texture for non-integer scaling ratios.
     ///
     /// Call this method in response to a resize event from your window manager. The size expected
-    /// is in physical pixel units. Does nothing when `width` or `height` are 0.
+    /// is in physical pixel units.
+    ///
+    /// Skip this call when `width` or `height` is 0 (e.g. while minimized); it returns an error.
     ///
     /// # Errors
     ///
@@ -428,25 +440,11 @@ impl<'win> Pixels<'win> {
         self.surface_size.width = width;
         self.surface_size.height = height;
 
-        // Update ScalingMatrix for mouse transformation
-        self.scaling_matrix_inverse = renderers::ScalingMatrix::new(
-            (
-                self.context.texture_extent.width as f32,
-                self.context.texture_extent.height as f32,
-            ),
-            (width as f32, height as f32),
-            self.context.scaling_renderer.scaling_mode,
-        )
-        .transform
-        .inversed();
-
         // Reconfigure the surface
         self.reconfigure_surface();
 
         // Update state for all render passes
-        self.context
-            .scaling_renderer
-            .resize(&self.context.queue, width, height);
+        self.update_scaling_matrix();
 
         Ok(())
     }
