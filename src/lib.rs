@@ -118,6 +118,7 @@ pub struct Pixels<'win> {
 
     // Pixel buffer
     pixels: Vec<u8>,
+    buffer_layout: builder::BufferLayout,
 
     // The inverse of the scaling matrix used by the renderer
     // Used to convert physical coordinates back to pixel coordinates (for the mouse)
@@ -179,6 +180,9 @@ pub enum TextureError {
     /// Unable to create a backing texture; Height is either 0 or greater than GPU limits
     #[error("Texture height is invalid: {0}")]
     TextureHeight(u32),
+    /// The texture format has no well-defined copy size
+    #[error("Texture format is not supported for a pixel buffer: {0:?}")]
+    UnsupportedFormat(wgpu::TextureFormat),
 }
 
 impl<W: wgpu::WindowHandle> SurfaceTexture<W> {
@@ -378,29 +382,29 @@ impl<'win> Pixels<'win> {
     /// - [`TextureError::TextureHeight`] when `height` is 0 or greater than GPU texture limits.
     pub fn resize_buffer(&mut self, width: u32, height: u32) -> Result<(), TextureError> {
         // Recreate the backing texture
-        let (scaling_matrix_inverse, texture_extent, texture, scaling_renderer, pixels_buffer_size) =
-            builder::create_backing_texture(
-                &self.context.device,
-                // Backing texture values
-                width,
-                height,
-                self.context.texture_format,
-                // Render texture values
-                &self.surface_size,
-                self.render_texture_format,
-                self.context.scaling_renderer.clear_color,
-                self.blend_state,
-                self.context.scaling_renderer.scaling_mode,
-            )?;
+        let backing = builder::create_backing_texture(
+            &self.context.device,
+            // Backing texture values
+            width,
+            height,
+            self.context.texture_format,
+            // Render texture values
+            &self.surface_size,
+            self.render_texture_format,
+            self.context.scaling_renderer.clear_color,
+            self.blend_state,
+            self.context.scaling_renderer.scaling_mode,
+        )?;
 
-        self.scaling_matrix_inverse = scaling_matrix_inverse;
-        self.context.texture_extent = texture_extent;
-        self.context.texture = texture;
-        self.context.scaling_renderer = scaling_renderer;
+        self.scaling_matrix_inverse = backing.scaling_matrix_inverse;
+        self.context.texture_extent = backing.texture_extent;
+        self.context.texture = backing.texture;
+        self.context.scaling_renderer = backing.scaling_renderer;
+        self.buffer_layout = backing.buffer_layout;
 
-        // Resize the pixel buffer
-        self.pixels
-            .resize_with(pixels_buffer_size, Default::default);
+        // Resize the pixel buffer, zeroing all of it
+        self.pixels.clear();
+        self.pixels.resize(backing.buffer_layout.size(), 0);
 
         Ok(())
     }
@@ -619,8 +623,6 @@ impl<'win> Pixels<'win> {
                 });
 
         // Update the pixel buffer texture view
-        let bytes_per_row =
-            (self.context.texture_extent.width as f32 * self.context.texture_format_size) as u32;
         self.context.queue.write_texture(
             wgpu::TexelCopyTextureInfo {
                 texture: &self.context.texture,
@@ -631,8 +633,8 @@ impl<'win> Pixels<'win> {
             &self.pixels,
             wgpu::TexelCopyBufferLayout {
                 offset: 0,
-                bytes_per_row: Some(bytes_per_row),
-                rows_per_image: Some(self.context.texture_extent.height),
+                bytes_per_row: Some(self.buffer_layout.bytes_per_row),
+                rows_per_image: Some(self.buffer_layout.rows_per_image),
             },
             self.context.texture_extent,
         );
