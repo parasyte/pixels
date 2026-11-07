@@ -292,7 +292,8 @@ impl ScalingRenderer {
         self.clip_rect
     }
 
-    pub(crate) fn resize(&mut self, queue: &wgpu::Queue, width: u32, height: u32) {
+    /// Update the scaling matrix and clipping rectangle; returns the inverse matrix.
+    pub(crate) fn resize(&mut self, queue: &wgpu::Queue, width: u32, height: u32) -> Mat4 {
         let matrix = ScalingMatrix::new(
             (self.width, self.height),
             (width as f32, height as f32),
@@ -301,6 +302,8 @@ impl ScalingRenderer {
         queue.write_buffer(&self.uniform_buffer, 0, &matrix.uniform_buffer);
 
         self.clip_rect = matrix.clip_rect();
+
+        matrix.transform.inversed()
     }
 }
 
